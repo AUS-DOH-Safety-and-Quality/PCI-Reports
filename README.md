@@ -15,6 +15,12 @@ To load the development environment navigate to the project directory in a new R
 source("renv/activate.R")
 ```
 
+If you see a warning that any packages are not installed, run:
+
+```r
+renv::restore()
+```
+
 This will install and load any required packages (including `renv`) for the current session. If you update the report to use new packages (or remove existing ones), you can update the 'standard' development environment for the project by running:
 
 ```r
