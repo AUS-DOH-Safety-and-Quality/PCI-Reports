@@ -1,0 +1,19 @@
+---
+title: "PCI Reports"
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+editor: visual
+---
+
+```{r, include=FALSE}
+# This is the setup block for the report, use this for any data
+# preparation/preprocessing that should not be displayed in the final report
+pci_data <- read.csv("./ncr_extract_template.csv")
+```
+
+## Section
+
+### Subsection
