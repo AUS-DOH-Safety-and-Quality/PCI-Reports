@@ -1,10 +1,10 @@
 ---
 title: "PCI Reports"
 format:
-  html:
+  docx:
     toc: true
     number-sections: true
-    embed-resources: true
+    highlight-style: github
 editor: visual
 ---
 
