@@ -1,3 +1,4 @@
 # Outputs/temporaries from the render process
 *.html
 *_files/
+*.docx
