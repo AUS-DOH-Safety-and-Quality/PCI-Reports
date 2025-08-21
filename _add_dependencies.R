@@ -3,4 +3,4 @@
 library(stringr)
 library(forcats)
 library(dplyr)
-library(qiverse)
+library(qiverse.sharepoint)

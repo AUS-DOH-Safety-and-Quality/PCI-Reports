@@ -9,7 +9,7 @@ editor: visual
 ---
 
 ```{r Data download, include=FALSE}
-library(qiverse)
+library(qiverse.sharepoint)
 library(forcats)
 library(dplyr)
 tk_sp = get_az_tk('sp')
