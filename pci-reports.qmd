@@ -33,10 +33,64 @@ pci_data <- rbind(fsh_data, rph_data, scgh_data)
 ```
 
 ```{r Data transformation, include=FALSE}
+pci_data <- pci_data |> dplyr::mutate(dod30 = as.Date(dod, format = "%d/%m/%Y") + 30,
+                                      dmort30 = as.Date(dmort30, format = "%d/%m/%Y"),
+                                      NCR8_num = dplyr::if_else(dod30 <= dmort30 | dis == "6", 1, 0, missing = 0))
+
+#Creating period start and end, first and last date of the month
+#Rounding only works on POSIXct dates
+pci_data <- pci_data |> dplyr::mutate(dop = as.POSIXct(dop, format = "%d/%m/%Y"),
+                                      period_start = round(dop, units = "months"),
+                                      #Find the first of the month of procedure 
+                                      #Add 31(86400 seconds*31) days to get the next month,
+                                      #floor to find the first of the next month, 
+                                      #Minus one day to find last day of original month
+                                      period_end = as.Date(round(period_start + 86400*31, 
+                                                                 units = "months")-1),
+                                      period_start = as.Date(period_start),
+                                      dop = as.Date(dop))
+
+#Group date for the funnel plot function
+ncr8_fpl_data <- pci_data |> 
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    NCR8_Num = sum(NCR8_num),
+    NCR8_Den = dplyr::n())
+
+#Group date for the SPC function
+ncr8_spc_data <- pci_data |> 
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(
+    NCR8_Num = sum(NCR8_num),
+    NCR8_Den = dplyr::n())
+  
+```
+
+## NCR 8 30 Day Mortality
+
+### Funnel
+
+```{r NCR8 Funnel, include=FALSE}
+fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
+                  denominator = ncr8_fpl_data$NCR8_Den,
+                  group = ncr8_fpl_data$hname,
+                  y_limit_upper = 10,
+                  title = "30 Day Mortality",
+                  better_is = "Lower",
+                  funnel_period_start = min(pci_data$period_start),
+                  funnel_period_end = max(pci_data$period_end))
+```
+
+### SPC
+
+```{r NCR8 SPC, include=FALSE}
+qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr8_spc_data$period_end),
+                                    numerator = ncr8_spc_data$NCR8_Num,
+                                    denominator = ncr8_spc_data$NCR8_Den,
+                                    title = "30 Day Mortality",
+                                    better_is = "Lower",
+                                    spc_period_start = min(pci_data$period_start),
+                                    spc_period_end = max(pci_data$period_end))
 
 
 ```
-
-## Section
-
-### Subsection
