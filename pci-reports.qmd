@@ -6,9 +6,12 @@ format:
     number-sections: true
     highlight-style: github
 editor: visual
+execute: 
+  echo: false
 ---
 
 ```{r Data download, include=FALSE}
+
 tk_sp <- qiverse.azure::get_az_tk('sp')
 # This is the setup block for the report, use this for any data
 # preparation/preprocessing that should not be displayed in the final report
@@ -33,64 +36,139 @@ pci_data <- rbind(fsh_data, rph_data, scgh_data)
 ```
 
 ```{r Data transformation, include=FALSE}
-pci_data <- pci_data |> dplyr::mutate(dod30 = as.Date(dod, format = "%d/%m/%Y") + 30,
-                                      dmort30 = as.Date(dmort30, format = "%d/%m/%Y"),
-                                      NCR8_num = dplyr::if_else(dod30 <= dmort30 | dis == "6", 1, 0, missing = 0))
+#Set datatypes for later use
+pci_data <- pci_data |> 
+  dplyr::mutate(dod30 = as.Date(dod, format = "%d/%m/%Y") + 30,
+                dmort30 = as.Date(dmort30, format = "%d/%m/%Y"))
 
 #Creating period start and end, first and last date of the month
 #Rounding only works on POSIXct dates
-pci_data <- pci_data |> dplyr::mutate(dop = as.POSIXct(dop, format = "%d/%m/%Y"),
-                                      period_start = round(dop, units = "months"),
-                                      #Find the first of the month of procedure 
-                                      #Add 31(86400 seconds*31) days to get the next month,
-                                      #floor to find the first of the next month, 
-                                      #Minus one day to find last day of original month
-                                      period_end = as.Date(round(period_start + 86400*31, 
-                                                                 units = "months")-1),
-                                      period_start = as.Date(period_start),
-                                      dop = as.Date(dop))
+pci_data <- pci_data |> 
+  dplyr::mutate(dop = as.POSIXct(dop, format = "%d/%m/%Y"),
+                period_start = round(dop, units = "months"),
+                #Find the first of the month of procedure 
+                #Add 31(86400 seconds*31) days to get the next month,
+                #floor to find the first of the next month, 
+                #Minus one day to find last day of original month
+                period_end = as.Date(round(period_start + 86400*31, 
+                                           units = "months")-1),
+                period_start = as.Date(period_start),
+                dop = as.Date(dop))
 
-#Group date for the funnel plot function
+#NCR 8
+pci_data <- pci_data |> 
+  dplyr::mutate(NCR8_den = 1,
+                NCR8_num = dplyr::if_else(dod30 <= dmort30 | dis == "6", 1, 0, missing = 0))
+
+
+#Group data for the funnel plot function
 ncr8_fpl_data <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
     NCR8_Num = sum(NCR8_num),
-    NCR8_Den = dplyr::n())
+    NCR8_Den = sum(NCR8_den))
 
-#Group date for the SPC function
+#Group data for the SPC function
 ncr8_spc_data <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
     NCR8_Num = sum(NCR8_num),
-    NCR8_Den = dplyr::n())
+    NCR8_Den = sum(NCR8_den))
   
+#NCR 9
+pci_data <- pci_data |> 
+  dplyr::mutate(NCR9_den = dplyr::if_else(dis != "6" & 
+                                          dstp != "2" & 
+                                          doll != "2" & 
+                                          is.na(dstp) == F &
+                                          is.na(doll) == F, 1, 0, missing = 0),
+                NCR9_num = dplyr::if_else(NCR9_den == 1 & 
+                                         (dstp == "1" | doll == "1"), 1, 0, missing = 0))
+
+#Group data for the funnel plot function
+ncr9_fpl_data <- pci_data |> 
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    NCR9_Num = sum(NCR9_num),
+    NCR9_Den = sum(NCR9_den))
+
+#Group data for the SPC function
+ncr9_spc_data <- pci_data |> 
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(
+    NCR9_Num = sum(NCR9_num),
+    NCR9_Den = sum(NCR9_den))
 ```
 
-## NCR 8 30 Day Mortality
+## NCR 8: 30 Day Mortality
 
 ### Funnel
 
-```{r NCR8 Funnel, include=FALSE}
-fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
+```{r NCR8 Funnel}
+qiverse.qiplotly::fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
                   denominator = ncr8_fpl_data$NCR8_Den,
                   group = ncr8_fpl_data$hname,
                   y_limit_upper = 10,
                   title = "30 Day Mortality",
                   better_is = "Lower",
                   funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end))
+                  funnel_period_end = max(pci_data$period_end)) |> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = "Plots/HTML/NCR8_fpl.html")
+#Snapshot the html file and save it as a png
+webshot::webshot(url = "Plots/HTML/NCR8_fpl.html", file = "Plots/NCR8_fpl.png")
 ```
 
 ### SPC
 
-```{r NCR8 SPC, include=FALSE}
+```{r NCR8 SPC}
 qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr8_spc_data$period_end),
                                     numerator = ncr8_spc_data$NCR8_Num,
                                     denominator = ncr8_spc_data$NCR8_Den,
                                     title = "30 Day Mortality",
                                     better_is = "Lower",
                                     spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end))
+                                    spc_period_end = max(pci_data$period_end)) |> 
+  htmlwidgets::saveWidget(file = "Plots/HTML/NCR8_spc.html") 
 
+webshot::webshot(url = "Plots/HTML/NCR8_spc.html", file = "Plots/NCR8_spc.png")
+```
 
+## NCR 9: Patients Discharged on Lipid-Lowering Therapy
+
+### Funnel
+
+```{r NCR9 Funnel}
+qiverse.qiplotly::fpl_plotly_create(numerator = ncr9_fpl_data$NCR9_Num,
+                  denominator = ncr9_fpl_data$NCR9_Den,
+                  group = ncr9_fpl_data$hname,
+                  title = "Discharged on Lipid-Lowering Therapy",
+                  better_is = "Lower",
+                  funnel_period_start = min(pci_data$period_start),
+                  funnel_period_end = max(pci_data$period_end)) |> 
+  htmlwidgets::saveWidget(file = "Plots/HTML/NCR9_fpl.html")
+
+webshot::webshot(url = "Plots/HTML/NCR9_fpl.html", file = "Plots/NCR9_fpl.png")
+```
+
+### SPC
+
+```{r NCR9 SPC}
+qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr9_spc_data$period_end),
+                                    numerator = ncr9_spc_data$NCR9_Num,
+                                    denominator = ncr9_spc_data$NCR9_Den,
+                                    title = "Discharged on Lipid-Lowering Therapy",
+                                    better_is = "Lower",
+                                    spc_period_start = min(pci_data$period_start),
+                                    spc_period_end = max(pci_data$period_end)) |> 
+  htmlwidgets::saveWidget(file = "Plots/HTML/NCR9_spc.html")
+
+webshot::webshot(url = "Plots/HTML/NCR9_spc.html", file = "Plots/NCR9_spc.png")
+```
+
+```{r purge HTML plots, include=FALSE}
+#Saving the plots to html generate extra files that are unneeded
+unlink("Plots/HTML/", recursive = T, force = T)
+#Recreate the folder for new runs
+dir.create("Plots/HTML")
 ```

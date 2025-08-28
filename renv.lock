@@ -569,6 +569,44 @@
       "Maintainer": "Winston Chang <winston@posit.co>",
       "Repository": "CRAN"
     },
+    "callr": {
+      "Package": "callr",
+      "Version": "3.7.6",
+      "Source": "Repository",
+      "Title": "Call R from R",
+      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\", \"cph\"), comment = c(ORCID = \"0000-0001-7098-9676\")), person(\"Winston\", \"Chang\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")), person(\"Ascent Digital Services\", role = c(\"cph\", \"fnd\")) )",
+      "Description": "It is sometimes useful to perform a computation in a separate R process, without affecting the current R process at all.  This packages does exactly that.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://callr.r-lib.org, https://github.com/r-lib/callr",
+      "BugReports": "https://github.com/r-lib/callr/issues",
+      "Depends": [
+        "R (>= 3.4)"
+      ],
+      "Imports": [
+        "processx (>= 3.6.1)",
+        "R6",
+        "utils"
+      ],
+      "Suggests": [
+        "asciicast (>= 2.3.1)",
+        "cli (>= 1.1.0)",
+        "mockery",
+        "ps",
+        "rprojroot",
+        "spelling",
+        "testthat (>= 3.2.0)",
+        "withr (>= 2.3.0)"
+      ],
+      "Config/Needs/website": "r-lib/asciicast, glue, htmlwidgets, igraph, tibble, tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Encoding": "UTF-8",
+      "Language": "en-US",
+      "RoxygenNote": "7.3.1.9000",
+      "NeedsCompilation": "no",
+      "Author": "Gábor Csárdi [aut, cre, cph] (<https://orcid.org/0000-0001-7098-9676>), Winston Chang [aut], Posit Software, PBC [cph, fnd], Ascent Digital Services [cph, fnd]",
+      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
+      "Repository": "CRAN"
+    },
     "cli": {
       "Package": "cli",
       "Version": "3.6.5",
@@ -2071,6 +2109,46 @@
       "Maintainer": "Carson Sievert <cpsievert1@gmail.com>",
       "Repository": "CRAN"
     },
+    "processx": {
+      "Package": "processx",
+      "Version": "3.8.6",
+      "Source": "Repository",
+      "Title": "Execute and Control System Processes",
+      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\", \"cph\"), comment = c(ORCID = \"0000-0001-7098-9676\")), person(\"Winston\", \"Chang\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")), person(\"Ascent Digital Services\", role = c(\"cph\", \"fnd\")) )",
+      "Description": "Tools to run system processes in the background.  It can check if a background process is running; wait on a background process to finish; get the exit status of finished processes; kill background processes. It can read the standard output and error of the processes, using non-blocking connections. 'processx' can poll a process for standard output or error, with a timeout. It can also poll several processes at once.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://processx.r-lib.org, https://github.com/r-lib/processx",
+      "BugReports": "https://github.com/r-lib/processx/issues",
+      "Depends": [
+        "R (>= 3.4.0)"
+      ],
+      "Imports": [
+        "ps (>= 1.2.0)",
+        "R6",
+        "utils"
+      ],
+      "Suggests": [
+        "callr (>= 3.7.3)",
+        "cli (>= 3.3.0)",
+        "codetools",
+        "covr",
+        "curl",
+        "debugme",
+        "parallel",
+        "rlang (>= 1.0.2)",
+        "testthat (>= 3.0.0)",
+        "webfakes",
+        "withr"
+      ],
+      "Config/Needs/website": "tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.1.9000",
+      "NeedsCompilation": "yes",
+      "Author": "Gábor Csárdi [aut, cre, cph] (<https://orcid.org/0000-0001-7098-9676>), Winston Chang [aut], Posit Software, PBC [cph, fnd], Ascent Digital Services [cph, fnd]",
+      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
+      "Repository": "CRAN"
+    },
     "promises": {
       "Package": "promises",
       "Version": "1.3.3",
@@ -2114,6 +2192,45 @@
       "NeedsCompilation": "yes",
       "Author": "Joe Cheng [aut, cre], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
       "Maintainer": "Joe Cheng <joe@posit.co>",
+      "Repository": "CRAN"
+    },
+    "ps": {
+      "Package": "ps",
+      "Version": "1.9.1",
+      "Source": "Repository",
+      "Title": "List, Query, Manipulate System Processes",
+      "Authors@R": "c( person(\"Jay\", \"Loden\", role = \"aut\"), person(\"Dave\", \"Daeschler\", role = \"aut\"), person(\"Giampaolo\", \"Rodola'\", role = \"aut\"), person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
+      "Description": "List, query and manipulate all system processes, on 'Windows', 'Linux' and 'macOS'.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/r-lib/ps, https://ps.r-lib.org/",
+      "BugReports": "https://github.com/r-lib/ps/issues",
+      "Depends": [
+        "R (>= 3.4)"
+      ],
+      "Imports": [
+        "utils"
+      ],
+      "Suggests": [
+        "callr",
+        "covr",
+        "curl",
+        "pillar",
+        "pingr",
+        "processx (>= 3.1.0)",
+        "R6",
+        "rlang",
+        "testthat (>= 3.0.0)",
+        "webfakes",
+        "withr"
+      ],
+      "Biarch": "true",
+      "Config/Needs/website": "tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.2",
+      "NeedsCompilation": "yes",
+      "Author": "Jay Loden [aut], Dave Daeschler [aut], Giampaolo Rodola' [aut], Gábor Csárdi [aut, cre], Posit Software, PBC [cph, fnd]",
+      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
       "Repository": "CRAN"
     },
     "purrr": {
@@ -2238,7 +2355,7 @@
     },
     "qiverse.qiplotly": {
       "Package": "qiverse.qiplotly",
-      "Version": "0.1.3",
+      "Version": "0.1.4",
       "Source": "GitHub",
       "Title": "Quality Improvement Plotly Charts",
       "Authors@R": "person(given = \"Healthcare Quality Intelligence Unit (Western Australia Health)\", family = \"\", role = c(\"aut\", \"cre\"), email = \"safetyandquality@health.wa.gov.au\")",
@@ -2254,7 +2371,7 @@
         "R (>= 4.3.0)"
       ],
       "Imports": [
-        "FunnelPlotR",
+        "FunnelPlotR (>= 0.6.0)",
         "dplyr",
         "plotly",
         "qicharts2",
@@ -2276,7 +2393,7 @@
       "RemoteRepo": "qiverse",
       "RemoteSubdir": "qiverse.qiplotly",
       "RemoteRef": "main",
-      "RemoteSha": "5b03cad2d55dec15d3e245f93a0a37f06c9d20f4"
+      "RemoteSha": "ee8e65264f22359c7e0266b4e57acb3fe8833957"
     },
     "qiverse.sharepoint": {
       "Package": "qiverse.sharepoint",
@@ -2992,6 +3109,40 @@
       "RoxygenNote": "7.2.3",
       "NeedsCompilation": "no",
       "Author": "Simon Garnier [aut, cre], Noam Ross [ctb, cph], Bob Rudis [ctb, cph], Marco Sciaini [ctb, cph], Antônio Pedro Camargo [ctb, cph], Cédric Scherer [ctb, cph]",
+      "Repository": "CRAN"
+    },
+    "webshot": {
+      "Package": "webshot",
+      "Version": "0.5.5",
+      "Source": "Repository",
+      "Title": "Take Screenshots of Web Pages",
+      "Authors@R": "c( person(\"Winston\", \"Chang\", email = \"winston@rstudio.com\", role = c(\"aut\", \"cre\")), person(\"Yihui\", \"Xie\", role = \"ctb\"), person(\"Francois\", \"Guillem\", role = \"ctb\"), person(\"Barret\", \"Schloerke\", role = \"ctb\"), person(\"Nicolas\", \"Perriault\", role = \"ctb\", comment = \"The CasperJS library\") )",
+      "Description": "Takes screenshots of web pages, including Shiny applications and R Markdown documents.",
+      "Depends": [
+        "R (>= 3.0)"
+      ],
+      "Imports": [
+        "magrittr",
+        "jsonlite",
+        "callr"
+      ],
+      "Suggests": [
+        "httpuv",
+        "knitr",
+        "rmarkdown",
+        "shiny",
+        "testthat (>= 3.0.0)"
+      ],
+      "License": "GPL-2",
+      "SystemRequirements": "PhantomJS for taking screenshots, ImageMagick or GraphicsMagick and OptiPNG for manipulating images.",
+      "RoxygenNote": "7.2.3",
+      "Encoding": "UTF-8",
+      "URL": "https://wch.github.io/webshot/, https://github.com/wch/webshot/",
+      "BugReports": "https://github.com/wch/webshot/issues",
+      "Config/testthat/edition": "3",
+      "NeedsCompilation": "no",
+      "Author": "Winston Chang [aut, cre], Yihui Xie [ctb], Francois Guillem [ctb], Barret Schloerke [ctb], Nicolas Perriault [ctb] (The CasperJS library)",
+      "Maintainer": "Winston Chang <winston@rstudio.com>",
       "Repository": "CRAN"
     },
     "withr": {
