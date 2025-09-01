@@ -36,24 +36,20 @@ pci_data <- rbind(fsh_data, rph_data, scgh_data)
 ```
 
 ```{r Data transformation, include=FALSE}
+#Setup Temporary Directory for file storage
+temp <- tempdir()
+
 #Set datatypes for later use
 pci_data <- pci_data |> 
-  dplyr::mutate(dop30 = as.Date(dop, format = "%d/%m/%Y") + 30,
+  dplyr::mutate(dop = as.Date(dop, format = "%d/%m/%Y"),
+                dop30 = dop + 30,
                 dmort30 = as.Date(dmort30, format = "%d/%m/%Y"))
 
 #Creating period start and end, first and last date of the month
 #Rounding only works on POSIXct dates
 pci_data <- pci_data |> 
-  dplyr::mutate(dop = as.POSIXct(dop, format = "%d/%m/%Y"),
-                period_start = round(dop, units = "months"),
-                #Find the first of the month of procedure 
-                #Add 31(86400 seconds*31) days to get the next month,
-                #floor to find the first of the next month, 
-                #Minus one day to find last day of original month
-                period_end = as.Date(round(period_start + 86400*31, 
-                                           units = "months")-1),
-                period_start = as.Date(period_start),
-                dop = as.Date(dop))
+  dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
+                period_end = lubridate::ceiling_date(period_start, unit = "month"))
 
 #NCR 8
 pci_data <- pci_data |> 
@@ -152,6 +148,7 @@ ncr11_spc_data <- pci_data |>
 ### Funnel
 
 ```{r NCR8 Funnel}
+tempFile <- paste0(temp, "/NCR8_fpl.html")
 qiverse.qiplotly::fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
                   denominator = ncr8_fpl_data$NCR8_Den,
                   group = ncr8_fpl_data$hname,
@@ -161,14 +158,15 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR8_fpl.html", selfcontained = T, libdir = tempdir())
+  htmlwidgets::saveWidget(file = tempFile)
 #Snapshot the html file and save it as a png
-webshot::webshot(url = "Plots/HTML/NCR8_fpl.html", file = "Plots/NCR8_fpl.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR8_fpl.png")
 ```
 
 ### SPC
 
 ```{r NCR8 SPC}
+tempFile <- paste0(temp, "/NCR8_spc.html")
 qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr8_spc_data$period_end),
                                     numerator = ncr8_spc_data$NCR8_Num,
                                     denominator = ncr8_spc_data$NCR8_Den,
@@ -176,9 +174,9 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr8_spc_data$period_end),
                                     better_is = "Lower",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR8_spc.html") 
-c
-webshot::webshot(url = "Plots/HTML/NCR8_spc.html", file = "Plots/NCR8_spc.png")
+  htmlwidgets::saveWidget(file = tempFile) 
+
+webshot::webshot(url = tempFile, file = "Plots/NCR8_spc.png")
 ```
 
 ## NCR 9: Patients Discharged on Lipid-Lowering Therapy
@@ -186,6 +184,7 @@ webshot::webshot(url = "Plots/HTML/NCR8_spc.html", file = "Plots/NCR8_spc.png")
 ### Funnel
 
 ```{r NCR9 Funnel}
+tempFile <- paste0(temp, "/NCR9_fpl.html")
 qiverse.qiplotly::fpl_plotly_create(numerator = ncr9_fpl_data$NCR9_Num,
                   denominator = ncr9_fpl_data$NCR9_Den,
                   group = ncr9_fpl_data$hname,
@@ -193,14 +192,15 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr9_fpl_data$NCR9_Num,
                   better_is = "Lower",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR9_fpl.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR9_fpl.html", file = "Plots/NCR9_fpl.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR9_fpl.png")
 ```
 
 ### SPC
 
 ```{r NCR9 SPC}
+tempFile <- paste0(temp, "/NCR9_spc.html")
 qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr9_spc_data$period_end),
                                     numerator = ncr9_spc_data$NCR9_Num,
                                     denominator = ncr9_spc_data$NCR9_Den,
@@ -208,9 +208,9 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr9_spc_data$period_end),
                                     better_is = "Lower",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR9_spc.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR9_spc.html", file = "Plots/NCR9_spc.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR9_spc.png")
 ```
 
 ## NCR 10: Patients Referred to Cardiac Rehabilitation
@@ -218,6 +218,7 @@ webshot::webshot(url = "Plots/HTML/NCR9_spc.html", file = "Plots/NCR9_spc.png")
 ### Funnel
 
 ```{r NCR10 Funnel}
+tempFile <- paste0(temp, "/NCR10_fpl.html")
 qiverse.qiplotly::fpl_plotly_create(numerator = ncr10_fpl_data$NCR10_Num,
                   denominator = ncr10_fpl_data$NCR10_Den,
                   group = ncr10_fpl_data$hname,
@@ -225,14 +226,15 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr10_fpl_data$NCR10_Num,
                   better_is = "Lower",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR10_fpl.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR10_fpl.html", file = "Plots/NCR10_fpl.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR10_fpl.png")
 ```
 
 ### SPC
 
 ```{r NCR10 SPC}
+tempFile <- paste0(temp, "/NCR10_spc.html")
 qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr10_spc_data$period_end),
                                     numerator = ncr10_spc_data$NCR10_Num,
                                     denominator = ncr10_spc_data$NCR10_Den,
@@ -240,9 +242,9 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr10_spc_data$period_end),
                                     better_is = "Lower",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR10_spc.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR10_spc.html", file = "Plots/NCR10_spc.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR10_spc.png")
 ```
 
 ## NCR 11: Patients Discharged on Dual Antiplatelet Therapy
@@ -250,6 +252,7 @@ webshot::webshot(url = "Plots/HTML/NCR10_spc.html", file = "Plots/NCR10_spc.png"
 ### Funnel
 
 ```{r NCR11 Funnel}
+tempFile <- paste0(temp, "/NCR11_fpl.html")
 qiverse.qiplotly::fpl_plotly_create(numerator = ncr11_fpl_data$NCR11_Num,
                   denominator = ncr11_fpl_data$NCR11_Den,
                   group = ncr11_fpl_data$hname,
@@ -257,14 +260,15 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr11_fpl_data$NCR11_Num,
                   better_is = "Lower",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR11_fpl.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR11_fpl.html", file = "Plots/NCR11_fpl.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR11_fpl.png")
 ```
 
 ### SPC
 
 ```{r NCR11 SPC}
+tempFile <- paste0(temp, "/NCR11_spc.html")
 qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr11_spc_data$period_end),
                                     numerator = ncr11_spc_data$NCR11_Num,
                                     denominator = ncr11_spc_data$NCR11_Den,
@@ -272,14 +276,18 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr11_spc_data$period_end),
                                     better_is = "Lower",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
-  htmlwidgets::saveWidget(file = "Plots/HTML/NCR11_spc.html")
+  htmlwidgets::saveWidget(file = tempFile)
 
-webshot::webshot(url = "Plots/HTML/NCR11_spc.html", file = "Plots/NCR11_spc.png")
+webshot::webshot(url = tempFile, file = "Plots/NCR11_spc.png")
 ```
 
-```{r purge HTML plots, include=FALSE}
-#Saving the plots to html generate extra files that are unneeded
-unlink("Plots/HTML/", recursive = T, force = T)
-#Recreate the folder for new runs
-dir.create("Plots/HTML")
+
+```{r test}
+test <- pci_data
+
+test2 <- test |> 
+  #dplyr::mutate(dop30 = as.Date(dop, format = "%d/%m/%Y") + 30) |>
+  dplyr::group_by(hname, dop, patientid) |>
+  dplyr::summarise(count = dplyr::n())
+
 ```
