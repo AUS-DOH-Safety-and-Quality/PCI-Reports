@@ -11,50 +11,60 @@ execute:
 ---
 
 ```{r Data download, include=FALSE}
+#Setup Temporary Directory for file storage
+temp <- tempdir()
+#Load in the helper functions/data required
+source("HelperFunctions.R")
+#Set data source type Powerbi or Sharepoint
+data_source <- "Powerbi"
 
+if(data_source == "Sharepoint"){
+  #Sharepoint Token
 tk_sp <- qiverse.azure::get_az_tk('sp')
-# This is the setup block for the report, use this for any data
-# preparation/preprocessing that should not be displayed in the final report
+#Load data from CSV
 fsh_data <- qiverse.sharepoint::download_sharepoint_file(
   site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
   file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Fiona_Stanley_Hospital_2024_PCI_Data.csv?d=w502a1115d07d84e37976119fd0e5ed4e4&csf=1&web=1&e=CipGly',
-  token = tk_sp) |>
-  read.csv()
+  token = tk_sp)
 rph_data <- qiverse.sharepoint::download_sharepoint_file(
   site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
   file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Royal_Perth_Hospital_2024_PCI_Data.csv?d=w7b047d9021874a58bd3241d2ad4837ef&csf=1&web=1&e=HXmpC4',
-  token = tk_sp) |>
-  read.csv()
+  token = tk_sp)
 scgh_data <- qiverse.sharepoint::download_sharepoint_file(
   site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
   file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Sir_Charles_Gairdner_Hospital_2024_PCI_Data.csv?d=w970e2c01ddec4e8aa6456876e8c793b5&csf=1&web=1&e=Jc7bIW',
-  token = tk_sp) |> 
-  read.csv()
+  token = tk_sp)
 
-pci_data <- rbind(fsh_data, rph_data, scgh_data)
+#Read in data from CSV
+pci_data <- readr::read_csv(c(fsh_data, rph_data, scgh_data), col_types = colTypes)
+} else if(data_source == "Powerbi"){
+#PowerBI Token
+tk = qiverse.azure::get_az_tk('pbi_df')
+#Load data from PowerBI
+data <- qiverse.powerbi::download_dataflow_table(workspace_name = "PCI Data Set",
+                                              dataflow_name = "NCR Template and Hid files",
+                                              table_name = "required_columns",
+                                              access_token = tk$credentials$access_token)
+#Workaround for setting csv col types
+readr::write_csv(data, paste0(temp, ".csv"))
+#Read in data from PowerBI
+pci_data <- readr::read_csv(paste0(temp, ".csv"), col_types = colTypes)
+}
 
 ```
 
 ```{r Data transformation, include=FALSE}
-#Setup Temporary Directory for file storage
-temp <- tempdir()
 
-#Set datatypes for later use
-pci_data <- pci_data |> 
-  dplyr::mutate(dop = as.Date(dop, format = "%d/%m/%Y"),
-                dop30 = dop + 30,
-                dmort30 = as.Date(dmort30, format = "%d/%m/%Y"))
 
 #Creating period start and end, first and last date of the month
-#Rounding only works on POSIXct dates
 pci_data <- pci_data |> 
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
-                period_end = lubridate::ceiling_date(period_start, unit = "month"))
+                period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
 
 #NCR 8
 pci_data <- pci_data |> 
   dplyr::mutate(NCR8_den = 1,
-                NCR8_num = dplyr::if_else(dop30 <= dmort30 | dis == "6", 1, 0, missing = 0))
+                NCR8_num = dplyr::if_else((dop + 30) <= dmort30 | dis == "6", 1, 0, missing = 0))
 
 
 #Group data for the funnel plot function
@@ -78,7 +88,11 @@ pci_data <- pci_data |>
                                           dstp != "2" & 
                                           doll != "2" & 
                                           is.na(dstp) == F &
-                                          is.na(doll) == F, 1, 0, missing = 0),
+                                          is.na(doll) == F &
+                                          dstp != "3" & 
+                                          doll != "3" & 
+                                          dstp != "" & 
+                                          doll != "", 1, 0, missing = 0),
                 NCR9_num = dplyr::if_else(NCR9_den == 1 & 
                                          (dstp == "1" | doll == "1"), 1, 0, missing = 0))
 
@@ -99,7 +113,9 @@ ncr9_spc_data <- pci_data |>
 
 #NCR 10
 pci_data <- pci_data |> 
-  dplyr::mutate(NCR10_den = dplyr::if_else(dis != "6" , 1, 0, missing = 0),
+  dplyr::mutate(NCR10_den = dplyr::if_else(dis != "6" &
+                                           crehab != "-1" &
+                                           crehab != "", 1, 0, missing = 0),
                 NCR10_num = dplyr::if_else(NCR10_den == 1 & 
                                            crehab == "1", 1, 0, missing = 0))
 
@@ -124,7 +140,11 @@ pci_data <- pci_data |>
                                            dasp != "2" & 
                                            doap != "2" & 
                                            is.na(dasp) == F &
-                                           is.na(doap) == F, 1, 0, missing = 0),
+                                           is.na(doap) == F &
+                                           dasp != "3" & 
+                                           doap != "3" & 
+                                           dasp != "" & 
+                                           doap != "", 1, 0, missing = 0),
                 NCR11_num = dplyr::if_else(NCR11_den == 1 & 
                                           (dasp == "1" | doap == "1"), 1, 0, missing = 0))
 
@@ -189,7 +209,7 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr9_fpl_data$NCR9_Num,
                   denominator = ncr9_fpl_data$NCR9_Den,
                   group = ncr9_fpl_data$hname,
                   title = "Discharged on Lipid-Lowering Therapy",
-                  better_is = "Lower",
+                  better_is = "Higher",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -205,7 +225,7 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr9_spc_data$period_end),
                                     numerator = ncr9_spc_data$NCR9_Num,
                                     denominator = ncr9_spc_data$NCR9_Den,
                                     title = "Discharged on Lipid-Lowering Therapy",
-                                    better_is = "Lower",
+                                    better_is = "Higher",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -223,7 +243,7 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr10_fpl_data$NCR10_Num,
                   denominator = ncr10_fpl_data$NCR10_Den,
                   group = ncr10_fpl_data$hname,
                   title = "Referred to Cardiac Rehabilitation",
-                  better_is = "Lower",
+                  better_is = "Higher",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -239,7 +259,7 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr10_spc_data$period_end),
                                     numerator = ncr10_spc_data$NCR10_Num,
                                     denominator = ncr10_spc_data$NCR10_Den,
                                     title = "Referred to Cardiac Rehabilitation",
-                                    better_is = "Lower",
+                                    better_is = "Higher",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -257,7 +277,7 @@ qiverse.qiplotly::fpl_plotly_create(numerator = ncr11_fpl_data$NCR11_Num,
                   denominator = ncr11_fpl_data$NCR11_Den,
                   group = ncr11_fpl_data$hname,
                   title = "Discharged on Dual Antiplatelet Therapy",
-                  better_is = "Lower",
+                  better_is = "Higher",
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -273,21 +293,10 @@ qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr11_spc_data$period_end),
                                     numerator = ncr11_spc_data$NCR11_Num,
                                     denominator = ncr11_spc_data$NCR11_Den,
                                     title = "Discharged on Dual Antiplatelet Therapy",
-                                    better_is = "Lower",
+                                    better_is = "Higher",
                                     spc_period_start = min(pci_data$period_start),
                                     spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
 
 webshot::webshot(url = tempFile, file = "Plots/NCR11_spc.png")
-```
-
-
-```{r test}
-test <- pci_data
-
-test2 <- test |> 
-  #dplyr::mutate(dop30 = as.Date(dop, format = "%d/%m/%Y") + 30) |>
-  dplyr::group_by(hname, dop, patientid) |>
-  dplyr::summarise(count = dplyr::n())
-
 ```
