@@ -54,33 +54,120 @@ pci_data <- readr::read_csv(paste0(temp, ".csv"), col_types = colTypes)
 ```
 
 ```{r Data transformation, include=FALSE}
-
-
+# Required Data Transformations
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |> 
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
                 period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
 
+#Creating required columns for Indicator calculations
+pci_data <- pci_data |>
+  dplyr::mutate(
+    ## Create dbd based on whether the tbd time occurred before/after top time
+    dbd = dplyr::case_when(
+      tbd <= top ~ dop + lubridate::days(1),
+      tbd > top ~ dop, 
+      tbd = NA ~ NA
+    ),
+    ## Calculate column required for ECG to PCI time
+    ecgbd = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
+    ## Calculate column required for Door to PCI time
+    dbdt = difftime(tbd, toa, units = "mins") + difftime(dbd, doa, units = "mins")
+  )
+
+
+## Summary for Indicator 1
+pci_data <- pci_data |>
+  dplyr::mutate(NCR1_den = dplyr::if_else(pci == "1" &
+                ecgbd >= 0 &
+                ecgbd <= 500, 1, 0))
+
+ecg_to_pci_spc <- pci_data |>
+  dplyr::filter(NCR1_den == 1) |>
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(num = median(ecgbd),
+                   den = sum(NCR1_den))
+
+## Summary for Indicator 2
+pci_data <- pci_data |>
+  dplyr::mutate(NCR2_den = dplyr::if_else(pci == "1" &
+                dbdt >= 0 &
+                dbdt <= 500, 1, 0))
+                
+door_to_pci_spc <- pci_data |>
+  dplyr::filter(NCR2_den == 1) |>
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(num = median(dbdt),
+                   den = sum(NCR2_den))
+
+## Summary for Indicator 3
+pci_data <- pci_data |>
+dplyr::mutate(NCR3_den = dplyr::if_else(ihstr != "",1,0))
+              
+peri_PCI_stroke_fpl <- pci_data |> 
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    num = sum(ihstr),
+    den = sum(NCR3_den))
+
+peri_PCI_stroke_spc <- pci_data |>
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(num = sum(ihstr),
+                   den = sum(NCR3_den))
+
+## Summary for Indicator 5
+pci_data <- pci_data |>
+  dplyr::mutate(NCR5_den = 1,
+                NCR5_num = ifelse(dis == "6", 1, 0))
+
+ihm_fpl <- pci_data |> 
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    num = sum(NCR5_num, na.rm = T),
+    den = sum(NCR5_den, na.rm = T))
+
+ihm_spc <- pci_data |>
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(num = sum(NCR5_num),
+                   den = sum(NCR5_den))
+
+## Summary for Indicator 6
+pci_data <- pci_data |>
+  dplyr:::mutate(NCR6_den = ifelse(dis != "6", 1, 0),
+                 NCR6_num = ifelse(NCR6_den == 1 &
+                              crh30 == "1" &
+                              pc30 != "1", 1, 0))
+
+unplanned_readmission_fpl <- pci_data |> 
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    num = sum(NCR6_num, na.rm = T),
+    den = sum(NCR6_den, na.rm = T))
+
+unplanned_readmission_spc <- pci_data |>
+  dplyr::group_by(period_start, period_end) |>
+  dplyr::summarise(num = sum(NCR6_num, na.rm = T),
+                   den = sum(NCR6_den, na.rm = T))
+
 #NCR 8
 pci_data <- pci_data |> 
   dplyr::mutate(NCR8_den = 1,
-                NCR8_num = dplyr::if_else((dop + 30) <= dmort30 | dis == "6", 1, 0, missing = 0))
-
+                NCR8_num = dplyr::if_else((dop + 30) <= dmort30 |
+                                          dis == "6", 1, 0, missing = 0))
 
 #Group data for the funnel plot function
-ncr8_fpl_data <- pci_data |> 
+mort_30_day_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    NCR8_Num = sum(NCR8_num),
-    NCR8_Den = sum(NCR8_den))
+    num = sum(NCR8_num),
+    den = sum(NCR8_den))
 
 #Group data for the SPC function
-ncr8_spc_data <- pci_data |> 
+mort_30_day_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    NCR8_Num = sum(NCR8_num),
-    NCR8_Den = sum(NCR8_den))
-  
+    num = sum(NCR8_num),
+    den = sum(NCR8_den))
 
 #NCR 9
 pci_data <- pci_data |> 
@@ -97,18 +184,18 @@ pci_data <- pci_data |>
                                          (dstp == "1" | doll == "1"), 1, 0, missing = 0))
 
 #Group data for the funnel plot function
-ncr9_fpl_data <- pci_data |> 
+lipid_lowering_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    NCR9_Num = sum(NCR9_num),
-    NCR9_Den = sum(NCR9_den))
+    num = sum(NCR9_num),
+    den = sum(NCR9_den))
 
 #Group data for the SPC function
-ncr9_spc_data <- pci_data |> 
+lipid_lowering_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    NCR9_Num = sum(NCR9_num),
-    NCR9_Den = sum(NCR9_den))
+    num = sum(NCR9_num),
+    den = sum(NCR9_den))
 
 
 #NCR 10
@@ -120,18 +207,18 @@ pci_data <- pci_data |>
                                            crehab == "1", 1, 0, missing = 0))
 
 #Group data for the funnel plot function
-ncr10_fpl_data <- pci_data |> 
+cardiac_rehab_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    NCR10_Num = sum(NCR10_num),
-    NCR10_Den = sum(NCR10_den))
+    num = sum(NCR10_num),
+    den = sum(NCR10_den))
 
 #Group data for the SPC function
-ncr10_spc_data <- pci_data |> 
+cardiac_rehab_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    NCR10_Num = sum(NCR10_num),
-    NCR10_Den = sum(NCR10_den))
+    num = sum(NCR10_num),
+    den = sum(NCR10_den))
 
 
 #NCR 11
@@ -149,18 +236,193 @@ pci_data <- pci_data |>
                                           (dasp == "1" | doap == "1"), 1, 0, missing = 0))
 
 #Group data for the funnel plot function
-ncr11_fpl_data <- pci_data |> 
+antiplatelet_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    NCR11_Num = sum(NCR11_num),
-    NCR11_Den = sum(NCR11_den))
+    num = sum(NCR11_num),
+    den = sum(NCR11_den))
 
 #Group data for the SPC function
-ncr11_spc_data <- pci_data |> 
+antiplatelet_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    NCR11_Num = sum(NCR11_num),
-    NCR11_Den = sum(NCR11_den))
+    num = sum(NCR11_num),
+    den = sum(NCR11_den))
+```
+
+
+## NCR 1: Time from diagnostic ECG to PCI mediated reperfusion
+
+### SPC
+
+```{r Indicator 1}
+## Generate the SPC chart for Indicator 1
+tempFile <- paste0(temp, "/NCR1_fpl.html")
+qiverse.qiplotly::spc_plotly_create(ecg_to_pci_spc$period_end,
+                                    numerator = ecg_to_pci_spc$num,
+                                    data_type = "i",
+                                    better_is = "Lower",
+                                    y_format = "Numeric",
+                                    title = "Indicator 1: Time from diagnostic ECG to PCI mediated reperfusion.",
+                                    spc_period_start = min(pci_data$period_start),
+                                    spc_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR1_fpl.png")
+
+```
+
+## NCR 2: Time from door to PCI mediated reperfusion
+
+### SPC
+
+```{r Indicator 2}
+## Generate the SPC chart for Indicator 2
+tempFile <- paste0(temp, "/NCR2_fpl.html")
+qiverse.qiplotly::spc_plotly_create(door_to_pci_spc$period_end,
+                                    numerator = door_to_pci_spc$num,
+                                    data_type = "i",
+                                    better_is = "Lower",
+                                    y_format = "Numeric",
+                                    title = "Indicator 2: Time from door to PCI mediated reperfusion.",
+                                    spc_period_start = min(pci_data$period_start),
+                                    spc_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR2_fpl.png")
+
+```
+
+## NCR 3: Peri-PCI stroke
+
+### Funnel
+
+``` {r Indicator_funnel 3}
+## Generate the Funnel chart for Indicator 3
+tempFile <- paste0(temp, "/NCR3_fpl.html")
+qiverse.qiplotly::fpl_plotly_create(
+                  numerator = peri_PCI_stroke_fpl$num,
+                  denominator = peri_PCI_stroke_fpl$den,
+                  group = peri_PCI_stroke_fpl$hname,
+                  better_is = "Lower",
+                  y_limit_upper = 2,
+                  title = "Indicator 3: Proportion of Peri-PCI stroke",
+                  funnel_period_start = min(pci_data$period_start),
+                  funnel_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR3_fpl.png")
+
+```
+
+### SPC
+
+``` {r Indicator 3}
+## Generate the SPC chart for Indicator 3
+tempFile <- paste0(temp, "/NCR3_fpl.html")
+qiverse.qiplotly::spc_plotly_create(peri_PCI_stroke_spc$period_end,
+                  numerator = peri_PCI_stroke_spc$num,
+                  denominator = peri_PCI_stroke_spc$den,
+                  data_type = "p",
+                  better_is = "Lower",
+                  title = "Indicator 3: Proportion of Peri-PCI stroke",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR3_fpl.png")
+
+```
+
+
+## NCR 5: In-hospital mortality
+
+### Funnel
+
+``` {r Indicator_funnel 5}
+## Generate the Funnel chart for Indicator 5
+tempFile <- paste0(temp, "/NCR5_fpl.html")
+qiverse.qiplotly::fpl_plotly_create(
+                  numerator = ihm_fpl$num,
+                  denominator = ihm_fpl$den,
+                  group = ihm_fpl$hname,
+                  better_is = "Lower",
+                  y_limit_upper = 5,
+                  title = "Indicator 5: In-hospital mortality",
+                  funnel_period_start = min(pci_data$period_start),
+                  funnel_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR5_fpl.png")
+
+```
+### SPC
+
+``` {r Indicator 5}
+## Generate the SPC chart for Indicator 5
+tempFile <- paste0(temp, "/NCR5_fpl.html")
+qiverse.qiplotly::spc_plotly_create(ihm_spc$period_end,
+                  numerator = ihm_spc$num,
+                  denominator = ihm_spc$den,
+                  data_type = "p",
+                  better_is = "Lower",
+                  title = "Indicator 5: In-hospital mortality",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR5_fpl.png")
+
+```
+
+## NCR 6: 30 day unplanned cardiac readmission rate after PCI
+
+### Funnel
+
+``` {r Indicator_funnel 6}
+## Generate the Funnel chart for Indicator 6
+tempFile <- paste0(temp, "/NCR6_fpl.html")
+qiverse.qiplotly::fpl_plotly_create(
+                  numerator = unplanned_readmission_fpl$num,
+                  denominator = unplanned_readmission_fpl$den,
+                  group = unplanned_readmission_fpl$hname,
+                  better_is = "Lower",
+                  y_limit_upper = 10,
+                  title = "Indicator 6: 30 day unplanned cardiac readmission rate after PCI",
+                  funnel_period_start = min(pci_data$period_start),
+                  funnel_period_end = max(pci_data$period_end))|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR6_fpl.png")
+
+```
+
+### SPC
+
+``` {r Indicator 6}
+## Generate the SPC chart for Indicator 6
+tempFile <- paste0(temp, "/NCR6_fpl.html")
+qiverse.qiplotly::spc_plotly_create(unplanned_readmission_spc$period_end,
+                  numerator = unplanned_readmission_spc$num,
+                  denominator = unplanned_readmission_spc$den,
+                  data_type = "p",
+                  better_is = "Lower",
+                  y_format = "Percentage",
+                  title = "Indicator 6: 30 day unplanned cardiac readmission rate after PCI",
+                  spc_period_start = "2024-01-01",
+                  spc_period_end = "2024-12-31")|> 
+  #Save the plotly plot into a html file - required to output to word
+  htmlwidgets::saveWidget(file = tempFile)
+#Snapshot the html file and save it as a png
+webshot::webshot(url = tempFile, file = "Plots/NCR6_fpl.png")
+
 ```
 
 ## NCR 8: 30 Day Mortality
@@ -169,9 +431,9 @@ ncr11_spc_data <- pci_data |>
 
 ```{r NCR8 Funnel}
 tempFile <- paste0(temp, "/NCR8_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = ncr8_fpl_data$NCR8_Num,
-                  denominator = ncr8_fpl_data$NCR8_Den,
-                  group = ncr8_fpl_data$hname,
+qiverse.qiplotly::fpl_plotly_create(numerator = mort_30_day_fpl$num,
+                  denominator = mort_30_day_fpl$den,
+                  group = mort_30_day_fpl$hname,
                   y_limit_upper = 10,
                   title = "30 Day Mortality",
                   better_is = "Lower",
@@ -187,13 +449,13 @@ webshot::webshot(url = tempFile, file = "Plots/NCR8_fpl.png")
 
 ```{r NCR8 SPC}
 tempFile <- paste0(temp, "/NCR8_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr8_spc_data$period_end),
-                                    numerator = ncr8_spc_data$NCR8_Num,
-                                    denominator = ncr8_spc_data$NCR8_Den,
-                                    title = "30 Day Mortality",
-                                    better_is = "Lower",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end)) |> 
+qiverse.qiplotly::spc_plotly_create(x = mort_30_day_spc$period_end,
+                  numerator = mort_30_day_spc$num,
+                  denominator = mort_30_day_spc$den,
+                  title = "30 Day Mortality",
+                  better_is = "Lower",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile) 
 
 webshot::webshot(url = tempFile, file = "Plots/NCR8_spc.png")
@@ -205,11 +467,12 @@ webshot::webshot(url = tempFile, file = "Plots/NCR8_spc.png")
 
 ```{r NCR9 Funnel}
 tempFile <- paste0(temp, "/NCR9_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = ncr9_fpl_data$NCR9_Num,
-                  denominator = ncr9_fpl_data$NCR9_Den,
-                  group = ncr9_fpl_data$hname,
+qiverse.qiplotly::fpl_plotly_create(numerator = lipid_lowering_fpl$num,
+                  denominator = lipid_lowering_fpl$den,
+                  group = lipid_lowering_fpl$hname,
                   title = "Discharged on Lipid-Lowering Therapy",
                   better_is = "Higher",
+                  y_limit_lower = 90,
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -221,13 +484,13 @@ webshot::webshot(url = tempFile, file = "Plots/NCR9_fpl.png")
 
 ```{r NCR9 SPC}
 tempFile <- paste0(temp, "/NCR9_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr9_spc_data$period_end),
-                                    numerator = ncr9_spc_data$NCR9_Num,
-                                    denominator = ncr9_spc_data$NCR9_Den,
-                                    title = "Discharged on Lipid-Lowering Therapy",
-                                    better_is = "Higher",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end)) |> 
+qiverse.qiplotly::spc_plotly_create(x = lipid_lowering_spc$period_end,
+                  numerator = lipid_lowering_spc$num,
+                  denominator = lipid_lowering_spc$den,
+                  title = "Discharged on Lipid-Lowering Therapy",
+                  better_is = "Higher",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
 
 webshot::webshot(url = tempFile, file = "Plots/NCR9_spc.png")
@@ -239,11 +502,12 @@ webshot::webshot(url = tempFile, file = "Plots/NCR9_spc.png")
 
 ```{r NCR10 Funnel}
 tempFile <- paste0(temp, "/NCR10_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = ncr10_fpl_data$NCR10_Num,
-                  denominator = ncr10_fpl_data$NCR10_Den,
-                  group = ncr10_fpl_data$hname,
+qiverse.qiplotly::fpl_plotly_create(numerator = cardiac_rehab_fpl$num,
+                  denominator = cardiac_rehab_fpl$den,
+                  group = cardiac_rehab_fpl$hname,
                   title = "Referred to Cardiac Rehabilitation",
                   better_is = "Higher",
+                  y_limit_lower = 70,
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -255,13 +519,13 @@ webshot::webshot(url = tempFile, file = "Plots/NCR10_fpl.png")
 
 ```{r NCR10 SPC}
 tempFile <- paste0(temp, "/NCR10_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr10_spc_data$period_end),
-                                    numerator = ncr10_spc_data$NCR10_Num,
-                                    denominator = ncr10_spc_data$NCR10_Den,
-                                    title = "Referred to Cardiac Rehabilitation",
-                                    better_is = "Higher",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end)) |> 
+qiverse.qiplotly::spc_plotly_create(x = cardiac_rehab_spc$period_end,
+                  numerator = cardiac_rehab_spc$num,
+                  denominator = cardiac_rehab_spc$den,
+                  title = "Referred to Cardiac Rehabilitation",
+                  better_is = "Higher",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
 
 webshot::webshot(url = tempFile, file = "Plots/NCR10_spc.png")
@@ -273,11 +537,12 @@ webshot::webshot(url = tempFile, file = "Plots/NCR10_spc.png")
 
 ```{r NCR11 Funnel}
 tempFile <- paste0(temp, "/NCR11_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = ncr11_fpl_data$NCR11_Num,
-                  denominator = ncr11_fpl_data$NCR11_Den,
-                  group = ncr11_fpl_data$hname,
+qiverse.qiplotly::fpl_plotly_create(numerator = antiplatelet_fpl$num,
+                  denominator = antiplatelet_fpl$den,
+                  group = antiplatelet_fpl$hname,
                   title = "Discharged on Dual Antiplatelet Therapy",
                   better_is = "Higher",
+                  y_limit_upper = 90,
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
@@ -289,13 +554,13 @@ webshot::webshot(url = tempFile, file = "Plots/NCR11_fpl.png")
 
 ```{r NCR11 SPC}
 tempFile <- paste0(temp, "/NCR11_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = as.Date(ncr11_spc_data$period_end),
-                                    numerator = ncr11_spc_data$NCR11_Num,
-                                    denominator = ncr11_spc_data$NCR11_Den,
-                                    title = "Discharged on Dual Antiplatelet Therapy",
-                                    better_is = "Higher",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end)) |> 
+qiverse.qiplotly::spc_plotly_create(x = antiplatelet_spc$period_end,
+                  numerator = antiplatelet_spc$num,
+                  denominator = antiplatelet_spc$den,
+                  title = "Discharged on Dual Antiplatelet Therapy",
+                  better_is = "Higher",
+                  spc_period_start = min(pci_data$period_start),
+                  spc_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
 
 webshot::webshot(url = tempFile, file = "Plots/NCR11_spc.png")
