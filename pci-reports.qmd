@@ -67,26 +67,22 @@ pci_data <- pci_data |>
     dbd = dplyr::case_when(
       tbd <= top ~ dop + lubridate::days(1),
       tbd > top ~ dop, 
-      tbd = NA ~ NA
-    ),
+      tbd = NA ~ NA),
     ## Calculate column required for ECG to PCI time
-    ecgbd = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
+    ecgdb = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
     ## Calculate column required for Door to PCI time
-    dbdt = difftime(tbd, toa, units = "mins") + difftime(dbd, doa, units = "mins")
-  )
-
+    dbdt = difftime(tbd, toa, units = "mins") + difftime(dbd, doa, units = "mins"))
 
 ## Summary for Indicator 1
 pci_data <- pci_data |>
   dplyr::mutate(NCR1_den = dplyr::if_else(pci == "1" &
-                ecgbd >= 0 &
-                ecgbd <= 500, 1, 0))
+                ecgdb >= 0 &
+                ecgdb <= 500, 1, 0))
 
 ecg_to_pci_spc <- pci_data |>
   dplyr::filter(NCR1_den == 1) |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = median(ecgbd),
-                   den = sum(NCR1_den))
+  dplyr::summarise(num = median(ecgdb))
 
 ## Summary for Indicator 2
 pci_data <- pci_data |>
@@ -97,8 +93,7 @@ pci_data <- pci_data |>
 door_to_pci_spc <- pci_data |>
   dplyr::filter(NCR2_den == 1) |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = median(dbdt),
-                   den = sum(NCR2_den))
+  dplyr::summarise(num = median(dbdt))
 
 ## Summary for Indicator 3
 pci_data <- pci_data |>
@@ -260,12 +255,14 @@ antiplatelet_spc <- pci_data |>
 tempFile <- paste0(temp, "/NCR1_fpl.html")
 qiverse.qiplotly::spc_plotly_create(ecg_to_pci_spc$period_end,
                                     numerator = ecg_to_pci_spc$num,
+                                    denominator = rep(1, nrow(ecg_to_pci_spc)),
                                     data_type = "i",
                                     better_is = "Lower",
                                     y_format = "Numeric",
                                     title = "Indicator 1: Time from diagnostic ECG to PCI mediated reperfusion.",
                                     spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end))|> 
+                                    spc_period_end = max(pci_data$period_end),
+                                    show_legend = TRUE)|> 
   #Save the plotly plot into a html file - required to output to word
   htmlwidgets::saveWidget(file = tempFile)
 #Snapshot the html file and save it as a png
@@ -281,7 +278,8 @@ webshot::webshot(url = tempFile, file = "Plots/NCR1_fpl.png")
 ## Generate the SPC chart for Indicator 2
 tempFile <- paste0(temp, "/NCR2_fpl.html")
 qiverse.qiplotly::spc_plotly_create(door_to_pci_spc$period_end,
-                                    numerator = door_to_pci_spc$num,
+                                    numerator = as.numeric(door_to_pci_spc$num),
+                                    denominator = rep(1, nrow(door_to_pci_spc)),
                                     data_type = "i",
                                     better_is = "Lower",
                                     y_format = "Numeric",
@@ -310,7 +308,8 @@ qiverse.qiplotly::fpl_plotly_create(
                   y_limit_upper = 2,
                   title = "Indicator 3: Proportion of Peri-PCI stroke",
                   funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end))|> 
+                  funnel_period_end = max(pci_data$period_end),
+                  show_legend = TRUE)|> 
   #Save the plotly plot into a html file - required to output to word
   htmlwidgets::saveWidget(file = tempFile)
 #Snapshot the html file and save it as a png

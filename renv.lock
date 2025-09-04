@@ -464,7 +464,7 @@
       "License": "GPL-2 | GPL-3",
       "URL": "http://www.rforge.net/base64enc",
       "NeedsCompilation": "yes",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Encoding": "UTF-8"
     },
     "bit": {
@@ -2007,7 +2007,7 @@
       "NeedsCompilation": "yes",
       "Author": "Stefan Milton Bache [aut, cph] (Original author and creator of magrittr), Hadley Wickham [aut], Lionel Henry [cre], RStudio [cph, fnd]",
       "Maintainer": "Lionel Henry <lionel@rstudio.com>",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "memoise": {
       "Package": "memoise",
@@ -2669,6 +2669,45 @@
       "RemoteRef": "main",
       "RemoteSha": "5b03cad2d55dec15d3e245f93a0a37f06c9d20f4"
     },
+    "qiverse.qipatterns": {
+      "Package": "qiverse.qipatterns",
+      "Version": "0.1.2",
+      "Source": "GitHub",
+      "Title": "Quality Improvement Chart Patterns",
+      "Authors@R": "person(given = \"Healthcare Quality Intelligence Unit (Western Australia Health)\", family = \"\", role = c(\"aut\", \"cre\"), email = \"safetyandquality@health.wa.gov.au\")",
+      "Description": "Defines functions needed to detect patterns in quality improvement charts.",
+      "License": "GPL (>= 3) + file LICENSE",
+      "Config/testthat/edition": "3",
+      "Encoding": "UTF-8",
+      "Roxygen": "list(markdown = TRUE)",
+      "RoxygenNote": "7.3.2",
+      "URL": "https://github.com/AUS-DOH-Safety-and-Quality/qiverse/qiverse.qipatterns",
+      "BugReports": "https://github.com/AUS-DOH-Safety-and-Quality/qiverse/issues",
+      "Depends": [
+        "R (>= 4.3.0)"
+      ],
+      "Imports": [
+        "data.table",
+        "FunnelPlotR"
+      ],
+      "Suggests": [
+        "qiverse.data",
+        "knitr",
+        "rmarkdown",
+        "testthat (>= 3.0.0)"
+      ],
+      "Additional_repositories": "https://aus-doh-safety-and-quality.r-universe.dev/",
+      "VignetteBuilder": "knitr",
+      "Author": "Healthcare Quality Intelligence Unit (Western Australia Health) [aut, cre]",
+      "Maintainer": "Healthcare Quality Intelligence Unit (Western Australia Health) <safetyandquality@health.wa.gov.au>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "AUS-DOH-Safety-and-Quality",
+      "RemoteRepo": "qiverse",
+      "RemoteSubdir": "qiverse.qipatterns",
+      "RemoteRef": "main",
+      "RemoteSha": "ee8e65264f22359c7e0266b4e57acb3fe8833957"
+    },
     "qiverse.qiplotly": {
       "Package": "qiverse.qiplotly",
       "Version": "0.1.4",
@@ -2889,7 +2928,7 @@
       "NeedsCompilation": "no",
       "Author": "Kevin Ushey [aut, cre] (ORCID: <https://orcid.org/0000-0003-2880-7407>), Hadley Wickham [aut] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Posit Software, PBC [cph, fnd]",
       "Maintainer": "Kevin Ushey <kevin@rstudio.com>",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "rlang": {
       "Package": "rlang",
@@ -3106,7 +3145,7 @@
       "Author": "Marek Gagolewski [aut, cre, cph] (<https://orcid.org/0000-0003-0637-6028>), Bartek Tartanus [ctb], Unicode, Inc. and others [ctb] (ICU4C source code, Unicode Character Database)",
       "Maintainer": "Marek Gagolewski <marek@gagolewski.com>",
       "License_is_FOSS": "yes",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "stringr": {
       "Package": "stringr",
@@ -3150,7 +3189,7 @@
       "NeedsCompilation": "no",
       "Author": "Hadley Wickham [aut, cre, cph], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "sys": {
       "Package": "sys",
@@ -3511,7 +3550,7 @@
       "NeedsCompilation": "yes",
       "Author": "Hadley Wickham [aut], Lionel Henry [aut], Davis Vaughan [aut, cre], data.table team [cph] (Radix sort based on data.table's forder() and their contribution to R's order()), Posit Software, PBC [cph, fnd]",
       "Maintainer": "Davis Vaughan <davis@posit.co>",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "viridisLite": {
       "Package": "viridisLite",
@@ -3788,7 +3827,7 @@
       "URL": "https://github.com/vubiostat/r-yaml/",
       "BugReports": "https://github.com/vubiostat/r-yaml/issues",
       "NeedsCompilation": "yes",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Encoding": "UTF-8"
     }
   }

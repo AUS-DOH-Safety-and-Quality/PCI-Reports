@@ -1,6 +1,6 @@
 #Set the datatypes of incoming NCR fields
-#c = Character, d = Double, l = Logical, t = Time, D = Date
-#Other types cane be found at ??readr::cols
+#c = Character, d = Double, l = Logical, t = Time
+#Other data types can be found at ??readr::cols
 colTypes <- readr::cols(
 hname = "c",
 pcode = "c",
