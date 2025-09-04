@@ -82,7 +82,7 @@ pci_data <- pci_data |>
 ecg_to_pci_spc <- pci_data |>
   dplyr::filter(NCR1_den == 1) |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = median(ecgdb))
+  dplyr::summarise(num = median(ecgdb, na.rm = T))
 
 ## Summary for Indicator 2
 pci_data <- pci_data |>
@@ -93,7 +93,7 @@ pci_data <- pci_data |>
 door_to_pci_spc <- pci_data |>
   dplyr::filter(NCR2_den == 1) |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = median(dbdt))
+  dplyr::summarise(num = median(dbdt, na.rm = T))
 
 ## Summary for Indicator 3
 pci_data <- pci_data |>
@@ -107,8 +107,8 @@ peri_PCI_stroke_fpl <- pci_data |>
 
 peri_PCI_stroke_spc <- pci_data |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = sum(ihstr),
-                   den = sum(NCR3_den))
+  dplyr::summarise(num = sum(ihstr, na.rm = T),
+                   den = sum(NCR3_den, na.rm = T))
 
 ## Summary for Indicator 5
 pci_data <- pci_data |>
@@ -123,8 +123,8 @@ ihm_fpl <- pci_data |>
 
 ihm_spc <- pci_data |>
   dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(num = sum(NCR5_num),
-                   den = sum(NCR5_den))
+  dplyr::summarise(num = sum(NCR5_num, na.rm = T),
+                   den = sum(NCR5_den, na.rm = T))
 
 ## Summary for Indicator 6
 pci_data <- pci_data |>
@@ -154,15 +154,15 @@ pci_data <- pci_data |>
 mort_30_day_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    num = sum(NCR8_num),
-    den = sum(NCR8_den))
+    num = sum(NCR8_num, na.rm = T),
+    den = sum(NCR8_den, na.rm = T))
 
 #Group data for the SPC function
 mort_30_day_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    num = sum(NCR8_num),
-    den = sum(NCR8_den))
+    num = sum(NCR8_num, na.rm = T),
+    den = sum(NCR8_den, na.rm = T))
 
 #NCR 9
 pci_data <- pci_data |> 
@@ -182,15 +182,15 @@ pci_data <- pci_data |>
 lipid_lowering_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    num = sum(NCR9_num),
-    den = sum(NCR9_den))
+    num = sum(NCR9_num, na.rm = T),
+    den = sum(NCR9_den, na.rm = T))
 
 #Group data for the SPC function
 lipid_lowering_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    num = sum(NCR9_num),
-    den = sum(NCR9_den))
+    num = sum(NCR9_num, na.rm = T),
+    den = sum(NCR9_den, na.rm = T))
 
 
 #NCR 10
@@ -205,15 +205,15 @@ pci_data <- pci_data |>
 cardiac_rehab_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    num = sum(NCR10_num),
-    den = sum(NCR10_den))
+    num = sum(NCR10_num, na.rm = T),
+    den = sum(NCR10_den, na.rm = T))
 
 #Group data for the SPC function
 cardiac_rehab_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    num = sum(NCR10_num),
-    den = sum(NCR10_den))
+    num = sum(NCR10_num, na.rm = T),
+    den = sum(NCR10_den, na.rm = T))
 
 
 #NCR 11
@@ -234,15 +234,15 @@ pci_data <- pci_data |>
 antiplatelet_fpl <- pci_data |> 
   dplyr::group_by(hname) |>
   dplyr::summarise(
-    num = sum(NCR11_num),
-    den = sum(NCR11_den))
+    num = sum(NCR11_num, na.rm = T),
+    den = sum(NCR11_den, na.rm = T))
 
 #Group data for the SPC function
 antiplatelet_spc <- pci_data |> 
   dplyr::group_by(period_start, period_end) |>
   dplyr::summarise(
-    num = sum(NCR11_num),
-    den = sum(NCR11_den))
+    num = sum(NCR11_num, na.rm = T),
+    den = sum(NCR11_den, na.rm = T))
 ```
 
 
@@ -541,7 +541,7 @@ qiverse.qiplotly::fpl_plotly_create(numerator = antiplatelet_fpl$num,
                   group = antiplatelet_fpl$hname,
                   title = "Discharged on Dual Antiplatelet Therapy",
                   better_is = "Higher",
-                  y_limit_upper = 90,
+                  y_limit_lower = 98,
                   funnel_period_start = min(pci_data$period_start),
                   funnel_period_end = max(pci_data$period_end)) |> 
   htmlwidgets::saveWidget(file = tempFile)
