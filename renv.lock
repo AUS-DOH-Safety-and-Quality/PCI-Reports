@@ -323,6 +323,31 @@
       "Repository": "CRAN",
       "Encoding": "UTF-8"
     },
+    "QuickJSR": {
+      "Package": "QuickJSR",
+      "Version": "1.8.0",
+      "Source": "Repository",
+      "Title": "Interface for the 'QuickJS-NG' Lightweight 'JavaScript' Engine",
+      "Authors@R": "c( person(c(\"Andrew\", \"R.\"), \"Johnson\", , \"andrew.johnson@arjohnsonau.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-7000-8065\")), person(\"QuickJS\", \"Authors\", role = c(\"cph\"), comment = \"QuickJS sources and headers\"), person(\"QuickJS-NG\", \"Authors\", role = c(\"cph\"), comment = \"QuickJS-NG sources and headers\") )",
+      "Description": "An 'R' interface to the 'QuickJS' portable 'JavaScript' engine.  The engine and all 'R' to 'JavaScript' interoperability is bundled within the package, requiring no dependencies beyond a 'C' compiler.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/andrjohns/QuickJSR, https://github.com/quickjs-ng/quickjs",
+      "BugReports": "https://github.com/andrjohns/QuickJSR/issues",
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "tinytest"
+      ],
+      "Encoding": "UTF-8",
+      "Language": "en-AU",
+      "NeedsCompilation": "yes",
+      "RoxygenNote": "7.3.2",
+      "SystemRequirements": "GNU make",
+      "VignetteBuilder": "knitr",
+      "Author": "Andrew R. Johnson [aut, cre] (ORCID: <https://orcid.org/0000-0001-7000-8065>), QuickJS Authors [cph] (QuickJS sources and headers), QuickJS-NG Authors [cph] (QuickJS-NG sources and headers)",
+      "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
+      "Repository": "CRAN"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.6.1",
@@ -364,32 +389,6 @@
       "Description": "Provides color schemes for maps (and other graphics) designed by Cynthia Brewer as described at http://colorbrewer2.org.",
       "License": "Apache License 2.0",
       "NeedsCompilation": "no",
-      "Repository": "CRAN",
-      "Encoding": "UTF-8"
-    },
-    "RCurl": {
-      "Package": "RCurl",
-      "Version": "1.98-1.17",
-      "Source": "Repository",
-      "Title": "General Network (HTTP/FTP/...) Client Interface for R",
-      "Authors@R": "c(person(\"CRAN Team\", role = c('ctb', 'cre'), email = \"CRAN@r-project.org\", comment = \"de facto maintainer since 2013\"), person(\"Duncan\", \"Temple Lang\", role = \"aut\", email = \"duncan@r-project.org\", comment = c(ORCID = \"0000-0003-0159-1546\")))",
-      "SystemRequirements": "GNU make, libcurl",
-      "Description": "A wrapper for 'libcurl' <https://curl.se/libcurl/> Provides functions to allow one to compose general HTTP requests and provides convenient functions to fetch URIs, get & post forms, etc. and process the results returned by the Web server. This provides a great deal of control over the HTTP/FTP/... connection and the form of the request while providing a higher-level interface than is available just using R socket connections.  Additionally, the underlying implementation is robust and extensive, supporting FTP/FTPS/TFTP (uploads and downloads), SSL/HTTPS, telnet, dict, ldap, and also supports cookies, redirects, authentication, etc.",
-      "License": "BSD_3_clause + file LICENSE",
-      "Depends": [
-        "R (>= 3.4.0)",
-        "methods"
-      ],
-      "Imports": [
-        "bitops"
-      ],
-      "Suggests": [
-        "XML"
-      ],
-      "Collate": "aclassesEnums.R bitClasses.R xbits.R base64.R binary.S classes.S curl.S curlAuthConstants.R curlEnums.R curlError.R curlInfo.S dynamic.R form.S getFormParams.R getURLContent.R header.R http.R httpError.R httpErrors.R iconv.R info.S mime.R multi.S options.S scp.R support.S upload.R urlExists.R zclone.R zzz.R",
-      "NeedsCompilation": "yes",
-      "Author": "CRAN Team [ctb, cre] (de facto maintainer since 2013), Duncan Temple Lang [aut] (<https://orcid.org/0000-0003-0159-1546>)",
-      "Maintainer": "CRAN Team <CRAN@r-project.org>",
       "Repository": "CRAN",
       "Encoding": "UTF-8"
     },
@@ -534,23 +533,6 @@
       "Maintainer": "Michael Chirico <michaelchirico4@gmail.com>",
       "Repository": "CRAN"
     },
-    "bitops": {
-      "Package": "bitops",
-      "Version": "1.0-9",
-      "Source": "Repository",
-      "Date": "2024-10-03",
-      "Authors@R": "c( person(\"Steve\", \"Dutky\", role = \"aut\", email = \"sdutky@terpalum.umd.edu\", comment = \"S original; then (after MM's port) revised and modified\"), person(\"Martin\", \"Maechler\", role = c(\"cre\", \"aut\"), email = \"maechler@stat.math.ethz.ch\", comment = c(\"Initial R port; tweaks\", ORCID = \"0000-0002-8685-9910\")))",
-      "Title": "Bitwise Operations",
-      "Description": "Functions for bitwise operations on integer vectors.",
-      "License": "GPL (>= 2)",
-      "URL": "https://github.com/mmaechler/R-bitops",
-      "BugReports": "https://github.com/mmaechler/R-bitops/issues",
-      "NeedsCompilation": "yes",
-      "Author": "Steve Dutky [aut] (S original; then (after MM's port) revised and modified), Martin Maechler [cre, aut] (Initial R port; tweaks, <https://orcid.org/0000-0002-8685-9910>)",
-      "Maintainer": "Martin Maechler <maechler@stat.math.ethz.ch>",
-      "Repository": "CRAN",
-      "Encoding": "UTF-8"
-    },
     "bslib": {
       "Package": "bslib",
       "Version": "0.9.0",
@@ -636,44 +618,6 @@
       "Maintainer": "Winston Chang <winston@posit.co>",
       "Repository": "CRAN"
     },
-    "callr": {
-      "Package": "callr",
-      "Version": "3.7.6",
-      "Source": "Repository",
-      "Title": "Call R from R",
-      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\", \"cph\"), comment = c(ORCID = \"0000-0001-7098-9676\")), person(\"Winston\", \"Chang\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")), person(\"Ascent Digital Services\", role = c(\"cph\", \"fnd\")) )",
-      "Description": "It is sometimes useful to perform a computation in a separate R process, without affecting the current R process at all.  This packages does exactly that.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://callr.r-lib.org, https://github.com/r-lib/callr",
-      "BugReports": "https://github.com/r-lib/callr/issues",
-      "Depends": [
-        "R (>= 3.4)"
-      ],
-      "Imports": [
-        "processx (>= 3.6.1)",
-        "R6",
-        "utils"
-      ],
-      "Suggests": [
-        "asciicast (>= 2.3.1)",
-        "cli (>= 1.1.0)",
-        "mockery",
-        "ps",
-        "rprojroot",
-        "spelling",
-        "testthat (>= 3.2.0)",
-        "withr (>= 2.3.0)"
-      ],
-      "Config/Needs/website": "r-lib/asciicast, glue, htmlwidgets, igraph, tibble, tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "Language": "en-US",
-      "RoxygenNote": "7.3.1.9000",
-      "NeedsCompilation": "no",
-      "Author": "Gábor Csárdi [aut, cre, cph] (<https://orcid.org/0000-0001-7098-9676>), Winston Chang [aut], Posit Software, PBC [cph, fnd], Ascent Digital Services [cph, fnd]",
-      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
-      "Repository": "CRAN"
-    },
     "cli": {
       "Package": "cli",
       "Version": "3.6.5",
@@ -751,6 +695,39 @@
       "Author": "Matthew Lincoln [aut, cre] (<https://orcid.org/0000-0002-4387-3384>), Louis Maddox [ctb], Steve Simpson [ctb], Jennifer Bryan [ctb]",
       "Maintainer": "Matthew Lincoln <matthew.d.lincoln@gmail.com>",
       "Repository": "CRAN"
+    },
+    "controlcharts": {
+      "Package": "controlcharts",
+      "Version": "0.0.0.9000",
+      "Source": "GitHub",
+      "Title": "Interactive Plotting for Funnel and Statistical Process Control Charts",
+      "Authors@R": "c( person(c(\"Andrew\", \"R.\"), \"Johnson\", , \"andrew.johnson@arjohnsonau.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-7000-8065\")))",
+      "Description": "Generate fully interactive and dynamic funnel plots and statistical process control (SPC) charts. All data manaipulation, calculation, and plotting is done in JavaScript, allowing for completely dynamic charts without the need for a Shiny server.",
+      "License": "MIT + file LICENSE",
+      "Encoding": "UTF-8",
+      "Roxygen": "list(markdown = TRUE)",
+      "RoxygenNote": "7.3.3",
+      "Imports": [
+        "htmlwidgets",
+        "crosstalk",
+        "QuickJSR",
+        "rsvg"
+      ],
+      "Suggests": [
+        "DT",
+        "knitr",
+        "rmarkdown"
+      ],
+      "VignetteBuilder": "knitr",
+      "URL": "https://andrjohns.github.io/controlcharts/",
+      "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>)",
+      "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "andrjohns",
+      "RemoteRepo": "controlcharts",
+      "RemoteRef": "main",
+      "RemoteSha": "85aed7c312df3aabafae3d6c6cb07665176c4249"
     },
     "cpp11": {
       "Package": "cpp11",
@@ -1791,41 +1768,6 @@
       "Repository": "CRAN",
       "Encoding": "UTF-8"
     },
-    "later": {
-      "Package": "later",
-      "Version": "1.4.3",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Utilities for Scheduling Functions to Execute Later with Event Loops",
-      "Authors@R": "c( person(\"Winston\", \"Chang\", , \"winston@posit.co\", role = \"aut\"), person(\"Joe\", \"Cheng\", , \"joe@posit.co\", role = \"aut\"), person(\"Charlie\", \"Gao\", , \"charlie.gao@posit.co\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-0750-061X\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")), person(\"Marcus\", \"Geelnard\", role = c(\"ctb\", \"cph\"), comment = \"TinyCThread library, https://tinycthread.github.io/\"), person(\"Evan\", \"Nemerson\", role = c(\"ctb\", \"cph\"), comment = \"TinyCThread library, https://tinycthread.github.io/\") )",
-      "Description": "Executes arbitrary R or C functions some time after the current time, after the R execution stack has emptied. The functions are scheduled in an event loop.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://later.r-lib.org, https://github.com/r-lib/later",
-      "BugReports": "https://github.com/r-lib/later/issues",
-      "Imports": [
-        "Rcpp (>= 0.12.9)",
-        "rlang"
-      ],
-      "Suggests": [
-        "knitr",
-        "nanonext",
-        "rmarkdown",
-        "testthat (>= 3.0.0)"
-      ],
-      "LinkingTo": [
-        "Rcpp"
-      ],
-      "VignetteBuilder": "knitr",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Config/usethis/last-upkeep": "2025-07-18",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.2",
-      "NeedsCompilation": "yes",
-      "Author": "Winston Chang [aut], Joe Cheng [aut], Charlie Gao [aut, cre] (ORCID: <https://orcid.org/0000-0002-0750-061X>), Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>), Marcus Geelnard [ctb, cph] (TinyCThread library, https://tinycthread.github.io/), Evan Nemerson [ctb, cph] (TinyCThread library, https://tinycthread.github.io/)",
-      "Maintainer": "Charlie Gao <charlie.gao@posit.co>",
-      "Repository": "CRAN"
-    },
     "lattice": {
       "Package": "lattice",
       "Version": "0.22-5",
@@ -2241,83 +2183,6 @@
       "NeedsCompilation": "no",
       "Repository": "CRAN"
     },
-    "plotly": {
-      "Package": "plotly",
-      "Version": "4.11.0",
-      "Source": "Repository",
-      "Title": "Create Interactive Web Graphics via 'plotly.js'",
-      "Authors@R": "c(person(\"Carson\", \"Sievert\", role = c(\"aut\", \"cre\"), email = \"cpsievert1@gmail.com\", comment = c(ORCID = \"0000-0002-4958-2844\")), person(\"Chris\", \"Parmer\", role = \"aut\", email = \"chris@plot.ly\"), person(\"Toby\", \"Hocking\", role = \"aut\", email = \"tdhock5@gmail.com\"), person(\"Scott\", \"Chamberlain\", role = \"aut\", email = \"myrmecocystus@gmail.com\"), person(\"Karthik\", \"Ram\", role = \"aut\", email = \"karthik.ram@gmail.com\"), person(\"Marianne\", \"Corvellec\", role = \"aut\", email = \"marianne.corvellec@igdore.org\", comment = c(ORCID = \"0000-0002-1994-3581\")), person(\"Pedro\", \"Despouy\", role = \"aut\", email = \"pedro@plot.ly\"), person(\"Salim\", \"Brüggemann\", role = \"ctb\", email = \"salim-b@pm.me\", comment = c(ORCID = \"0000-0002-5329-5987\")), person(\"Plotly Technologies Inc.\", role = \"cph\"))",
-      "License": "MIT + file LICENSE",
-      "Description": "Create interactive web graphics from 'ggplot2' graphs and/or a custom interface to the (MIT-licensed) JavaScript library 'plotly.js' inspired by the grammar of graphics.",
-      "URL": "https://plotly-r.com, https://github.com/plotly/plotly.R, https://plotly.com/r/",
-      "BugReports": "https://github.com/plotly/plotly.R/issues",
-      "Depends": [
-        "R (>= 3.2.0)",
-        "ggplot2 (>= 3.0.0)"
-      ],
-      "Imports": [
-        "tools",
-        "scales",
-        "httr (>= 1.3.0)",
-        "jsonlite (>= 1.6)",
-        "magrittr",
-        "digest",
-        "viridisLite",
-        "base64enc",
-        "htmltools (>= 0.3.6)",
-        "htmlwidgets (>= 1.5.2.9001)",
-        "tidyr (>= 1.0.0)",
-        "RColorBrewer",
-        "dplyr",
-        "vctrs",
-        "tibble",
-        "lazyeval (>= 0.2.0)",
-        "rlang (>= 1.0.0)",
-        "crosstalk",
-        "purrr",
-        "data.table",
-        "promises"
-      ],
-      "Suggests": [
-        "MASS",
-        "maps",
-        "hexbin",
-        "ggthemes",
-        "GGally",
-        "ggalluvial",
-        "testthat",
-        "knitr",
-        "shiny (>= 1.1.0)",
-        "shinytest2",
-        "curl",
-        "rmarkdown",
-        "Cairo",
-        "broom",
-        "webshot",
-        "listviewer",
-        "dendextend",
-        "sf",
-        "png",
-        "IRdisplay",
-        "processx",
-        "plotlyGeoAssets",
-        "forcats",
-        "withr",
-        "palmerpenguins",
-        "rversions",
-        "reticulate",
-        "rsvg",
-        "ggridges"
-      ],
-      "LazyData": "true",
-      "RoxygenNote": "7.3.2",
-      "Encoding": "UTF-8",
-      "Config/Needs/check": "tidyverse/ggplot2, ggobi/GGally, rcmdcheck, devtools, reshape2, s2",
-      "NeedsCompilation": "no",
-      "Author": "Carson Sievert [aut, cre] (ORCID: <https://orcid.org/0000-0002-4958-2844>), Chris Parmer [aut], Toby Hocking [aut], Scott Chamberlain [aut], Karthik Ram [aut], Marianne Corvellec [aut] (ORCID: <https://orcid.org/0000-0002-1994-3581>), Pedro Despouy [aut], Salim Brüggemann [ctb] (ORCID: <https://orcid.org/0000-0002-5329-5987>), Plotly Technologies Inc. [cph]",
-      "Maintainer": "Carson Sievert <cpsievert1@gmail.com>",
-      "Repository": "CRAN"
-    },
     "prettyunits": {
       "Package": "prettyunits",
       "Version": "1.2.0",
@@ -2341,46 +2206,6 @@
       "NeedsCompilation": "no",
       "Author": "Gabor Csardi [aut, cre], Bill Denney [ctb] (<https://orcid.org/0000-0002-5759-428X>), Christophe Regouby [ctb]",
       "Maintainer": "Gabor Csardi <csardi.gabor@gmail.com>",
-      "Repository": "CRAN"
-    },
-    "processx": {
-      "Package": "processx",
-      "Version": "3.8.6",
-      "Source": "Repository",
-      "Title": "Execute and Control System Processes",
-      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\", \"cph\"), comment = c(ORCID = \"0000-0001-7098-9676\")), person(\"Winston\", \"Chang\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")), person(\"Ascent Digital Services\", role = c(\"cph\", \"fnd\")) )",
-      "Description": "Tools to run system processes in the background.  It can check if a background process is running; wait on a background process to finish; get the exit status of finished processes; kill background processes. It can read the standard output and error of the processes, using non-blocking connections. 'processx' can poll a process for standard output or error, with a timeout. It can also poll several processes at once.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://processx.r-lib.org, https://github.com/r-lib/processx",
-      "BugReports": "https://github.com/r-lib/processx/issues",
-      "Depends": [
-        "R (>= 3.4.0)"
-      ],
-      "Imports": [
-        "ps (>= 1.2.0)",
-        "R6",
-        "utils"
-      ],
-      "Suggests": [
-        "callr (>= 3.7.3)",
-        "cli (>= 3.3.0)",
-        "codetools",
-        "covr",
-        "curl",
-        "debugme",
-        "parallel",
-        "rlang (>= 1.0.2)",
-        "testthat (>= 3.0.0)",
-        "webfakes",
-        "withr"
-      ],
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.1.9000",
-      "NeedsCompilation": "yes",
-      "Author": "Gábor Csárdi [aut, cre, cph] (<https://orcid.org/0000-0001-7098-9676>), Winston Chang [aut], Posit Software, PBC [cph, fnd], Ascent Digital Services [cph, fnd]",
-      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
       "Repository": "CRAN"
     },
     "progress": {
@@ -2413,90 +2238,6 @@
       "RoxygenNote": "7.2.3",
       "NeedsCompilation": "no",
       "Author": "Gábor Csárdi [aut, cre], Rich FitzJohn [aut], Posit Software, PBC [cph, fnd]",
-      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
-      "Repository": "CRAN"
-    },
-    "promises": {
-      "Package": "promises",
-      "Version": "1.3.3",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Abstractions for Promise-Based Asynchronous Programming",
-      "Authors@R": "c( person(\"Joe\", \"Cheng\", , \"joe@posit.co\", role = c(\"aut\", \"cre\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
-      "Description": "Provides fundamental abstractions for doing asynchronous programming in R using promises. Asynchronous programming is useful for allowing a single R process to orchestrate multiple tasks in the background while also attending to something else. Semantics are similar to 'JavaScript' promises, but with a syntax that is idiomatic R.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://rstudio.github.io/promises/, https://github.com/rstudio/promises",
-      "BugReports": "https://github.com/rstudio/promises/issues",
-      "Imports": [
-        "fastmap (>= 1.1.0)",
-        "later",
-        "magrittr (>= 1.5)",
-        "R6",
-        "Rcpp",
-        "rlang",
-        "stats"
-      ],
-      "Suggests": [
-        "future (>= 1.21.0)",
-        "knitr",
-        "purrr",
-        "rmarkdown",
-        "spelling",
-        "testthat (>= 3.0.0)",
-        "vembedr"
-      ],
-      "LinkingTo": [
-        "later",
-        "Rcpp"
-      ],
-      "VignetteBuilder": "knitr",
-      "Config/Needs/website": "rsconnect, tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Config/usethis/last-upkeep": "2025-05-27",
-      "Encoding": "UTF-8",
-      "Language": "en-US",
-      "RoxygenNote": "7.3.2",
-      "NeedsCompilation": "yes",
-      "Author": "Joe Cheng [aut, cre], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
-      "Maintainer": "Joe Cheng <joe@posit.co>",
-      "Repository": "CRAN"
-    },
-    "ps": {
-      "Package": "ps",
-      "Version": "1.9.1",
-      "Source": "Repository",
-      "Title": "List, Query, Manipulate System Processes",
-      "Authors@R": "c( person(\"Jay\", \"Loden\", role = \"aut\"), person(\"Dave\", \"Daeschler\", role = \"aut\"), person(\"Giampaolo\", \"Rodola'\", role = \"aut\"), person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
-      "Description": "List, query and manipulate all system processes, on 'Windows', 'Linux' and 'macOS'.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://github.com/r-lib/ps, https://ps.r-lib.org/",
-      "BugReports": "https://github.com/r-lib/ps/issues",
-      "Depends": [
-        "R (>= 3.4)"
-      ],
-      "Imports": [
-        "utils"
-      ],
-      "Suggests": [
-        "callr",
-        "covr",
-        "curl",
-        "pillar",
-        "pingr",
-        "processx (>= 3.1.0)",
-        "R6",
-        "rlang",
-        "testthat (>= 3.0.0)",
-        "webfakes",
-        "withr"
-      ],
-      "Biarch": "true",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.2",
-      "NeedsCompilation": "yes",
-      "Author": "Jay Loden [aut], Dave Daeschler [aut], Giampaolo Rodola' [aut], Gábor Csárdi [aut, cre], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
       "Repository": "CRAN"
     },
@@ -2547,39 +2288,6 @@
       "NeedsCompilation": "yes",
       "Author": "Hadley Wickham [aut, cre] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Lionel Henry [aut], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
-      "Repository": "CRAN"
-    },
-    "qicharts2": {
-      "Package": "qicharts2",
-      "Version": "0.8.1",
-      "Source": "Repository",
-      "Title": "Quality Improvement Charts",
-      "Authors@R": "person('Jacob', 'Anhoej', email = 'jacob@anhoej.net', role = c('aut', 'cre'))",
-      "Description": "Functions for making run charts, Shewhart control charts and Pareto charts for continuous quality improvement. Included control charts are: I, MR, Xbar, S, T, C, U, U', P, P', and G charts. Non-random variation in the form of minor to moderate persistent shifts in data over time is identified by the Anhoej rules for unusually long runs and unusually few crossing  [Anhoej, Olesen (2014) <doi:10.1371/journal.pone.0113825>]. Non-random variation in the form of larger, possibly transient, shifts is identified by Shewhart's 3-sigma rule [Mohammed, Worthington, Woodall (2008) <doi:10.1136/qshc.2004.012047>].",
-      "Depends": [
-        "R (>= 3.5.0)"
-      ],
-      "Imports": [
-        "ggplot2 (>= 2.2.0)",
-        "scales",
-        "stats"
-      ],
-      "Suggests": [
-        "dplyr (>= 0.7.0)",
-        "knitr",
-        "rmarkdown",
-        "testthat",
-        "tidyr"
-      ],
-      "License": "GPL-3",
-      "Encoding": "UTF-8",
-      "LazyData": "true",
-      "RoxygenNote": "7.3.2",
-      "VignetteBuilder": "knitr",
-      "URL": "https://github.com/anhoej/qicharts2",
-      "NeedsCompilation": "no",
-      "Author": "Jacob Anhoej [aut, cre]",
-      "Maintainer": "Jacob Anhoej <jacob@anhoej.net>",
       "Repository": "CRAN"
     },
     "qiverse.azure": {
@@ -2705,48 +2413,6 @@
       "RemoteUsername": "AUS-DOH-Safety-and-Quality",
       "RemoteRepo": "qiverse",
       "RemoteSubdir": "qiverse.qipatterns",
-      "RemoteRef": "main",
-      "RemoteSha": "ee8e65264f22359c7e0266b4e57acb3fe8833957"
-    },
-    "qiverse.qiplotly": {
-      "Package": "qiverse.qiplotly",
-      "Version": "0.1.4",
-      "Source": "GitHub",
-      "Title": "Quality Improvement Plotly Charts",
-      "Authors@R": "person(given = \"Healthcare Quality Intelligence Unit (Western Australia Health)\", family = \"\", role = c(\"aut\", \"cre\"), email = \"safetyandquality@health.wa.gov.au\")",
-      "Description": "Defines functions needed to generate SPC and Funnel Plots in Plotly.",
-      "License": "GPL (>= 3) + file LICENSE",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "Roxygen": "list(markdown = TRUE)",
-      "RoxygenNote": "7.3.2",
-      "URL": "https://github.com/AUS-DOH-Safety-and-Quality/qiverse/qiverse.qiplotly",
-      "BugReports": "https://github.com/AUS-DOH-Safety-and-Quality/qiverse/issues",
-      "Depends": [
-        "R (>= 4.3.0)"
-      ],
-      "Imports": [
-        "FunnelPlotR (>= 0.6.0)",
-        "dplyr",
-        "plotly",
-        "qicharts2",
-        "rlang",
-        "tidyr",
-        "data.table",
-        "RCurl"
-      ],
-      "Suggests": [
-        "qiverse.qipatterns",
-        "testthat (>= 3.0.0)"
-      ],
-      "Additional_repositories": "https://aus-doh-safety-and-quality.r-universe.dev/",
-      "Author": "Healthcare Quality Intelligence Unit (Western Australia Health) [aut, cre]",
-      "Maintainer": "Healthcare Quality Intelligence Unit (Western Australia Health) <safetyandquality@health.wa.gov.au>",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "AUS-DOH-Safety-and-Quality",
-      "RemoteRepo": "qiverse",
-      "RemoteSubdir": "qiverse.qiplotly",
       "RemoteRef": "main",
       "RemoteSha": "ee8e65264f22359c7e0266b4e57acb3fe8833957"
     },
@@ -3037,6 +2703,39 @@
       "Maintainer": "Yihui Xie <xie@yihui.name>",
       "Repository": "CRAN"
     },
+    "rsvg": {
+      "Package": "rsvg",
+      "Version": "2.7.0",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Render SVG Images into PDF, PNG, (Encapsulated) PostScript, or Bitmap Arrays",
+      "Authors@R": "c( person(\"Jeroen\", \"Ooms\", , \"jeroenooms@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-4035-0289\")), person(\"Salim\", \"Brüggemann\", , \"salim-b@pm.me\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-5329-5987\")))",
+      "Description": "Renders vector-based svg images into high-quality custom-size bitmap arrays using 'librsvg2'. The resulting bitmap can be written to e.g. png, jpeg or webp format. In addition, the package can convert images directly to various formats such as pdf or postscript.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://docs.ropensci.org/rsvg/, https://github.com/ropensci/rsvg",
+      "BugReports": "https://github.com/ropensci/rsvg/issues",
+      "Suggests": [
+        "ggplot2",
+        "knitr",
+        "magick",
+        "rmarkdown",
+        "spelling",
+        "svglite",
+        "testthat (>= 3.0.0)",
+        "webp",
+        "png"
+      ],
+      "VignetteBuilder": "knitr",
+      "Encoding": "UTF-8",
+      "Language": "en-US",
+      "RoxygenNote": "7.1.2",
+      "SystemRequirements": "librsvg2 (at least version 2.52)",
+      "Config/testthat/edition": "3",
+      "NeedsCompilation": "yes",
+      "Author": "Jeroen Ooms [aut, cre] (ORCID: <https://orcid.org/0000-0002-4035-0289>), Salim Brüggemann [ctb] (ORCID: <https://orcid.org/0000-0002-5329-5987>)",
+      "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Repository": "CRAN"
+    },
     "sass": {
       "Package": "sass",
       "Version": "0.4.10",
@@ -3277,56 +2976,6 @@
       "NeedsCompilation": "yes",
       "Author": "Kirill Müller [aut, cre] (ORCID: <https://orcid.org/0000-0002-1416-3412>), Hadley Wickham [aut], Romain Francois [ctb], Jennifer Bryan [ctb], RStudio [cph, fnd]",
       "Maintainer": "Kirill Müller <kirill@cynkra.com>",
-      "Repository": "CRAN"
-    },
-    "tidyr": {
-      "Package": "tidyr",
-      "Version": "1.3.1",
-      "Source": "Repository",
-      "Title": "Tidy Messy Data",
-      "Authors@R": "c( person(\"Hadley\", \"Wickham\", , \"hadley@posit.co\", role = c(\"aut\", \"cre\")), person(\"Davis\", \"Vaughan\", , \"davis@posit.co\", role = \"aut\"), person(\"Maximilian\", \"Girlich\", role = \"aut\"), person(\"Kevin\", \"Ushey\", , \"kevin@posit.co\", role = \"ctb\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
-      "Description": "Tools to help to create tidy data, where each column is a variable, each row is an observation, and each cell contains a single value.  'tidyr' contains tools for changing the shape (pivoting) and hierarchy (nesting and 'unnesting') of a dataset, turning deeply nested lists into rectangular data frames ('rectangling'), and extracting values out of string columns. It also includes tools for working with missing values (both implicit and explicit).",
-      "License": "MIT + file LICENSE",
-      "URL": "https://tidyr.tidyverse.org, https://github.com/tidyverse/tidyr",
-      "BugReports": "https://github.com/tidyverse/tidyr/issues",
-      "Depends": [
-        "R (>= 3.6)"
-      ],
-      "Imports": [
-        "cli (>= 3.4.1)",
-        "dplyr (>= 1.0.10)",
-        "glue",
-        "lifecycle (>= 1.0.3)",
-        "magrittr",
-        "purrr (>= 1.0.1)",
-        "rlang (>= 1.1.1)",
-        "stringr (>= 1.5.0)",
-        "tibble (>= 2.1.1)",
-        "tidyselect (>= 1.2.0)",
-        "utils",
-        "vctrs (>= 0.5.2)"
-      ],
-      "Suggests": [
-        "covr",
-        "data.table",
-        "knitr",
-        "readr",
-        "repurrrsive (>= 1.1.0)",
-        "rmarkdown",
-        "testthat (>= 3.0.0)"
-      ],
-      "LinkingTo": [
-        "cpp11 (>= 0.4.0)"
-      ],
-      "VignetteBuilder": "knitr",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "LazyData": "true",
-      "RoxygenNote": "7.3.0",
-      "NeedsCompilation": "yes",
-      "Author": "Hadley Wickham [aut, cre], Davis Vaughan [aut], Maximilian Girlich [aut], Kevin Ushey [ctb], Posit Software, PBC [cph, fnd]",
-      "Maintainer": "Hadley Wickham <hadley@posit.co>",
       "Repository": "CRAN"
     },
     "tidyselect": {
@@ -3648,40 +3297,6 @@
       "NeedsCompilation": "yes",
       "Author": "Jim Hester [aut] (<https://orcid.org/0000-0002-2739-7082>), Hadley Wickham [aut] (<https://orcid.org/0000-0003-4757-117X>), Jennifer Bryan [aut, cre] (<https://orcid.org/0000-0002-6983-2759>), Shelby Bearrows [ctb], https://github.com/mandreyel/ [cph] (mio library), Jukka Jylänki [cph] (grisu3 implementation), Mikkel Jørgensen [cph] (grisu3 implementation), Posit Software, PBC [cph, fnd]",
       "Maintainer": "Jennifer Bryan <jenny@posit.co>",
-      "Repository": "CRAN"
-    },
-    "webshot": {
-      "Package": "webshot",
-      "Version": "0.5.5",
-      "Source": "Repository",
-      "Title": "Take Screenshots of Web Pages",
-      "Authors@R": "c( person(\"Winston\", \"Chang\", email = \"winston@rstudio.com\", role = c(\"aut\", \"cre\")), person(\"Yihui\", \"Xie\", role = \"ctb\"), person(\"Francois\", \"Guillem\", role = \"ctb\"), person(\"Barret\", \"Schloerke\", role = \"ctb\"), person(\"Nicolas\", \"Perriault\", role = \"ctb\", comment = \"The CasperJS library\") )",
-      "Description": "Takes screenshots of web pages, including Shiny applications and R Markdown documents.",
-      "Depends": [
-        "R (>= 3.0)"
-      ],
-      "Imports": [
-        "magrittr",
-        "jsonlite",
-        "callr"
-      ],
-      "Suggests": [
-        "httpuv",
-        "knitr",
-        "rmarkdown",
-        "shiny",
-        "testthat (>= 3.0.0)"
-      ],
-      "License": "GPL-2",
-      "SystemRequirements": "PhantomJS for taking screenshots, ImageMagick or GraphicsMagick and OptiPNG for manipulating images.",
-      "RoxygenNote": "7.2.3",
-      "Encoding": "UTF-8",
-      "URL": "https://wch.github.io/webshot/, https://github.com/wch/webshot/",
-      "BugReports": "https://github.com/wch/webshot/issues",
-      "Config/testthat/edition": "3",
-      "NeedsCompilation": "no",
-      "Author": "Winston Chang [aut, cre], Yihui Xie [ctb], Francois Guillem [ctb], Barret Schloerke [ctb], Nicolas Perriault [ctb] (The CasperJS library)",
-      "Maintainer": "Winston Chang <winston@rstudio.com>",
       "Repository": "CRAN"
     },
     "withr": {
