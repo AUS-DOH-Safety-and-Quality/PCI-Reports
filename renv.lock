@@ -723,11 +723,11 @@
       "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>)",
       "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "andrjohns",
       "RemoteRepo": "controlcharts",
       "RemoteRef": "main",
-      "RemoteSha": "85aed7c312df3aabafae3d6c6cb07665176c4249"
+      "RemoteSha": "bbd7e00b04ecf84ffeafde988927e1d0b8259237",
+      "RemoteHost": "api.github.com"
     },
     "cpp11": {
       "Package": "cpp11",
