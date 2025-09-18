@@ -11,8 +11,9 @@ execute:
 ---
 
 ```{r Data download, include=FALSE}
-knitr::opts_chunk$set(message = FALSE, echo = FALSE, warning = FALSE,  out.width = "100%", screenshot.opts = list(vwidth = 740, vheight = 350, zoom = 1.0), webshot = "webshot")
-
+knitr::opts_chunk$set(
+  dpi = 288
+  )
 #Setup Temporary Directory for file storage
 temp <- tempdir()
 #Load in the helper functions/data required
@@ -56,121 +57,81 @@ pci_data <- readr::read_csv(paste0(temp, ".csv"), col_types = colTypes)
 ```
 
 ```{r Data transformation, include=FALSE}
-# Required Data Transformations
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |> 
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
                 period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
 
+
 #Creating required columns for Indicator calculations
 pci_data <- pci_data |>
   dplyr::mutate(
-    ## Create dbd based on whether the tbd time occurred before/after top time
+    #Create dbd based on whether the tbd time occurred before/after top time
     dbd = dplyr::case_when(
       tbd <= top ~ dop + lubridate::days(1),
       tbd > top ~ dop, 
       tbd = NA ~ NA),
-    ## Calculate column required for ECG to PCI time
+    #Calculate column required for ECG to PCI time
     ecgdb = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
-    ## Calculate column required for Door to PCI time
+    #Calculate column required for Door to PCI time
     dbdt = difftime(tbd, toa, units = "mins") + difftime(dbd, doa, units = "mins"))
+```
 
-## Summary for Indicator 1
+```{r Indicator Definitions, include=FALSE}
+#Time from diagnostic ECG to PCI mediated reperfusion
 pci_data <- pci_data |>
   dplyr::mutate(NCR1_den = dplyr::if_else(pci == "1" &
                 ecgdb >= 0 &
                 ecgdb <= 500, 1, 0))
 
-ecg_to_pci_spc <- pci_data |>
-  dplyr::filter(NCR1_den == 1) |>
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR1",
-                   num = as.numeric(median(ecgdb, na.rm = T)))
-
-## Summary for Indicator 2
+#Time from door to PCI mediated reperfusion
 pci_data <- pci_data |>
   dplyr::mutate(NCR2_den = dplyr::if_else(pci == "1" &
                 dbdt >= 0 &
                 dbdt <= 500, 1, 0))
-                
-door_to_pci_spc <- pci_data |>
-  dplyr::filter(NCR2_den == 1) |>
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR2",
-                   num = as.numeric(median(dbdt, na.rm = T)))
-## Summary for Indicator 3
+
+#Peri-PCI stroke
 pci_data <- pci_data |>
 dplyr::mutate(NCR3_den = dplyr::if_else(ihstr != "",1,0))
-              
-peri_PCI_stroke_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR3",
-    num = sum(ihstr),
-    den = sum(NCR3_den))
 
-peri_PCI_stroke_spc <- pci_data |>
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR3",
-                   num = sum(ihstr, na.rm = T),
-                   den = sum(NCR3_den, na.rm = T))
+#In-hospital major bleeding
+pci_data <- pci_data |> 
+  dplyr::mutate(NCR4_den = dplyr::if_else(is.na(ihbl) == F, 1, 0, missing = 0),
+                NCR4_num = dplyr::if_else(NCR4_den == 1 &
+                                          stringr::str_detect(ihbl, "[2345678]"), 1, 0, missing = 0))
 
-## Summary for Indicator 5
+#In-hospital mortality
 pci_data <- pci_data |>
   dplyr::mutate(NCR5_den = 1,
                 NCR5_num = ifelse(dis == "6", 1, 0))
 
-ihm_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR5",
-    num = sum(NCR5_num, na.rm = T),
-    den = sum(NCR5_den, na.rm = T))
-
-ihm_spc <- pci_data |>
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR5",
-                   num = sum(NCR5_num, na.rm = T),
-                   den = sum(NCR5_den, na.rm = T))
-
-## Summary for Indicator 6
+#30 day unplanned cardiac readmission rate after PCI
 pci_data <- pci_data |>
   dplyr:::mutate(NCR6_den = ifelse(dis != "6", 1, 0),
                  NCR6_num = ifelse(NCR6_den == 1 &
                               crh30 == "1" &
                               pc30 != "1", 1, 0))
 
-unplanned_readmission_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR6",
-    num = sum(NCR6_num, na.rm = T),
-    den = sum(NCR6_den, na.rm = T))
+#Unplanned revascularisation within 30 days
+pci_data <- pci_data |> 
+  dplyr::mutate(NCR7_den = 1,
+                NCR7_num = dplyr::if_else((ihpci == 1 &
+                                          ihpcip == 0 &
+                                          ihtvr == 1) |
+                                          (ihcab == 1 &
+                                          ihpcab == 0 &
+                                          ihtvcab == 1) |
+                                          (crh30 == 1 &
+                                          pc30 == 0 &
+                                          (tvr30 == 1 | tvcab30 == 1)), 1, 0, missing = 0))
 
-unplanned_readmission_spc <- pci_data |>
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR6",
-                   num = sum(NCR6_num, na.rm = T),
-                   den = sum(NCR6_den, na.rm = T))
-
-#NCR 8
+#30 day mortality after PCI
 pci_data <- pci_data |> 
   dplyr::mutate(NCR8_den = 1,
                 NCR8_num = dplyr::if_else((dop + 30) <= dmort30 |
                                           dis == "6", 1, 0, missing = 0))
 
-#Group data for the funnel plot function
-mort_30_day_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR8",
-    num = sum(NCR8_num, na.rm = T),
-    den = sum(NCR8_den, na.rm = T))
-
-#Group data for the SPC function
-mort_30_day_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR8",
-    num = sum(NCR8_num, na.rm = T),
-    den = sum(NCR8_den, na.rm = T))
-
-#NCR 9
+#Patients without contraindication discharged on lipid-lowering therapy
 pci_data <- pci_data |> 
   dplyr::mutate(NCR9_den = dplyr::if_else(dis != "6" & 
                                           dstp != "2" & 
@@ -184,22 +145,7 @@ pci_data <- pci_data |>
                 NCR9_num = dplyr::if_else(NCR9_den == 1 & 
                                          (dstp == "1" | doll == "1"), 1, 0, missing = 0))
 
-#Group data for the funnel plot function
-lipid_lowering_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR9",
-    num = sum(NCR9_num, na.rm = T),
-    den = sum(NCR9_den, na.rm = T))
-
-#Group data for the SPC function
-lipid_lowering_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR9",
-    num = sum(NCR9_num, na.rm = T),
-    den = sum(NCR9_den, na.rm = T))
-
-
-#NCR 10
+#Patients referred to cardiac rehabilitation or other secondary prevention program
 pci_data <- pci_data |> 
   dplyr::mutate(NCR10_den = dplyr::if_else(dis != "6" &
                                            crehab != "-1" &
@@ -207,22 +153,7 @@ pci_data <- pci_data |>
                 NCR10_num = dplyr::if_else(NCR10_den == 1 & 
                                            crehab == "1", 1, 0, missing = 0))
 
-#Group data for the funnel plot function
-cardiac_rehab_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR10",
-    num = sum(NCR10_num, na.rm = T),
-    den = sum(NCR10_den, na.rm = T))
-
-#Group data for the SPC function
-cardiac_rehab_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR10",
-    num = sum(NCR10_num, na.rm = T),
-    den = sum(NCR10_den, na.rm = T))
-
-
-#NCR 11
+#Proportion of patients without a clear and documented contraindication for aspirin and/or a P2Y12 inhibitor, discharged on DAPT
 pci_data <- pci_data |> 
   dplyr::mutate(NCR11_den = dplyr::if_else(dis != "6" & 
                                            dasp != "2" & 
@@ -236,358 +167,322 @@ pci_data <- pci_data |>
                 NCR11_num = dplyr::if_else(NCR11_den == 1 & 
                                           (dasp == "1" | doap == "1"), 1, 0, missing = 0))
 
-#Group data for the funnel plot function
-antiplatelet_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR11",
-    num = sum(NCR11_num, na.rm = T),
-    den = sum(NCR11_den, na.rm = T))
+#Required ordering for plotting
+pci_data <- pci_data |> dplyr::arrange(period_end)
 
-#Group data for the SPC function
-antiplatelet_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR11",
-    num = sum(NCR11_num, na.rm = T),
-    den = sum(NCR11_den, na.rm = T))
-
-
-#Data not available to plot
-
-#NCR 4
-pci_data <- pci_data |> 
-  dplyr::mutate(NCR4_den = dplyr::if_else(is.na(ihbl) == F, 1, 0, missing = 0),
-                NCR4_num = dplyr::if_else(NCR4_den == 1 &
-                                          stringr::str_detect(ihbl, "[2345678]"), 1, 0, missing = 0))
-
-#Group data for the funnel plot function
-ih_bleeding_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR4",
-    num = sum(NCR4_num, na.rm = T),
-    den = sum(NCR4_den, na.rm = T))
-
-#Group data for the SPC function
-ih_bleeding_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR4",
-    num = sum(NCR4_num, na.rm = T),
-    den = sum(NCR4_den, na.rm = T))
-
-#NCR 7
-pci_data <- pci_data |> 
-  dplyr::mutate(NCR7_den = 1,
-                NCR7_num = dplyr::if_else((ihpci == 1 &
-                                          ihpcip == 0 &
-                                          ihtvr == 1) |
-                                          (ihcab == 1 &
-                                          ihpcab == 0 &
-                                          ihtvcab == 1) |
-                                          (crh30 == 1 &
-                                          pc30 == 0 &
-                                          (tvr30 == 1 | tvcab30 == 1)), 1, 0, missing = 0))
-
-#Group data for the funnel plot function
-unplanned_revasc_fpl <- pci_data |> 
-  dplyr::group_by(hname) |>
-  dplyr::summarise(indicatorID = "NCR7",
-    num = sum(NCR7_num, na.rm = T),
-    den = sum(NCR7_den, na.rm = T))
-
-#Group data for the SPC function
-unplanned_revasc_spc <- pci_data |> 
-  dplyr::group_by(period_start, period_end) |>
-  dplyr::summarise(indicatorID = "NCR7",
-    num = sum(NCR7_num, na.rm = T),
-    den = sum(NCR7_den, na.rm = T))
-
-ncr_indicator_data_spc <- rbind(unplanned_revasc_spc, ih_bleeding_spc, antiplatelet_spc, cardiac_rehab_spc,
-                                lipid_lowering_spc, mort_30_day_spc, unplanned_readmission_spc, ihm_spc,
-                                peri_PCI_stroke_spc, door_to_pci_spc, ecg_to_pci_spc)
-
-ncr_indicator_data_fpl <- rbind(unplanned_revasc_fpl, ih_bleeding_fpl, antiplatelet_fpl, cardiac_rehab_fpl,
-                                lipid_lowering_fpl, mort_30_day_fpl, unplanned_readmission_fpl, ihm_fpl,
-                                peri_PCI_stroke_fpl)
 ```
-
 
 ## Time from diagnostic ECG to PCI mediated reperfusion
 
 ### SPC
 
-```{r Indicator 1}
-## Generate the SPC chart for Indicator 1
-tempFile <- paste0(temp, "/NCR1_fpl.html")
-qiverse.qiplotly::spc_plotly_create(ecg_to_pci_spc$period_end,
-                                    numerator = ecg_to_pci_spc$num,
-                                    denominator = rep(1, nrow(ecg_to_pci_spc)),
-                                    data_type = "i",
-                                    better_is = "Lower",
-                                    y_format = "Numeric",
-                                    title = "Time from diagnostic ECG to PCI mediated reperfusion. (minutes)",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end),
-                                    nhs_icons_enable = T,
-                                    x_format = "%b %y")|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR1_fpl.png")
-
+```{r NCR1 SPC}
+## Generate the SPC chart
+NCR1_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR1_den == 1),
+                   keys = period_end,
+                   numerators = ecgdb,
+                   denominators = NCR1_den,
+                   aggregations = list(numerators = "median", denominators = "first"),
+                   spc_settings = list(chart_type = "i"),
+                   y_axis_settings = list(ylimit_label = "Median time from ECG to PCI (Minutes)",
+                                          ylimit_sig_figs = 0,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR1_spc
 ```
 
 ## Time from door to PCI mediated reperfusion
 
 ### SPC
 
-```{r Indicator 2}
-## Generate the SPC chart for Indicator 2
-tempFile <- paste0(temp, "/NCR2_fpl.html")
-qiverse.qiplotly::spc_plotly_create(door_to_pci_spc$period_end,
-                                    numerator = as.numeric(door_to_pci_spc$num),
-                                    denominator = rep(1, nrow(door_to_pci_spc)),
-                                    data_type = "i",
-                                    better_is = "Lower",
-                                    y_format = "Numeric",
-                                    title = "Time from door to PCI mediated reperfusion. (minutes)",
-                                    spc_period_start = min(pci_data$period_start),
-                                    spc_period_end = max(pci_data$period_end),
-                                    nhs_icons_enable = T,
-                                    x_format = "%b %y") |> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR2_fpl.png")
-
+```{r NCR2 SPC}
+## Generate the SPC chart
+NCR2_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR2_den == 1),
+                   keys = period_end,
+                   numerators = dbdt,
+                   denominators = NCR2_den,
+                   aggregations = list(numerators = "median", denominators = "first"),
+                   spc_settings = list(chart_type = "i"),
+                   y_axis_settings = list(ylimit_label = "Median time from door to PCI (Minutes)",
+                                          ylimit_sig_figs = 0,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR2_spc
 ```
 
 ## Peri-PCI stroke
 
 ### Funnel
 
-``` {r Indicator_funnel 3}
-## Generate the Funnel chart for Indicator 3
-tempFile <- paste0(temp, "/NCR3_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(
-                  numerator = peri_PCI_stroke_fpl$num,
-                  denominator = peri_PCI_stroke_fpl$den,
-                  group = peri_PCI_stroke_fpl$hname,
-                  better_is = "Lower",
-                  y_limit_upper = 2,
-                  title = "Peri-PCI stroke",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F)|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR3_fpl.png")
-
+```{r NCR3 Funnel}
+## Generate the Funnel chart
+NCR3_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = ihstr,
+                      denominators = NCR3_den,
+                      y_axis_settings = list(ylimit_u = 2,
+                                             ylimit_label = "Percentage of in-hospital stroke after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR3_fpl$static_plot
 ```
 
-### SPC
+The funnel plot above displays the information for **Peri-PCI Stroke** between **`r min(pci_data$period_start)`** and **`r max(pci_data$period_end)`**. The mean (or center line) value statewide is **`r round(NCR3_fpl$limits$target[1], 2)`**.
 
-``` {r Indicator 3}
-## Generate the SPC chart for Indicator 3
-tempFile <- paste0(temp, "/NCR3_fpl.html")
-qiverse.qiplotly::spc_plotly_create(peri_PCI_stroke_spc$period_end,
-                  numerator = peri_PCI_stroke_spc$num,
-                  denominator = peri_PCI_stroke_spc$den,
-                  data_type = "p",
-                  better_is = "Lower",
-                  title = "Peri-PCI stroke",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y")|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR3_fpl.png")
-
+```{r NCR3 SPC}
+## Generate the SPC chart
+NCR3_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = ihstr,
+                   denominators = NCR3_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital stroke after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR3_spc
 ```
+
+The Statistical Process Control (SPC) chart above displays the information for **Peri-PCI Stroke** between **`r min(pci_data$period_start)`** and **`r max(pci_data$period_end)`**. There was a total numerator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,3])), scientific = F, big.mark = ",")`**. There was a total denominator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,4])), scientific = F, big.mark = ",")`**. The mean (or center line) value statewide is **`r round(NCR3_fpl$limits$target[1], 2)`**.
 
 ## In-Hospital Major Bleeding
 
 ### Funnel
 
-``` {r Indicator_funnel 4}
-## Generate the Funnel chart for Indicator 4
-tempFile <- paste0(temp, "/NCR4_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(
-                  numerator = ih_bleeding_fpl$num,
-                  denominator = ih_bleeding_fpl$den,
-                  group = ih_bleeding_fpl$hname,
-                  better_is = "Lower",
-                  y_limit_upper = 2,
-                  title = "In-Hospital Major Bleeds",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F)|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR4_fpl.png")
-
+```{r NCR4 Funnel}
+## Generate the Funnel chart
+NCR4_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR4_num,
+                      denominators = NCR4_den,
+                      y_axis_settings = list(ylimit_u = 2,
+                                             ylimit_label = "Percentage of in-hospital major bleeding after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR4_fpl
 ```
 
 ### SPC
 
-``` {r Indicator 4}
-## Generate the SPC chart for Indicator 3
-tempFile <- paste0(temp, "/NCR4_fpl.html")
-qiverse.qiplotly::spc_plotly_create(ih_bleeding_spc$period_end,
-                  numerator = ih_bleeding_spc$num,
-                  denominator = ih_bleeding_spc$den,
-                  data_type = "p",
-                  better_is = "Lower",
-                  title = "In-Hospital Major Bleeds",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y")|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR4_fpl.png")
-
+```{r NCR4 SPC}
+## Generate the SPC chart
+NCR4_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR4_den > 0),
+                   keys = period_end,
+                   numerators = NCR4_num,
+                   denominators = NCR4_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital major bleeding after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR4_spc
 ```
 
 ## In-hospital mortality
 
 ### Funnel
 
-``` {r Indicator_funnel 5}
-## Generate the Funnel chart for Indicator 5
-tempFile <- paste0(temp, "/NCR5_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(
-                  numerator = ihm_fpl$num,
-                  denominator = ihm_fpl$den,
-                  group = ihm_fpl$hname,
-                  better_is = "Lower",
-                  y_limit_upper = 5,
-                  title = "In-Hospital Mortality",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F)|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR5_fpl.png")
-
+```{r NCR5 Funnel}
+## Generate the Funnel chart 
+NCR5_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR5_num,
+                      denominators = NCR5_den,
+                      y_axis_settings = list(ylimit_u = 5,
+                                             ylimit_label = "Percentage of in-hospital mortality after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR5_fpl
 ```
+
 ### SPC
 
-``` {r Indicator 5}
-## Generate the SPC chart for Indicator 5
-tempFile <- paste0(temp, "/NCR5_fpl.html")
-qiverse.qiplotly::spc_plotly_create(ihm_spc$period_end,
-                  numerator = ihm_spc$num,
-                  denominator = ihm_spc$den,
-                  data_type = "p",
-                  better_is = "Lower",
-                  title = "In-Hospital Mortality",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y")|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR5_fpl.png")
-
+```{r NCR5 SPC}
+## Generate the SPC chart 
+NCR5_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR5_num,
+                   denominators = NCR5_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital mortality after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR5_spc
 ```
 
 ## 30 day unplanned cardiac readmission rate after PCI
 
+Cardiac readmission data is currently undergoing review. This data was not included in the 2024 NCR data submission.
+
 ### Funnel
 
-``` {r Indicator_funnel 6}
-## Generate the Funnel chart for Indicator 6
-tempFile <- paste0(temp, "/NCR6_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(
-                  numerator = unplanned_readmission_fpl$num,
-                  denominator = unplanned_readmission_fpl$den,
-                  group = unplanned_readmission_fpl$hname,
-                  better_is = "Lower",
-                  y_limit_upper = 10,
-                  title = "30 day unplanned cardiac readmission rate after PCI",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F)|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR6_fpl.png")
-
+```{r NCR6 Funnel}
+## Generate the Funnel chart
+NCR6_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR6_num,
+                      denominators = NCR6_den,
+                      y_axis_settings = list(ylimit_u = 10,
+                                             ylimit_label = "Percentage of 30 day unplanned cardiac readmissions after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR6_fpl
 ```
 
 ### SPC
 
-``` {r Indicator 6}
-## Generate the SPC chart for Indicator 6
-tempFile <- paste0(temp, "/NCR6_fpl.html")
-qiverse.qiplotly::spc_plotly_create(unplanned_readmission_spc$period_end,
-                  numerator = unplanned_readmission_spc$num,
-                  denominator = unplanned_readmission_spc$den,
-                  data_type = "p",
-                  better_is = "Lower",
-                  y_format = "Percentage",
-                  title = "30 day unplanned cardiac readmission rate after PCI",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y") |> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR6_fpl.png")
-
+```{r NCR6 SPC}
+## Generate the SPC chart 
+NCR6_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR6_num,
+                   denominators = NCR6_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned cardiac readmissions after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR6_spc
 ```
+
 ## 30 day unplanned revascularisation rate after PCI
 
 ### Funnel
 
-``` {r Indicator_funnel 7}
-## Generate the Funnel chart for Indicator 6
-tempFile <- paste0(temp, "/NCR7_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(
-                  numerator = unplanned_readmission_fpl$num,
-                  denominator = unplanned_readmission_fpl$den,
-                  group = unplanned_readmission_fpl$hname,
-                  better_is = "Lower",
-                  y_limit_upper = 10,
-                  title = "30 day unplanned revascularisation rate after PCI",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F)|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR7_fpl.png")
-
+```{r NCR7 Funnel}
+## Generate the Funnel chart
+NCR7_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR7_num,
+                      denominators = NCR7_den,
+                      y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned revascularisation after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR7_fpl
 ```
 
 ### SPC
 
-``` {r Indicator 7}
-## Generate the SPC chart for Indicator 6
-tempFile <- paste0(temp, "/NCR7_fpl.html")
-qiverse.qiplotly::spc_plotly_create(unplanned_readmission_spc$period_end,
-                  numerator = unplanned_readmission_spc$num,
-                  denominator = unplanned_readmission_spc$den,
-                  data_type = "p",
-                  better_is = "Lower",
-                  y_format = "Percentage",
-                  title = "30 day unplanned revascularisation rate after PCI",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y")|> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR7_fpl.png")
-
+```{r NCR7 SPC}
+## Generate the SPC chart
+NCR7_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR7_num,
+                   denominators = NCR7_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned revascularisation after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR7_spc
 ```
 
 ## 30 Day Mortality
@@ -595,38 +490,49 @@ webshot::webshot(url = tempFile, file = "Plots/NCR7_fpl.png")
 ### Funnel
 
 ```{r NCR8 Funnel}
-tempFile <- paste0(temp, "/NCR8_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = mort_30_day_fpl$num,
-                  denominator = mort_30_day_fpl$den,
-                  group = mort_30_day_fpl$hname,
-                  y_limit_upper = 10,
-                  title = "30 Day Mortality",
-                  better_is = "Lower",
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F) |> 
-  #Save the plotly plot into a html file - required to output to word
-  htmlwidgets::saveWidget(file = tempFile)
-#Snapshot the html file and save it as a png
-webshot::webshot(url = tempFile, file = "Plots/NCR8_fpl.png")
+## Generate the Funnel chart
+NCR8_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR8_num,
+                      denominators = NCR8_den,
+                      y_axis_settings = list(ylimit_u = 5,
+                                             ylimit_label = "Percentage of 30 day mortality after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "decrease",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR8_fpl
 ```
 
 ### SPC
 
 ```{r NCR8 SPC}
-tempFile <- paste0(temp, "/NCR8_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = mort_30_day_spc$period_end,
-                  numerator = mort_30_day_spc$num,
-                  denominator = mort_30_day_spc$den,
-                  title = "30 Day Mortality",
-                  better_is = "Lower",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y") |> 
-  htmlwidgets::saveWidget(file = tempFile) 
-
-webshot::webshot(url = tempFile, file = "Plots/NCR8_spc.png")
+## Generate the SPC chart
+NCR8_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR8_num,
+                   denominators = NCR8_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of 30 day mortality after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "decrease",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR8_spc
 ```
 
 ## Patients Referred to Cardiac Rehabilitation
@@ -634,37 +540,49 @@ webshot::webshot(url = tempFile, file = "Plots/NCR8_spc.png")
 ### Funnel
 
 ```{r NCR10 Funnel}
-tempFile <- paste0(temp, "/NCR10_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = cardiac_rehab_fpl$num,
-                  denominator = cardiac_rehab_fpl$den,
-                  group = cardiac_rehab_fpl$hname,
-                  title = "Referred to Cardiac Rehabilitation",
-                  better_is = "Higher",
-                  y_limit_lower = 70,
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F) |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR10_fpl.png")
+## Generate the Funnel chart
+NCR10_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR10_num,
+                      denominators = NCR10_den,
+                      y_axis_settings = list(ylimit_l = 70,
+                                             ylimit_label = "Percentage of patients referred to cardiac rehab after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "increase",
+                                              three_sigma = TRUE),
+                      width = 720,
+                      height = 480)
+NCR10_fpl
 ```
 
 ### SPC
 
 ```{r NCR10 SPC}
-tempFile <- paste0(temp, "/NCR10_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = cardiac_rehab_spc$period_end,
-                  numerator = cardiac_rehab_spc$num,
-                  denominator = cardiac_rehab_spc$den,
-                  title = "Referred to Cardiac Rehabilitation",
-                  better_is = "Higher",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y") |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR10_spc.png")
+## Generate the SPC chart 
+NCR10_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR10_num,
+                   denominators = NCR10_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of patients referred to cardiac rehab after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "increase",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR10_spc
 ```
 
 ## Patients Discharged on Lipid-Lowering Therapy
@@ -672,37 +590,51 @@ webshot::webshot(url = tempFile, file = "Plots/NCR10_spc.png")
 ### Funnel
 
 ```{r NCR9 Funnel}
-tempFile <- paste0(temp, "/NCR9_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = lipid_lowering_fpl$num,
-                  denominator = lipid_lowering_fpl$den,
-                  group = lipid_lowering_fpl$hname,
-                  title = "Discharged on Lipid-Lowering Therapy",
-                  better_is = "Higher",
-                  y_limit_lower = 90,
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F) |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR9_fpl.png")
+## Generate the Funnel chart
+NCR9_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR9_num,
+                      denominators = NCR9_den,
+                      y_axis_settings = list(ylimit_u = 100,
+                                             ylimit_l = 95,
+                                             ylimit_label = "Percentage of patients discharged on Lipid Lowering Therapy after PCI",
+                                             ylimit_sig_figs = 1,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "increase",
+                                              three_sigma = TRUE),
+                       width = 720,
+                       height = 480)
+NCR9_fpl
 ```
 
 ### SPC
 
+There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 ```{r NCR9 SPC}
-tempFile <- paste0(temp, "/NCR9_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = lipid_lowering_spc$period_end,
-                  numerator = lipid_lowering_spc$num,
-                  denominator = lipid_lowering_spc$den,
-                  title = "Discharged on Lipid-Lowering Therapy",
-                  better_is = "Higher",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y") |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR9_spc.png")
+## Generate the SPC chart 
+NCR9_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR9_num,
+                   denominators = NCR9_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of patients discharged on Lipid Lowering Therapy after PCI",
+                                          ylimit_sig_figs = 1,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "increase",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR9_spc
 ```
 
 ## Patients Discharged on Dual Antiplatelet Therapy
@@ -710,35 +642,49 @@ webshot::webshot(url = tempFile, file = "Plots/NCR9_spc.png")
 ### Funnel
 
 ```{r NCR11 Funnel}
-tempFile <- paste0(temp, "/NCR11_fpl.html")
-qiverse.qiplotly::fpl_plotly_create(numerator = antiplatelet_fpl$num,
-                  denominator = antiplatelet_fpl$den,
-                  group = antiplatelet_fpl$hname,
-                  title = "Discharged on Dual Antiplatelet Therapy",
-                  better_is = "Higher",
-                  y_limit_lower = 98,
-                  funnel_period_start = min(pci_data$period_start),
-                  funnel_period_end = max(pci_data$period_end),
-                  highlight_outlier = F) |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR11_fpl.png")
+## Generate the Funnel chart
+NCR11_fpl <- controlcharts::funnel(data = pci_data,
+                      keys = hname,
+                      numerators = NCR11_num,
+                      denominators = NCR11_den,
+                      y_axis_settings = list(ylimit_u = 100,
+                                             ylimit_l = 95,
+                                             ylimit_label = "Percentage of patients discharged on Dual Antiplatelet Therapy after PCI",
+                                             ylimit_sig_figs = 0,
+                                             ylimit_label_size = 14),
+                      x_axis_settings = list(xlimit_label = "Number of PCI's",
+                                             xlimit_label_size = 14),
+                      outlier_settings = list(improvement_direction = "increase",
+                                              three_sigma = TRUE),
+                       width = 720,
+                       height = 480)
+NCR11_fpl
 ```
 
 ### SPC
 
+There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 ```{r NCR11 SPC}
-tempFile <- paste0(temp, "/NCR11_spc.html")
-qiverse.qiplotly::spc_plotly_create(x = antiplatelet_spc$period_end,
-                  numerator = antiplatelet_spc$num,
-                  denominator = antiplatelet_spc$den,
-                  title = "Discharged on Dual Antiplatelet Therapy",
-                  better_is = "Higher",
-                  spc_period_start = min(pci_data$period_start),
-                  spc_period_end = max(pci_data$period_end),
-                  nhs_icons_enable = T,
-                  x_format = "%b %y") |> 
-  htmlwidgets::saveWidget(file = tempFile)
-
-webshot::webshot(url = tempFile, file = "Plots/NCR11_spc.png")
+## Generate the SPC chart 
+NCR11_spc <- controlcharts::spc(data = pci_data,
+                   keys = period_end,
+                   numerators = NCR11_num,
+                   denominators = NCR11_den,
+                   spc_settings = list(chart_type = "p"),
+                   y_axis_settings = list(ylimit_label = "Percentage of patients discharged on Dual Antiplatelet Therapy after PCI",
+                                          ylimit_sig_figs = 0,
+                                          ylimit_label_size = 14),
+                   outlier_settings = list(improvement_direction = "increase",
+                                           astronomical = TRUE,
+                                           shift = TRUE,
+                                           trend = TRUE,
+                                           two_in_three = TRUE),
+                   canvas_settings = list(upper_padding = 40),
+                   nhs_icon_settings = list(show_variation_icons = TRUE),
+                   date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+                   width = 720,
+                   height = 480)
+NCR11_spc
 ```
