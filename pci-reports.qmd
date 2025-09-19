@@ -11,9 +11,6 @@ execute:
 ---
 
 ```{r Data download, include=FALSE}
-knitr::opts_chunk$set(
-  dpi = 288
-  )
 #Setup Temporary Directory for file storage
 temp <- tempdir()
 #Load in the helper functions/data required
@@ -166,10 +163,6 @@ pci_data <- pci_data |>
                                            doap != "", 1, 0, missing = 0),
                 NCR11_num = dplyr::if_else(NCR11_den == 1 & 
                                           (dasp == "1" | doap == "1"), 1, 0, missing = 0))
-
-#Required ordering for plotting
-pci_data <- pci_data |> dplyr::arrange(period_end)
-
 ```
 
 ## Time from diagnostic ECG to PCI mediated reperfusion
@@ -181,8 +174,7 @@ pci_data <- pci_data |> dplyr::arrange(period_end)
 NCR1_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR1_den == 1),
                    keys = period_end,
                    numerators = ecgdb,
-                   denominators = NCR1_den,
-                   aggregations = list(numerators = "median", denominators = "first"),
+                   aggregations = list(numerators = "median"),
                    spc_settings = list(chart_type = "i"),
                    y_axis_settings = list(ylimit_label = "Median time from ECG to PCI (Minutes)",
                                           ylimit_sig_figs = 0,
@@ -196,9 +188,7 @@ NCR1_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR1_den == 1),
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR1_spc
 ```
 
@@ -211,8 +201,7 @@ NCR1_spc
 NCR2_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR2_den == 1),
                    keys = period_end,
                    numerators = dbdt,
-                   denominators = NCR2_den,
-                   aggregations = list(numerators = "median", denominators = "first"),
+                   aggregations = list(numerators = "median"),
                    spc_settings = list(chart_type = "i"),
                    y_axis_settings = list(ylimit_label = "Median time from door to PCI (Minutes)",
                                           ylimit_sig_figs = 0,
@@ -226,9 +215,7 @@ NCR2_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR2_den == 1),
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR2_spc
 ```
 
@@ -249,9 +236,7 @@ NCR3_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR3_fpl$static_plot
 ```
 
@@ -276,9 +261,7 @@ NCR3_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR3_spc
 ```
 
@@ -301,9 +284,7 @@ NCR4_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR4_fpl
 ```
 
@@ -328,9 +309,7 @@ NCR4_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR4_den > 0),
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR4_spc
 ```
 
@@ -351,9 +330,7 @@ NCR5_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR5_fpl
 ```
 
@@ -378,9 +355,7 @@ NCR5_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR5_spc
 ```
 
@@ -403,9 +378,7 @@ NCR6_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR6_fpl
 ```
 
@@ -430,9 +403,7 @@ NCR6_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR6_spc
 ```
 
@@ -452,9 +423,7 @@ NCR7_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR7_fpl
 ```
 
@@ -479,9 +448,7 @@ NCR7_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR7_spc
 ```
 
@@ -502,9 +469,7 @@ NCR8_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "decrease",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR8_fpl
 ```
 
@@ -529,9 +494,7 @@ NCR8_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR8_spc
 ```
 
@@ -552,9 +515,7 @@ NCR10_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "increase",
-                                              three_sigma = TRUE),
-                      width = 720,
-                      height = 480)
+                                              three_sigma = TRUE))
 NCR10_fpl
 ```
 
@@ -579,9 +540,7 @@ NCR10_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR10_spc
 ```
 
@@ -603,9 +562,7 @@ NCR9_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "increase",
-                                              three_sigma = TRUE),
-                       width = 720,
-                       height = 480)
+                                              three_sigma = TRUE))
 NCR9_fpl
 ```
 
@@ -631,9 +588,7 @@ NCR9_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR9_spc
 ```
 
@@ -655,9 +610,7 @@ NCR11_fpl <- controlcharts::funnel(data = pci_data,
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
                                              xlimit_label_size = 14),
                       outlier_settings = list(improvement_direction = "increase",
-                                              three_sigma = TRUE),
-                       width = 720,
-                       height = 480)
+                                              three_sigma = TRUE))
 NCR11_fpl
 ```
 
@@ -683,8 +636,6 @@ NCR11_spc <- controlcharts::spc(data = pci_data,
                    nhs_icon_settings = list(show_variation_icons = TRUE),
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
-                                    date_format_year = "YY"),
-                   width = 720,
-                   height = 480)
+                                    date_format_year = "YY"))
 NCR11_spc
 ```
