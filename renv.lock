@@ -727,7 +727,7 @@
       "RemoteUsername": "andrjohns",
       "RemoteRepo": "controlcharts",
       "RemoteRef": "main",
-      "RemoteSha": "f927e0005596c8e9cccf01bce85baa5310c9613c"
+      "RemoteSha": "1b8bf7eea0f5fd336553b64f6af856b75847bddb"
     },
     "cpp11": {
       "Package": "cpp11",
