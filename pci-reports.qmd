@@ -6,56 +6,26 @@ format:
     number-sections: true
     highlight-style: github
 editor: visual
-execute: 
+execute:
   echo: false
 ---
 
 ```{r Data download, include=FALSE}
-#Setup Temporary Directory for file storage
-temp <- tempdir()
-#Load in the helper functions/data required
-source("HelperFunctions.R")
-#Set data source type Powerbi or Sharepoint
-data_source <- "Powerbi"
-
-if(data_source == "Sharepoint"){
-  #Sharepoint Token
-tk_sp <- qiverse.azure::get_az_tk('sp')
-#Load data from CSV
-fsh_data <- qiverse.sharepoint::download_sharepoint_file(
-  site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
-  file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Fiona_Stanley_Hospital_2024_PCI_Data.csv?d=w502a1115d07d84e37976119fd0e5ed4e4&csf=1&web=1&e=CipGly',
-  token = tk_sp)
-rph_data <- qiverse.sharepoint::download_sharepoint_file(
-  site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
-  file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Royal_Perth_Hospital_2024_PCI_Data.csv?d=w7b047d9021874a58bd3241d2ad4837ef&csf=1&web=1&e=HXmpC4',
-  token = tk_sp)
-scgh_data <- qiverse.sharepoint::download_sharepoint_file(
-  site_url = 'https://wahealthdept.sharepoint.com/sites/WACardiacOutcomeRegistry',
-  file_url = 'https://wahealthdept.sharepoint.com/:x:/r/sites/WACardiacOutcomeRegistry/PCI/PCI%20Data/Latest%20NCR%20Submission/Sir_Charles_Gairdner_Hospital_2024_PCI_Data.csv?d=w970e2c01ddec4e8aa6456876e8c793b5&csf=1&web=1&e=Jc7bIW',
-  token = tk_sp)
-
-#Read in data from CSV
-pci_data <- readr::read_csv(c(fsh_data, rph_data, scgh_data), col_types = colTypes)
-} else if(data_source == "Powerbi"){
-#PowerBI Token
-tk = qiverse.azure::get_az_tk('pbi_df')
-#Load data from PowerBI
-data <- qiverse.powerbi::download_dataflow_table(workspace_name = "PCI Data Set",
-                                              dataflow_name = "NCR Template and Hid files",
-                                              table_name = "required_columns",
-                                              access_token = tk$credentials$access_token)
-#Workaround for setting csv col types
-readr::write_csv(data, paste0(temp, ".csv"))
-#Read in data from PowerBI
-pci_data <- readr::read_csv(paste0(temp, ".csv"), col_types = colTypes)
+if (!file.exists("./pci_data.csv")) {
+  stop("NCR dataset not found! Please check that you have a single CSV file named 'pci_data.csv' in the current directory!",
+       call. = FALSE)
 }
 
+#Load in the helper functions/data required
+source("HelperFunctions.R")
+
+#Read in data from PowerBI
+pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
 ```
 
 ```{r Data transformation, include=FALSE}
 #Creating period start and end, first and last date of the month
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
                 period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
 
@@ -66,7 +36,7 @@ pci_data <- pci_data |>
     #Create dbd based on whether the tbd time occurred before/after top time
     dbd = dplyr::case_when(
       tbd <= top ~ dop + lubridate::days(1),
-      tbd > top ~ dop, 
+      tbd > top ~ dop,
       tbd = NA ~ NA),
     #Calculate column required for ECG to PCI time
     ecgdb = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
@@ -103,7 +73,7 @@ pci_data <- pci_data |>
 dplyr::mutate(NCR3_den = dplyr::if_else(ihstr == 0 | ihstr == 1, 1,0))
 
 #In-hospital major bleeding
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR4_den = dplyr::if_else(stringr::str_detect(ihbl, "[012345678]"), 1, 0, missing = 0),
                 NCR4_num = dplyr::if_else(NCR4_den == 1 &
                                           stringr::str_detect(ihbl, "[34578]"), 1, 0, missing = 0))
@@ -116,7 +86,7 @@ pci_data <- pci_data |>
 #30 day unplanned cardiac readmission rate after PCI
 pci_data <- pci_data |>
   dplyr::mutate(NCR6_den = dplyr::if_else(
-      stringr::str_detect(dis, "[12345]") & 
+      stringr::str_detect(dis, "[12345]") &
       (stat30 == "1" | stat30 == "0") &
       (crh30 == "1"  | crh30 == "0"), 1, 0),
                 NCR6_num = dplyr::if_else(NCR6_den == 1 &
@@ -124,44 +94,44 @@ pci_data <- pci_data |>
                               pc30 == "0", 1, 0))
 
 #Unplanned revascularisation within 30 days
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR7_den = dplyr::if_else(
     (ihpci == "0" | ihpci == "1") &
     (ihcab == "0" | ihcab == "1"), 1, 0, missing = 0),
                 NCR7_num = dplyr::if_else(NCR7_den == 1 &
-                  (ihpci == "1" & ihpcip == "0") | 
+                  (ihpci == "1" & ihpcip == "0") |
                   (ihcab == "1" & ihpcab == "0" & ihtvcab == "1") |
                   (pc30 == "0" & pci30 == "1") |
                   (pc30 == "0" & cab30 == "1"), 1, 0, missing = 0))
 
 #30 day mortality after PCI
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR8_den = dplyr::if_else(
     stringr::str_detect(dis, "[123456]"), 1, 0, missing = 0),
                 NCR8_num = dplyr::if_else((dop + 30) <= dmort30 |
                                           dis == "6", 1, 0, missing = 0))
 
 #Patients without contraindication discharged on lipid-lowering therapy
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR9_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
                                           ((dstp == "0" | dstp == "1") |
                                           (doll == "0" | doll == "1")), 1, 0, missing = 0),
-                NCR9_num = dplyr::if_else(NCR9_den == 1 & 
+                NCR9_num = dplyr::if_else(NCR9_den == 1 &
                                           (dstp == "1" | doll == "1"), 1, 0, missing = 0))
 
 #Patients referred to cardiac rehabilitation or other secondary prevention program
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR10_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
                                            (crehab == "-1" | crehab == "1" | crehab == "0"), 1, 0, missing = 0),
-                NCR10_num = dplyr::if_else(NCR10_den == 1 & 
+                NCR10_num = dplyr::if_else(NCR10_den == 1 &
                                            crehab == "1", 1, 0, missing = 0))
 
 #Proportion of patients without a clear and documented contraindication for aspirin and/or a P2Y12 inhibitor, discharged on DAPT
-pci_data <- pci_data |> 
+pci_data <- pci_data |>
   dplyr::mutate(NCR11_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
                                            ((dasp == "0" | dasp == "1") |
                                            (doap == "0" | doap == "1")), 1, 0, missing = 0),
-                NCR11_num = dplyr::if_else(NCR9_den == 1 & 
+                NCR11_num = dplyr::if_else(NCR9_den == 1 &
                                            (dasp == "1" & doap == "1"), 1, 0, missing = 0))
 ```
 
@@ -318,7 +288,7 @@ NCR4_spc
 ### Funnel
 
 ```{r NCR5 Funnel}
-## Generate the Funnel chart 
+## Generate the Funnel chart
 NCR5_fpl <- controlcharts::funnel(data = pci_data,
                       keys = hname,
                       numerators = NCR5_num,
@@ -337,7 +307,7 @@ NCR5_fpl
 ### SPC
 
 ```{r NCR5 SPC}
-## Generate the SPC chart 
+## Generate the SPC chart
 NCR5_spc <- controlcharts::spc(data = pci_data,
                    keys = period_end,
                    numerators = NCR5_num,
@@ -385,7 +355,7 @@ NCR6_fpl
 ### SPC
 
 ```{r NCR6 SPC}
-## Generate the SPC chart 
+## Generate the SPC chart
 NCR6_spc <- controlcharts::spc(data = pci_data,
                    keys = period_end,
                    numerators = NCR6_num,
@@ -522,7 +492,7 @@ NCR10_fpl
 ### SPC
 
 ```{r NCR10 SPC}
-## Generate the SPC chart 
+## Generate the SPC chart
 NCR10_spc <- controlcharts::spc(data = pci_data,
                    keys = period_end,
                    numerators = NCR10_num,
@@ -571,7 +541,7 @@ NCR9_fpl
 There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 
 ```{r NCR9 SPC}
-## Generate the SPC chart 
+## Generate the SPC chart
 NCR9_spc <- controlcharts::spc(data = pci_data,
                    keys = period_end,
                    numerators = NCR9_num,
@@ -620,7 +590,7 @@ NCR11_fpl
 There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 
 ```{r NCR11 SPC}
-## Generate the SPC chart 
+## Generate the SPC chart
 NCR11_spc <- controlcharts::spc(data = pci_data,
                    keys = period_end,
                    numerators = NCR11_num,
