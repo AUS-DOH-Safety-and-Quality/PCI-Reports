@@ -1,5 +1,5 @@
 ---
-title: "PCI Reports"
+title: "Percutaneous Coronary Interventions Report"
 format:
   docx:
     toc: true
@@ -165,9 +165,47 @@ pci_data <- pci_data |>
                                            (dasp == "1" & doap == "1"), 1, 0, missing = 0))
 ```
 
-## Time from diagnostic ECG to PCI mediated reperfusion
+This report summarises the National Cardiac Registry Indicators for Percutaneous Coronary Intervention.
+You can find out more information <a href="https://nationalcardiacregistry.org.au" target="_blank">Here.</a>
 
-### SPC
+# Patterns in SPC Charts and Funnel Plots
+ 
+Identified patterns within this report are denoted by a symbol.
+The following patterns have been reviewed:
+ 
+## Astronomical Point
+An identified point that exceeds 3 sigma limits from the mean.
+```{r showing astro sample, echo = FALSE}
+spc_example_plotly(spc_example_data_astro)
+```
+ 
+## Trend
+Five or more consecutively increasing or decreasing points.
+```{r showing trend sample, echo = FALSE}
+spc_example_plotly(spc_example_data_trend)
+```
+ 
+## Two in Three
+Two out of Three consecutive points exceeding 2 sigma limits from the mean.
+```{r showing two in three sample, echo = FALSE}
+spc_example_plotly(spc_example_data_twothree)
+```
+ 
+## Shift
+Seven or more consecutive points above or below the mean.
+```{r showing shift sample, echo = FALSE}
+spc_example_plotly(spc_example_data_shift)
+```
+ 
+## Funnel Plot Outlier
+An identified point that exceeds 3 sigma limits from the mean.
+```{r showing Funnel Outlier sample, echo = FALSE}
+funnel_example_plotly(fpl_example_data)
+```
+
+# Time from diagnostic ECG to PCI mediated reperfusion
+
+## SPC
 
 ```{r NCR1 SPC}
 ## Generate the SPC chart
@@ -192,9 +230,9 @@ NCR1_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR1_den == 1),
 NCR1_spc
 ```
 
-## Time from door to PCI mediated reperfusion
+# Time from door to PCI mediated reperfusion
 
-### SPC
+## SPC
 
 ```{r NCR2 SPC}
 ## Generate the SPC chart
@@ -219,9 +257,9 @@ NCR2_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR2_den == 1),
 NCR2_spc
 ```
 
-## Peri-PCI stroke
+# Peri-PCI stroke
 
-### Funnel
+## Funnel
 
 ```{r NCR3 Funnel}
 ## Generate the Funnel chart
@@ -230,7 +268,7 @@ NCR3_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = ihstr,
                       denominators = NCR3_den,
                       y_axis_settings = list(ylimit_u = 2,
-                                             ylimit_label = "Percentage of in-hospital stroke after PCI",
+                                             ylimit_label = "% in-hospital stroke after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -249,7 +287,7 @@ NCR3_spc <- controlcharts::spc(data = pci_data,
                    numerators = ihstr,
                    denominators = NCR3_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital stroke after PCI",
+                   y_axis_settings = list(ylimit_label = "% in-hospital stroke after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -267,9 +305,9 @@ NCR3_spc
 
 The Statistical Process Control (SPC) chart above displays the information for **Peri-PCI Stroke** between **`r min(pci_data$period_start)`** and **`r max(pci_data$period_end)`**. There was a total numerator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,3])), scientific = F, big.mark = ",")`**. There was a total denominator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,4])), scientific = F, big.mark = ",")`**. The mean (or center line) value statewide is **`r round(NCR3_fpl$limits$target[1], 2)`**.
 
-## In-Hospital Major Bleeding
+# In-Hospital Major Bleeding
 
-### Funnel
+## Funnel
 
 ```{r NCR4 Funnel}
 ## Generate the Funnel chart
@@ -278,7 +316,7 @@ NCR4_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = NCR4_num,
                       denominators = NCR4_den,
                       y_axis_settings = list(ylimit_u = 2,
-                                             ylimit_label = "Percentage of in-hospital major bleeding after PCI",
+                                             ylimit_label = "% in-hospital major bleeding after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -288,7 +326,7 @@ NCR4_fpl <- controlcharts::funnel(data = pci_data,
 NCR4_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR4 SPC}
 ## Generate the SPC chart
@@ -297,7 +335,7 @@ NCR4_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR4_den > 0),
                    numerators = NCR4_num,
                    denominators = NCR4_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital major bleeding after PCI",
+                   y_axis_settings = list(ylimit_label = "% in-hospital major bleeding after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -313,9 +351,9 @@ NCR4_spc <- controlcharts::spc(data = dplyr::filter(pci_data, NCR4_den > 0),
 NCR4_spc
 ```
 
-## In-hospital mortality
+# In-hospital mortality
 
-### Funnel
+## Funnel
 
 ```{r NCR5 Funnel}
 ## Generate the Funnel chart 
@@ -324,7 +362,7 @@ NCR5_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = NCR5_num,
                       denominators = NCR5_den,
                       y_axis_settings = list(ylimit_u = 5,
-                                             ylimit_label = "Percentage of in-hospital mortality after PCI",
+                                             ylimit_label = "% in-hospital mortality after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -334,7 +372,7 @@ NCR5_fpl <- controlcharts::funnel(data = pci_data,
 NCR5_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR5 SPC}
 ## Generate the SPC chart 
@@ -343,7 +381,7 @@ NCR5_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR5_num,
                    denominators = NCR5_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of in-hospital mortality after PCI",
+                   y_axis_settings = list(ylimit_label = "% in-hospital mortality after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -359,11 +397,11 @@ NCR5_spc <- controlcharts::spc(data = pci_data,
 NCR5_spc
 ```
 
-## 30 day unplanned cardiac readmission rate after PCI
+# 30 day unplanned cardiac readmission rate after PCI
 
 Cardiac readmission data is currently undergoing review. This data was not included in the 2024 NCR data submission.
 
-### Funnel
+## Funnel
 
 ```{r NCR6 Funnel}
 ## Generate the Funnel chart
@@ -372,7 +410,7 @@ NCR6_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = NCR6_num,
                       denominators = NCR6_den,
                       y_axis_settings = list(ylimit_u = 10,
-                                             ylimit_label = "Percentage of 30 day unplanned cardiac readmissions after PCI",
+                                             ylimit_label = "% 30 day unplanned cardiac readmissions after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -382,7 +420,7 @@ NCR6_fpl <- controlcharts::funnel(data = pci_data,
 NCR6_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR6 SPC}
 ## Generate the SPC chart 
@@ -391,7 +429,7 @@ NCR6_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR6_num,
                    denominators = NCR6_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned cardiac readmissions after PCI",
+                   y_axis_settings = list(ylimit_label = "% 30 day unplanned cardiac readmissions after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -407,9 +445,9 @@ NCR6_spc <- controlcharts::spc(data = pci_data,
 NCR6_spc
 ```
 
-## 30 day unplanned revascularisation rate after PCI
+# 30 day unplanned revascularisation rate after PCI
 
-### Funnel
+## Funnel
 
 ```{r NCR7 Funnel}
 ## Generate the Funnel chart
@@ -417,7 +455,7 @@ NCR7_fpl <- controlcharts::funnel(data = pci_data,
                       keys = hname,
                       numerators = NCR7_num,
                       denominators = NCR7_den,
-                      y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned revascularisation after PCI",
+                      y_axis_settings = list(ylimit_label = "% 30 day unplanned revascularisation after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -427,7 +465,7 @@ NCR7_fpl <- controlcharts::funnel(data = pci_data,
 NCR7_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR7 SPC}
 ## Generate the SPC chart
@@ -436,7 +474,7 @@ NCR7_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR7_num,
                    denominators = NCR7_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of 30 day unplanned revascularisation after PCI",
+                   y_axis_settings = list(ylimit_label = "% 30 day unplanned revascularisation after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -452,9 +490,9 @@ NCR7_spc <- controlcharts::spc(data = pci_data,
 NCR7_spc
 ```
 
-## 30 Day Mortality
+# 30 Day Mortality
 
-### Funnel
+## Funnel
 
 ```{r NCR8 Funnel}
 ## Generate the Funnel chart
@@ -463,7 +501,7 @@ NCR8_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = NCR8_num,
                       denominators = NCR8_den,
                       y_axis_settings = list(ylimit_u = 5,
-                                             ylimit_label = "Percentage of 30 day mortality after PCI",
+                                             ylimit_label = "% 30 day mortality after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -473,7 +511,7 @@ NCR8_fpl <- controlcharts::funnel(data = pci_data,
 NCR8_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR8 SPC}
 ## Generate the SPC chart
@@ -482,7 +520,7 @@ NCR8_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR8_num,
                    denominators = NCR8_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of 30 day mortality after PCI",
+                   y_axis_settings = list(ylimit_label = "% 30 day mortality after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "decrease",
@@ -498,9 +536,9 @@ NCR8_spc <- controlcharts::spc(data = pci_data,
 NCR8_spc
 ```
 
-## Patients Referred to Cardiac Rehabilitation
+# Patients Referred to Cardiac Rehabilitation
 
-### Funnel
+## Funnel
 
 ```{r NCR10 Funnel}
 ## Generate the Funnel chart
@@ -509,7 +547,7 @@ NCR10_fpl <- controlcharts::funnel(data = pci_data,
                       numerators = NCR10_num,
                       denominators = NCR10_den,
                       y_axis_settings = list(ylimit_l = 70,
-                                             ylimit_label = "Percentage of patients referred to cardiac rehab after PCI",
+                                             ylimit_label = "% patients referred to cardiac rehab after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -519,7 +557,7 @@ NCR10_fpl <- controlcharts::funnel(data = pci_data,
 NCR10_fpl
 ```
 
-### SPC
+## SPC
 
 ```{r NCR10 SPC}
 ## Generate the SPC chart 
@@ -528,7 +566,7 @@ NCR10_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR10_num,
                    denominators = NCR10_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of patients referred to cardiac rehab after PCI",
+                   y_axis_settings = list(ylimit_label = "% patients referred to cardiac rehab after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "increase",
@@ -544,9 +582,9 @@ NCR10_spc <- controlcharts::spc(data = pci_data,
 NCR10_spc
 ```
 
-## Patients Discharged on Lipid-Lowering Therapy
+# Patients Discharged on Lipid-Lowering Therapy
 
-### Funnel
+## Funnel
 
 ```{r NCR9 Funnel}
 ## Generate the Funnel chart
@@ -556,7 +594,7 @@ NCR9_fpl <- controlcharts::funnel(data = pci_data,
                       denominators = NCR9_den,
                       y_axis_settings = list(ylimit_u = 100,
                                              ylimit_l = 95,
-                                             ylimit_label = "Percentage of patients discharged on Lipid Lowering Therapy after PCI",
+                                             ylimit_label = "% patients discharged on Lipid Lowering Therapy after PCI",
                                              ylimit_sig_figs = 1,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -566,7 +604,7 @@ NCR9_fpl <- controlcharts::funnel(data = pci_data,
 NCR9_fpl
 ```
 
-### SPC
+## SPC
 
 There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 
@@ -577,7 +615,7 @@ NCR9_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR9_num,
                    denominators = NCR9_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of patients discharged on Lipid Lowering Therapy after PCI",
+                   y_axis_settings = list(ylimit_label = "% patients discharged on Lipid Lowering Therapy after PCI",
                                           ylimit_sig_figs = 1,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "increase",
@@ -593,9 +631,9 @@ NCR9_spc <- controlcharts::spc(data = pci_data,
 NCR9_spc
 ```
 
-## Patients Discharged on Dual Antiplatelet Therapy
+# Patients Discharged on Dual Antiplatelet Therapy
 
-### Funnel
+## Funnel
 
 ```{r NCR11 Funnel}
 ## Generate the Funnel chart
@@ -605,7 +643,7 @@ NCR11_fpl <- controlcharts::funnel(data = pci_data,
                       denominators = NCR11_den,
                       y_axis_settings = list(ylimit_u = 100,
                                              ylimit_l = 95,
-                                             ylimit_label = "Percentage of patients discharged on Dual Antiplatelet Therapy after PCI",
+                                             ylimit_label = "% patients discharged on Dual Antiplatelet Therapy after PCI",
                                              ylimit_sig_figs = 0,
                                              ylimit_label_size = 14),
                       x_axis_settings = list(xlimit_label = "Number of PCI's",
@@ -615,7 +653,7 @@ NCR11_fpl <- controlcharts::funnel(data = pci_data,
 NCR11_fpl
 ```
 
-### SPC
+## SPC
 
 There is an explained error in the discharge medication data for October 2021, this point can be ignored for analysis.
 
@@ -626,7 +664,7 @@ NCR11_spc <- controlcharts::spc(data = pci_data,
                    numerators = NCR11_num,
                    denominators = NCR11_den,
                    spc_settings = list(chart_type = "p"),
-                   y_axis_settings = list(ylimit_label = "Percentage of patients discharged on Dual Antiplatelet Therapy after PCI",
+                   y_axis_settings = list(ylimit_label = "% patients discharged on Dual Antiplatelet Therapy after PCI",
                                           ylimit_sig_figs = 0,
                                           ylimit_label_size = 14),
                    outlier_settings = list(improvement_direction = "increase",

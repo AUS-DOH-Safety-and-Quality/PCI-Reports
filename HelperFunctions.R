@@ -1,3 +1,84 @@
+spc_example_data <- data.frame(
+  shorthospitalname = 'Hospital',
+  descriptionshort = 'Example Indicator',
+  numerator = c(20,25,17,22,18,18,20,29,18,23,17,18,15,18,17,21,30,19,15,17,22,24,20,13,14,18,14,15,21,27,19,24,25,15,26,22),
+  denominator = c(86,91,99,110,96,110,96,97,105,87,94,89,102,106,107,95,106,132,95,117,97,99,108,106,101,96,96,98,105,117,94,77,97,90,106,107),
+  period_start = seq(from = as.Date('2019-01-01'), to = as.Date('2021-12-01'), by = 'month'),
+  period_end = seq(from = as.Date('2019-02-01'), to = as.Date('2022-01-01'), by = 'month')-1,
+  spccharttype = 'p',
+  multiplier = 1,
+  betteris = 'Lower',
+  y_axis_label = 'Proportion'
+)
+spc_example_plotly <- function(spc_example_data) {
+  controlcharts::spc(data = spc_example_data,
+                     keys = period_end,
+                     numerators = numerator,
+                     denominators = denominator,
+                     spc_settings = list(chart_type = "p"),
+                     y_axis_settings = list(ylimit_label = "Proportion",
+                                            ylimit_sig_figs = 0,
+                                            ylimit_label_size = 14),
+                     outlier_settings = list(improvement_direction = "decrease",
+                                             astronomical = TRUE,
+                                             shift = TRUE,
+                                             trend = TRUE,
+                                             two_in_three = TRUE),
+                     canvas_settings = list(upper_padding = 40),
+                     nhs_icon_settings = list(show_variation_icons = TRUE),
+                     date_settings = list(date_format_day = "(blank)",
+                                          date_format_month = "Mon",
+                                          date_format_year = "YY"))
+}
+# Example data for different patterns
+spc_example_data_astro <- spc_example_data
+spc_example_data_astro[32,3] <- 30
+
+spc_example_data_trend <- spc_example_data
+spc_example_data_trend[30, 3] <- 26
+spc_example_data_trend[31, 3] <- 26
+
+spc_example_data_twothree <- spc_example_data
+spc_example_data_twothree[33, 3] <- 29
+
+spc_example_data_shift <- spc_example_data
+
+spc_example_data_shift[29, 3] <- 26
+spc_example_data_shift[31, 3] <- 21
+spc_example_data_shift[34, 3] <- 21
+spc_example_data_shift[36, 3] <- 25
+
+fpl_example_data <- data.frame(
+  establishment = rep(1:10, each = 12),
+  shorthospitalname = c(rep(paste0('Hospital ', 1:9), each = 12), rep('Outlier', each = 12)),
+  threeletteracronym = c(rep(paste0('Hospital ', 1:9), each = 12), rep('Outlier', each = 12)),
+  hsp_name_short = 'HSP',
+  descriptionshort = 'Example Indicator',
+  numerator = c(do.call(c, lapply(c(1,1,1,2,3,5,7,9,10), function(x) rpois(12, x * 2))), rpois(12, 6 * 3.5)),
+  denominator = c(do.call(c, lapply(c(1,1,1,2,3,5,7,9,10), function(x) rpois(12, x * 10))), rpois(12, 6 * 10)),
+  period_start = seq(from = as.Date('2021-01-01'), to = as.Date('2021-12-01'), by = 'month'),
+  period_end = seq(from = as.Date('2021-02-01'), to = as.Date('2022-01-01'), by = 'month')-1,
+  funnelcharttype = 'PR',
+  multiplier = 1,
+  y_axis_label = 'Proportion',
+  betteris = 'Lower',
+  indicator = 'Indicator')
+
+funnel_example_plotly <- function(fpl_example_data) {
+  controlcharts::funnel(data = fpl_example_data,
+                        keys = establishment,
+                        numerators = numerator,
+                        denominators = denominator,
+                        y_axis_settings = list(ylimit_label = "Proportion",
+                                               ylimit_sig_figs = 1,
+                                               ylimit_label_size = 14),
+                        x_axis_settings = list(xlimit_label = "Number of patients",
+                                               xlimit_label_size = 14),
+                        outlier_settings = list(improvement_direction = "decrease",
+                                                three_sigma = TRUE))
+}
+
+
 #Set the datatypes of incoming NCR fields
 #c = Character, d = Double, l = Logical, t = Time
 #Other data types can be found at ??readr::cols

@@ -723,7 +723,6 @@
       "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>)",
       "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "andrjohns",
       "RemoteRepo": "controlcharts",
       "RemoteRef": "main",
