@@ -166,12 +166,10 @@ pci_data <- pci_data |>
 ```
 
 This report summarises the National Cardiac Registry Indicators for Percutaneous Coronary Intervention.
-You can find out more information <a href="https://nationalcardiacregistry.org.au" target="_blank">Here.</a>
 
 # Patterns in SPC Charts and Funnel Plots
  
-Identified patterns within this report are denoted by a symbol.
-The following patterns have been reviewed:
+The following patterns are highlighted in this report.
  
 ## Astronomical Point
 An identified point that exceeds 3 sigma limits from the mean.
