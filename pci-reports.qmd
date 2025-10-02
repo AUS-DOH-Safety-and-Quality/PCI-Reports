@@ -138,35 +138,45 @@ pci_data <- pci_data |>
 This report summarises the National Cardiac Registry Indicators for Percutaneous Coronary Intervention.
 
 # Patterns in SPC Charts and Funnel Plots
- 
+
 The following patterns are highlighted in this report.
- 
+
 ## Astronomical Point
+
 An identified point that exceeds 3 sigma limits from the mean.
+
 ```{r showing astro sample, echo = FALSE}
 spc_example_plotly(spc_example_data_astro)
 ```
- 
+
 ## Trend
+
 Five or more consecutively increasing or decreasing points.
+
 ```{r showing trend sample, echo = FALSE}
 spc_example_plotly(spc_example_data_trend)
 ```
- 
+
 ## Two in Three
+
 Two out of Three consecutive points exceeding 2 sigma limits from the mean.
+
 ```{r showing two in three sample, echo = FALSE}
 spc_example_plotly(spc_example_data_twothree)
 ```
- 
+
 ## Shift
+
 Seven or more consecutive points above or below the mean.
+
 ```{r showing shift sample, echo = FALSE}
 spc_example_plotly(spc_example_data_shift)
 ```
- 
+
 ## Funnel Plot Outlier
+
 An identified point that exceeds 3 sigma limits from the mean.
+
 ```{r showing Funnel Outlier sample, echo = FALSE}
 funnel_example_plotly(fpl_example_data)
 ```
