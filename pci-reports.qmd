@@ -281,7 +281,7 @@ NCR3_spc <- controlcharts::spc(data = pci_data,
 NCR3_spc
 ```
 
-The Statistical Process Control (SPC) chart above displays the information for **Peri-PCI Stroke** between **`r min(pci_data$period_start)`** and **`r max(pci_data$period_end)`**. There was a total numerator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,3])), scientific = F, big.mark = ",")`**. There was a total denominator of **`r format(sum(unlist(do.call(rbind,NCR3_fpl$html_plot$x$data_raw)[,4])), scientific = F, big.mark = ",")`**. The mean (or center line) value statewide is **`r round(NCR3_fpl$limits$target[1], 2)`**.
+The Statistical Process Control (SPC) chart above displays the information for **Peri-PCI Stroke** between **`r min(pci_data$period_start)`** and **`r max(pci_data$period_end)`**. There was a total numerator of **`r format(sum(NCR3_fpl$limits$numerator), scientific = F, big.mark = ",")`**. There was a total denominator of **`r format(sum(NCR3_fpl$limits$denominator), scientific = F, big.mark = ",")`**. The mean (or center line) value statewide is **`r round(NCR3_fpl$limits$target[1], 2)`**.
 
 # In-Hospital Major Bleeding
 
