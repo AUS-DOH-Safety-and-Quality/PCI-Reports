@@ -5,7 +5,6 @@ format:
     toc: true
     number-sections: true
     highlight-style: github
-editor: visual
 execute:
   echo: false
 ---
@@ -66,14 +65,9 @@ pci_data <- pci_data |>
       age >= "71" & age <= "80" ~ "71-80 yrs",
       age > "80" ~ ">= 81 yrs"),
 
-    # Age Category Order
-    age_cat_order = dplyr::case_when(
-      age_cat == "<= 40 yrs" ~ 1,
-      age_cat == "41-50 yrs" ~ 2,
-      age_cat == "51-60 yrs" ~ 3,
-      age_cat == "61-70 yrs" ~ 4,
-      age_cat == "71-80 yrs" ~ 5,
-      age_cat == ">= 81 yrs" ~ 6),
+    # Set as factor so that label ordering will be respected
+    age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
+                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
 
     # Aboriginality
     inds_name = dplyr::case_when(
@@ -84,23 +78,7 @@ pci_data <- pci_data |>
 ```
 
 ```{r Demographic Aggregations, include=FALSE}
-## All patients grouped by sex & age group. Negative values are calculted for Female Numerators in order to achieve the desired split plot.
-pci_sex_age_neg <- pci_data |>
-  ## 1 NA age record appears in the cohort, remove these values.
-  dplyr::filter(
-    !is.na(age),
-    sex_name %in% c("Female", "Male")) |>
-  dplyr::group_by(sex_name, age_cat, age_cat_order) |>
-  dplyr::summarize(num = dplyr::n(), .groups = 'drop') |>
-  dplyr::mutate(
-    prop = round(num/sum(num)*100, 1),
-    ## Invert num and prop for Female attributes
-    num = dplyr::case_when(sex_name == "Female" ~ -num,
-                    sex_name != "Female" ~ num),
-    prop = dplyr::case_when(sex_name == "Female" ~ -prop,
-                    sex_name != "Female" ~ prop)
-    ) |>
-  dplyr::ungroup()
+
 
 ## All Aboriginal patients grouped by age & sex
 pci_aboriginal_age_sex <- pci_data |>
@@ -327,49 +305,37 @@ pci_data <- pci_data |>
 
 ## All patients by Age and Sex
 
-``` {r Split Demographics}
-## Temporarily Import ggplot2 as this is currently not in renv.lock
+```{r Split Demographics}
+# ggplot will be used for all plotting (aside from control charts)
 library(ggplot2)
+# The ggstats package provides several helpful utilities for plotting summarising data
+library(ggstats)
 
-## Convert to Split Bar Plot
-ggplot(pci_sex_age_neg, aes(x = reorder(age_cat, age_cat_order), y = prop, fill = sex_name)) +
-  geom_bar(aes(group = sex_name), stat = "identity", position = "stack", width = 0.8) +
-  scale_fill_manual(values = c("Female" = "#d62728", "Male" = "#0047AB", "Other" = "grey")) +
-  # Insert data labels on the stacked bars, aligned to the sex categories. Reverse negative sign on Female
-  geom_text(aes(label = ifelse(prop < -1, -prop, ifelse(prop > 1, prop, ""))), colour = "white", size = 8, position = position_stack(vjust = 0.5)) +
-  # Flip coordinates for horizontal bars
-  coord_flip() +
-  facet_grid(~ sex_name, scales = "free_x", space = "free_x") +
-  # Label axis and Title
-  labs(
-    title = "Patient Breakdown by Age & Sex",
-    x = "Age Category",
-    y = "Proportion (%)"
-  ) +
-  theme_minimal() +
-  theme(
-    # Remove grid from plot
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    # Adjust spacing between facets
-    panel.spacing = unit(5, "cm"),
-    # Adjust position of the facet labels
-    strip.text = element_text(size = 20, hjust = 0.5, vjust = -1),
-    # Styalise and reposition y axis text
-    ## axis.text.x = element_text(size = 0, colour = "black"),
-    axis.text.x = element_text(size = 0),
-    axis.text.y = element_text(size = 20, colour = "black", hjust = 7.5),
-    axis.title = element_text(size = 20, colour = "black"),
-    plot.title = element_text(size = 24, face = "bold", colour = "black"),
-    # Remove legend
-    legend.position = "none"
-  )
+pci_data |>
+  ## 1 NA age record appears in the cohort, remove these values.
+  dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male")) |>
+  ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
+    geom_prop_bar() +
+    geom_prop_text() +
+    theme_minimal() +
+    scale_fill_manual(values = c("Female" = "#d62728", "Male" = "#0047AB", "Other" = "grey")) +
+    scale_y_continuous(labels = scales::percent) +
+    # Label axis and Title
+    labs(
+      title = "Patient Breakdown by Age & Sex",
+      x = "Age Category",
+      y = "Proportion (%)",
+      fill = "Sex"
+    ) +
+    theme(
+      legend.position = "bottom"
+    )
 
 ```
 
 ## All Aboriginal patients by Age and Sex
 
-``` {r Split Aboriginal Demographics}
+```{r Split Aboriginal Demographics}
 
 ## Convert to Split Bar Plot
 ggplot(pci_aboriginal_age_sex, aes(x = reorder(age_cat, age_cat_order), y = prop, fill = sex_name)) +
@@ -417,7 +383,7 @@ ggplot(pci_aboriginal_age_sex, aes(x = reorder(age_cat, age_cat_order), y = prop
 
 ### Patient characteristics by Clinical Presentation
 
-``` {r Clinical Presentation Table}
+```{r Clinical Presentation Table}
 ## Temporarily Import flextable as this is currently not in renv.lock
 library(flextable)
 
@@ -427,7 +393,7 @@ flextable(pci_clinical_pres)
 
 ### Patient characteristics by Hospital Site
 
-``` {r Hospital Table}
+```{r Hospital Table}
 # Create table listing the Patient Characteristics by Hospital
 flextable(pci_hospital)
 ```
