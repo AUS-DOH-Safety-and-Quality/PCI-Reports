@@ -54,9 +54,9 @@ pci_data <- pci_data |>
     # Assign text or category labels to demographic columns
     # Sex
     sex_name = dplyr::case_when(
-      sex == "1" ~ "Male",
-      sex == "2" ~ "Female",
-      !(sex %in% c("1","2")) ~ "Other"),
+      sex == 1 ~ "Male",
+      sex == 2 ~ "Female",
+      !(sex %in% c(1, 2)) ~ "Other"),
     # Age
     age_cat = dplyr::case_when(
       age <= "40" ~ "<= 40 yrs",
@@ -70,11 +70,16 @@ pci_data <- pci_data |>
     age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
                                          "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
 
+
+    inds_cat = factor(inds, levels = c(0, 1, 2, 3, -1), labels =  c("Neither", "Aboriginal",
+                                                                    "Torres Strait Islander", "Both",
+                                                                   "Unknown")),
+
     # Aboriginality
     inds_name = dplyr::case_when(
-      inds == "0" ~ "Not Aboriginal",
-      inds %in% c("1", "2", "3") ~ "Aboriginal",
-      inds == "-1" ~ "Unknown")
+      inds == 0 ~ "Not Aboriginal",
+      inds %in% c(1, 2, 3) ~ "Aboriginal",
+      inds == -1 ~ "Unknown")
   )
 ```
 
@@ -350,14 +355,35 @@ flextable(pci_clinical_pres)
 ```
 
 ```{r}
-
-```
-
-### Patient characteristics by Hospital Site
-
-```{r Hospital Table}
-# Create table listing the Patient Characteristics by Hospital
-flextable(pci_hospital)
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat)) |>
+  dplyr::mutate(
+    acs_cat = dplyr::case_when(
+      acst == 3 ~ "STEMI",
+      acst %in% c(1,2) ~ "NSTEMI",
+      acs == 0 ~ "Non-ACS"
+    ),
+    pvd = (pvd1 == 1 | pvd2 == 1),
+    pvd = dplyr::if_else(is.na(pvd), 0, as.numeric(pvd))
+  ) |>
+  gtsummary::tbl_summary(
+    include = c(age, sex_name, inds_cat, db, pvd),
+    by = acs_cat,
+    label = list(
+      age ~ "Age",
+      sex_name ~ "Sex",
+      inds_cat ~ "ATSI Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease"
+    ),
+    statistic = list(
+      age ~ "{mean} ({sd})",
+      c(sex_name, inds_cat, db, pvd) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      age ~ 1
+    )
+  )
 ```
 
 ## Time from diagnostic ECG to PCI mediated reperfusion
