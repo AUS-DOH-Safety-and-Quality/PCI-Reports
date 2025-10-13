@@ -5,6 +5,7 @@ format:
     toc: true
     number-sections: true
     highlight-style: github
+    fig-format: svg
 execute:
   echo: false
 ---
