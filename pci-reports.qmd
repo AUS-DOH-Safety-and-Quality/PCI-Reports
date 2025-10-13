@@ -5,7 +5,7 @@ format:
     toc: true
     number-sections: true
     highlight-style: github
-editor: visual
+    fig-format: svg
 execute:
   echo: false
 ---
@@ -48,7 +48,159 @@ pci_data <- pci_data |>
     inp = dplyr::case_when(
       acs == "1" & symptom_to_door > 0 ~ "0",
       acs == "1" & symptom_to_door <= 0 ~ "1",
-      acs == "0" ~ NA))
+      acs == "0" ~ NA),
+    #Calculate BMI variable
+    bmi = wkg/(htm/100)^2,
+    # Assign text or category labels to demographic columns
+    # Sex
+    sex_name = dplyr::case_when(
+      sex == 1 ~ "Male",
+      sex == 2 ~ "Female",
+      !(sex %in% c(1, 2)) ~ "Other"),
+    # Age
+    age_cat = dplyr::case_when(
+      age <= "40" ~ "<= 40 yrs",
+      age >= "41" & age <= "50" ~ "41-50 yrs",
+      age >= "51" & age <= "60" ~ "51-60 yrs",
+      age >= "61" & age <= "70" ~ "61-70 yrs",
+      age >= "71" & age <= "80" ~ "71-80 yrs",
+      age > "80" ~ ">= 81 yrs"),
+
+    # Set as factor so that label ordering will be respected
+    age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
+                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
+
+
+    inds_cat = factor(inds, levels = c(0, 1, 2, 3, -1), labels =  c("Neither", "Aboriginal",
+                                                                    "Torres Strait Islander", "Both",
+                                                                   "Unknown")),
+
+    # Aboriginality
+    inds_name = dplyr::case_when(
+      inds == 0 ~ "Not Aboriginal",
+      inds %in% c(1, 2, 3) ~ "Aboriginal",
+      inds == -1 ~ "Unknown")
+  )
+```
+
+```{r Demographic Aggregations, include=FALSE}
+
+
+
+# Aggregates for Clinical Presentation
+pci_clinical_pres <- pci_data |>
+  # Create new groupings base on NCR defined clinical presentations
+  dplyr::mutate(
+    stemi = ifelse(acst == 3, 1, 0),
+    non_stemi = ifelse(acst %in% c(1,2), 1, 0),
+    non_acs = ifelse(acs == 0, 1, 0)
+    ) |>
+  dplyr::group_by(non_acs, stemi, non_stemi) |>
+  dplyr::summarize(
+    den = dplyr::n(),
+    age_mean = round(mean(age, na.rm = TRUE), 1),
+    men_prop = round(sum(ifelse(sex == 1, 1, 0), na.rm = TRUE)/den*100, 1),
+    female_prop = round(sum(ifelse(sex == 2, 1, 0), na.rm = TRUE)/den*100, 1),
+    aboriginal_prop = round(sum(ifelse(inds %in% c(1,2,3), 1, 0), na.rm = TRUE)/den*100, 1),
+    diabetes_prop = round(sum(dplyr::across(db, as.numeric))/den*100, 1),
+    pvd_prop = round(sum(rowSums(dplyr::across(c(pvd1, pvd2), ~ as.numeric(.x) == 1), na.rm = TRUE) > 0)/den*100, 1),
+    obesity_prop = round(sum(ifelse(bmi >= 35, 1, 0), na.rm = TRUE)/den*100, 1),
+    prev_pci = round(sum(dplyr::across(ppci, as.numeric))/den*100, 1),
+    prev_cabg = round(sum(dplyr::across(pcabg, as.numeric))/den*100, 1),
+    lv_dysf = round(sum(ifelse(ef <= 44, 1, 0), na.rm = TRUE)/den*100, 1),
+    shock_prop = round(sum(dplyr::across(shock, as.numeric))/den*100, 1),
+    oca_prop = round(sum(dplyr::across(oca, as.numeric))/den*100, 1),
+    egfr_30 = round(sum(ifelse(egfri <= 30, 1, 0), na.rm = TRUE)/den*100, 1),
+    .groups = 'drop') |>
+  dplyr::ungroup() |>
+  # Pivot table so all summarise columns are transformed to rows
+  tidyr::pivot_longer(
+    names_to = "Patient Characteristics",
+    cols = !c("non_acs", "stemi", "non_stemi"),
+    values_to = "Proportion"
+    )
+
+  # Pivot the data again so that each row is a "Patient Characteristic" and columns are stemi, non_stemi, non_acs with the values appearing in each of the rows
+pci_clinical_pres <- pci_clinical_pres |>
+  tidyr::pivot_wider(
+    names_from = c("non_acs", "stemi", "non_stemi"),
+    values_from = "Proportion",
+    names_glue = "{ifelse(non_acs == 1, 'Non-ACS', ifelse(stemi == 1, 'STEMI', 'Non-STEMI'))}"
+  ) |>
+  # Omit very small NA cohort.
+  dplyr::select(!"NA")
+
+  # Rename Patient Characteristic rows for clarity
+pci_clinical_pres$"Patient Characteristics" <- c(
+  den = "Denominator",
+  age_mean = "Age",
+  men_prop = "Men %",
+  female_prop = "Female %",
+  aboriginal_prop = "Aboriginal %",
+  diabetes_prop = "Diabetes %",
+  pvd_prop = "Peripheral Vascular Disease %",
+  obesity_prop = "Severe obesity (BMI≥35kg/m²) %",
+  prev_pci = "Previous PCI %",
+  prev_cabg = "Previous CABG  %",
+  lv_dysf = "Moderate or severe LV dysfunction (LVEF<45%) %",
+  shock_prop = "Cardiogenic shock %",
+  oca_prop = "Out-of-hospital cardiac arrest %",
+  egfr_30 = "Estimated glomerular filtration rate ≤30mls/min %"
+  )
+
+# Aggregates for Hospital Site
+pci_hospital <- pci_data |>
+  dplyr::group_by(hname) |>
+  dplyr::summarize(
+    den = dplyr::n(),
+    age_mean = round(mean(age, na.rm = TRUE), 1),
+    men_prop = round(sum(ifelse(sex == 1, 1, 0), na.rm = TRUE)/den*100, 1),
+    female_prop = round(sum(ifelse(sex == 2, 1, 0), na.rm = TRUE)/den*100, 1),
+    aboriginal_prop = round(sum(ifelse(inds %in% c(1,2,3), 1, 0), na.rm = TRUE)/den*100, 1),
+    diabetes_prop = round(sum(dplyr::across(db, as.numeric))/den*100, 1),
+    pvd_prop = round(sum(rowSums(dplyr::across(c(pvd1, pvd2), ~ as.numeric(.x) == 1), na.rm = TRUE) > 0)/den*100, 1),
+    obesity_prop = round(sum(ifelse(bmi >= 35, 1, 0), na.rm = TRUE)/den*100, 1),
+    prev_pci = round(sum(dplyr::across(ppci, as.numeric))/den*100, 1),
+    prev_cabg = round(sum(dplyr::across(pcabg, as.numeric))/den*100, 1),
+    lv_dysf = round(sum(ifelse(ef <= 44, 1, 0), na.rm = TRUE)/den*100, 1),
+    shock_prop = round(sum(dplyr::across(shock, as.numeric))/den*100, 1),
+    oca_prop = round(sum(dplyr::across(oca, as.numeric))/den*100, 1),
+    egfr_30 = round(sum(ifelse(egfri <= 30, 1, 0), na.rm = TRUE)/den*100, 1),
+    .groups = 'drop'
+    ) |>
+  dplyr::ungroup() |>
+  # Pivot table so all summarise columns are transformed to rows
+  tidyr::pivot_longer(
+    names_to = "Patient Characteristics",
+    cols = !c("hname"),
+    values_to = "Proportion"
+    )
+
+  # Pivot the data again so that each row is a "Patient Characteristic" and columns are stemi, non_stemi, non_acs with the values appearing in each of the rows
+  pci_hospital <- pci_hospital |>
+    tidyr::pivot_wider(
+      names_from = c("hname"),
+      values_from = "Proportion"
+    )
+
+  # Rename Patient Characteristic rows for clarity
+  pci_hospital$"Patient Characteristics" <- c(
+    den = "Denominator",
+    age_mean = "Age",
+    men_prop = "Men %",
+    female_prop = "Female %",
+    aboriginal_prop = "Aboriginal %",
+    diabetes_prop = "Diabetes %",
+    pvd_prop = "Peripheral Vascular Disease %",
+    obesity_prop = "Severe obesity (BMI≥35kg/m²) %",
+    prev_pci = "Previous PCI %",
+    prev_cabg = "Previous CABG  %",
+    lv_dysf = "Moderate or severe LV dysfunction (LVEF<45%) %",
+    shock_prop = "Cardiogenic shock %",
+    oca_prop = "Out-of-hospital cardiac arrest %",
+    egfr_30 = "Estimated glomerular filtration rate ≤30mls/min %"
+  )
+
 ```
 
 ```{r Indicator Definitions, include=FALSE}
@@ -135,7 +287,106 @@ pci_data <- pci_data |>
                                            (dasp == "1" & doap == "1"), 1, 0, missing = 0))
 ```
 
-This report summarises the National Cardiac Registry Indicators for Percutaneous Coronary Intervention.
+## Patient Demographics
+
+## All patients by Age and Sex
+
+```{r Split Demographics}
+# ggplot will be used for all plotting (aside from control charts)
+library(ggplot2)
+# The ggstats package provides several helpful utilities for plotting summarising data
+library(ggstats)
+
+pci_data |>
+  ## 1 NA age record appears in the cohort, remove these values.
+  dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male")) |>
+  ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
+    geom_prop_bar() +
+    geom_prop_text() +
+    theme_minimal() +
+    scale_fill_manual(values = c("Female" = "#d62728", "Male" = "#0047AB", "Other" = "grey")) +
+    scale_y_continuous(labels = scales::percent) +
+    # Label axis and Title
+    labs(
+      title = "Patient Breakdown by Age & Sex",
+      x = "Age Category",
+      y = "Proportion (%)",
+      fill = "Sex"
+    ) +
+    theme(
+      legend.position = "bottom"
+    )
+
+```
+
+## All Aboriginal patients by Age and Sex
+
+```{r Split Aboriginal Demographics}
+
+pci_data |>
+  ## 1 NA age record appears in the cohort, remove these values.
+  dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male") & inds_name == "Aboriginal") |>
+  ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
+    geom_prop_bar() +
+    geom_prop_text() +
+    theme_minimal() +
+    scale_fill_manual(values = c("Female" = "#d62728", "Male" = "#0047AB", "Other" = "grey")) +
+    scale_y_continuous(labels = scales::percent) +
+    # Label axis and Title
+    labs(
+      title = "Proportion of ATSI by Age and Sex",
+      x = "Age Category",
+      y = "Proportion ATSI (%)",
+      fill = "Sex"
+    ) +
+    theme(
+      legend.position = "bottom"
+    )
+```
+
+### Patient characteristics by Clinical Presentation
+
+```{r Clinical Presentation Table}
+## Temporarily Import flextable as this is currently not in renv.lock
+library(flextable)
+
+# Create table listing the Patient Characteristics by Clinical Intervention
+flextable(pci_clinical_pres)
+```
+
+```{r}
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat)) |>
+  dplyr::mutate(
+    acs_cat = dplyr::case_when(
+      acst == 3 ~ "STEMI",
+      acst %in% c(1,2) ~ "NSTEMI",
+      acs == 0 ~ "Non-ACS"
+    ),
+    pvd = (pvd1 == 1 | pvd2 == 1),
+    pvd = dplyr::if_else(is.na(pvd), 0, as.numeric(pvd))
+  ) |>
+  gtsummary::tbl_summary(
+    include = c(age, sex_name, inds_cat, db, pvd),
+    by = acs_cat,
+    label = list(
+      age ~ "Age",
+      sex_name ~ "Sex",
+      inds_cat ~ "ATSI Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease"
+    ),
+    statistic = list(
+      age ~ "{mean} ({sd})",
+      c(sex_name, inds_cat, db, pvd) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      age ~ 1
+    )
+  )
+```
+
+## Time from diagnostic ECG to PCI mediated reperfusion
 
 # Patterns in SPC Charts and Funnel Plots
 
