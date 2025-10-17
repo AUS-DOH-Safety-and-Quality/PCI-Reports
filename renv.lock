@@ -363,15 +363,15 @@
         "rmarkdown"
       ],
       "VignetteBuilder": "knitr",
-      "URL": "https://andrjohns.github.io/controlcharts/",
+      "URL": "https://aus-doh-safety-and-quality.github.io/controlcharts/",
       "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>)",
       "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteUsername": "andrjohns",
+      "RemoteUsername": "AUS-DOH-Safety-and-Quality",
       "RemoteRepo": "controlcharts",
       "RemoteRef": "main",
-      "RemoteSha": "137ef650f0e8aa2e874dd6f0ea32b253eb5af50e"
+      "RemoteSha": "ad36ce830679f5f5f11ab812fd920441863acd4b"
     },
     "cpp11": {
       "Package": "cpp11",
