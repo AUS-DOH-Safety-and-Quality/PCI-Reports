@@ -48,16 +48,7 @@ pci_data <- pci_data |>
     ),
     # Set as factor so that label ordering will be respected
     age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
-                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
-    inds_cat = factor(inds, levels = c(0, 1, 2, 3, -1), labels =  c("Neither", "Aboriginal",
-                                                                    "Torres Strait Islander", "Both",
-                                                                   "Unknown")),
-    # Aboriginality
-    inds_name = dplyr::case_when(
-      inds == 0 ~ "Not Aboriginal",
-      inds %in% c(1, 2, 3) ~ "Aboriginal",
-      inds == -1 ~ "Unknown"
-    )
+                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs"))
   )
 
 #Creating required columns for Indicator calculations
@@ -225,7 +216,7 @@ library(ggstats)
 
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
-  dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male")) |>
+  dplyr::filter(!is.na(age)) |>
   ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
@@ -250,7 +241,7 @@ pci_data |>
 ```{r Split Aboriginal Demographics, fig.width=8, fig.height=5}
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
-  dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male") & inds_name == "Aboriginal") |>
+  dplyr::filter(!is.na(age) & inds %in% c(1, 2, 3)) |>
   ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
@@ -261,7 +252,7 @@ pci_data |>
     labs(
       title = "Proportion of ATSI Patients by Age and Sex",
       x = "Age Category",
-      y = "Proportion ATSI (%)",
+      y = "Proportion of ATSI Patients (%)",
       fill = "Sex"
     ) +
     theme(
