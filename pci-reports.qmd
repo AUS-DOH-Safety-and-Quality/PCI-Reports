@@ -222,10 +222,17 @@ pci_data |>
     severe_obesity = dplyr::if_else(bmi >= 35, 1, 0),
     pvd = (pvd1 == 1 | pvd2 == 1),
     pvd = dplyr::if_else(is.na(pvd), 0, as.numeric(pvd)),
-    sex = sex - 1 # Map to 0/1 for gtsummary
+    sex = sex - 1, # Map to 0/1 for gtsummary
+    los = difftime(dod, doa, units = "days"),
+    los_cat = dplyr::case_when(
+      los == 0 ~ "Same-day Discharge",
+      los >= 1 & los <= 5 ~ "1-5 days",
+      los > 5 ~ "6+ days"
+    ),
+    los_cat = factor(los_cat, levels = c("Same-day Discharge", "1-5 days", "6+ days"))
   ) |>
   gtsummary::tbl_summary(
-    include = c(age, sex, inds_cat, db, pvd, bmi, severe_obesity, ppci, pcabg, shock, oca),
+    include = c(age, sex, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
     by = "acs_cat",
     label = list(
       age ~ "Age",
@@ -238,11 +245,12 @@ pci_data |>
       ppci ~ "Previous PCI",
       pcabg ~ "Previous CABG",
       shock ~ "Cardiogenic Shock",
-      oca ~ "Out of Hospital Cardiac Arrest"
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay"
     ),
     statistic = list(
       c(age, bmi) ~ "{mean} ({sd})",
-      c(sex, inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca) ~ "{n} ({p}%)"
+      c(sex, inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat) ~ "{n} ({p}%)"
     ),
     digits = list(
       c(age, bmi) ~ 1
