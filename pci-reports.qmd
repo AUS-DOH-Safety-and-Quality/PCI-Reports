@@ -210,6 +210,7 @@ funnel_example_plotly(fpl_example_data)
 ## Patient Characteristics by Clinical Presentation
 
 ```{r demographics by acs, message=FALSE, warning=FALSE}
+# Adding and formatting columns for use in demographics tables
 pci_data |>
   dplyr::filter(!is.na(age) & !is.na(inds_cat)) |>
   dplyr::mutate(
@@ -231,6 +232,8 @@ pci_data |>
     ),
     los_cat = factor(los_cat, levels = c("Same-day Discharge", "1-5 days", "6+ days"))
   ) |>
+# The gtsummary package provides a convenient way to summarise data in multiple ways
+#   - See the `statistic` argument below for the different statistics calculated
   gtsummary::tbl_summary(
     include = c(age, sex, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
     by = "acs_cat",
