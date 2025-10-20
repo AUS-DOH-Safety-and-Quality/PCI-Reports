@@ -57,14 +57,7 @@ pci_data <- pci_data |>
       inds == 0 ~ "Not Aboriginal",
       inds %in% c(1, 2, 3) ~ "Aboriginal",
       inds == -1 ~ "Unknown"
-    ),
-    los = difftime(dod, doa, units = "days"),
-    los_cat = dplyr::case_when(
-      los == 0 ~ 1,
-      los >= 1 & los <= 5 ~ 2,
-      los > 5 ~ 3
-    ),
-    los_cat = factor(los_cat, levels = 1:3, labels = c("Same-Day", "1-5 Days", "5+ Days"))
+    )
   )
 
 #Creating required columns for Indicator calculations
@@ -224,7 +217,7 @@ funnel_example_plotly(fpl_example_data)
 
 ## All patients by Age and Sex
 
-```{r Split Demographics}
+```{r Split Demographics, fig.width=8, fig.height=5}
 # ggplot will be used for all plotting (aside from control charts)
 library(ggplot2)
 # The ggstats package provides several helpful utilities for plotting summarising data
@@ -254,7 +247,7 @@ pci_data |>
 
 ## All Aboriginal patients by Age and Sex
 
-```{r Split Aboriginal Demographics}
+```{r Split Aboriginal Demographics, fig.width=8, fig.height=5}
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
   dplyr::filter(!is.na(age) & sex_name %in% c("Female", "Male") & inds_name == "Aboriginal") |>
@@ -273,28 +266,6 @@ pci_data |>
     ) +
     theme(
       legend.position = "bottom"
-    )
-```
-
-## Length of Stay
-
-```{r LOS}
-pci_data |>
-    ggplot(aes(x = hid, fill = forcats::fct_rev(los_cat), y = after_stat(prop))) +
-    geom_prop_bar() +
-    geom_prop_text() +
-    theme_minimal() +
-    coord_flip() +
-    scale_y_continuous(labels = scales::percent) +
-    # Label axis and Title
-    labs(
-        title = "Length of Stay by Hospital",
-        x = "Hospital",
-        y = "Proportion (%)",
-        fill = "Length of Stay"
-    ) +
-    theme(
-        legend.position = "bottom"
     )
 ```
 
