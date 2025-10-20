@@ -32,11 +32,9 @@ pci_data <- pci_data |>
 # Creating variables for demographics
 pci_data <- pci_data |>
   dplyr::mutate(
-    # Calculate BMI variable
-    bmi = wkg/(htm/100)^2,
     # Assign text or category labels to demographic columns
     # Sex
-    sex_name = factor(sex, levels = c(1, 2), labels = c("Male", "Female")),
+    sex_cat = factor(sex, levels = c(1, 2), labels = c("Male", "Female")),
     # Age
     age_cat = dplyr::case_when(
       age <= 40 ~ "<= 40 yrs",
@@ -217,7 +215,7 @@ library(ggstats)
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
   dplyr::filter(!is.na(age)) |>
-  ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
+  ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
     theme_minimal() +
@@ -242,7 +240,7 @@ pci_data |>
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
   dplyr::filter(!is.na(age) & inds %in% c(1, 2, 3)) |>
-  ggplot(aes(x = age_cat, fill = sex_name, by = 1, y = after_stat(prop))) +
+  ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
     theme_minimal() +
