@@ -46,7 +46,26 @@ pci_data <- pci_data |>
     ),
     # Set as factor so that label ordering will be respected
     age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
-                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs"))
+                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
+    inds_cat = factor(inds, levels = c(0, 1, 2, 3, -1), labels =  c("Neither", "Aboriginal",
+                                                                    "Torres Strait Islander", "Both",
+                                                                   "Unknown")),
+    acs_cat = dplyr::case_when(
+      acst == 3 ~ "STEMI",
+      acst %in% c(1,2) ~ "NSTEMI",
+      acs == 0 ~ "Non-ACS"
+    ),
+    bmi = wkg/(htm/100)^2,
+    severe_obesity = dplyr::if_else(bmi >= 35, 1, 0),
+    pvd = (pvd1 == 1 | pvd2 == 1),
+    pvd = dplyr::if_else(is.na(pvd), 0, as.numeric(pvd)),
+    los = difftime(dod, doa, units = "days"),
+    los_cat = dplyr::case_when(
+      los == 0 ~ "Same-day Discharge",
+      los >= 1 & los <= 5 ~ "1-5 days",
+      los > 5 ~ "6+ days"
+    ),
+    los_cat = factor(los_cat, levels = c("Same-day Discharge", "1-5 days", "6+ days"))
   )
 
 #Creating required columns for Indicator calculations
@@ -203,6 +222,42 @@ funnel_example_plotly(fpl_example_data)
 ```
 
 # Patient Demographics
+
+## Patient Characteristics by Clinical Presentation
+
+```{r demographics by acs, message=FALSE, warning=FALSE}
+# Adding and formatting columns for use in demographics tables
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat)) |>
+# The gtsummary package provides a convenient way to summarise data in multiple ways
+#   - See the `statistic` argument below for the different statistics calculated
+  gtsummary::tbl_summary(
+    include = c(age, sex_cat, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
+    by = "acs_cat",
+    label = list(
+      age ~ "Age",
+      sex_cat ~ "Sex",
+      inds_cat ~ "Indigenous Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease",
+      bmi ~ "BMI",
+      severe_obesity ~ "Severe Obesity (BMI ≥ 35kg/m²)",
+      ppci ~ "Previous PCI",
+      pcabg ~ "Previous CABG",
+      shock ~ "Cardiogenic Shock",
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay"
+    ),
+    statistic = list(
+      c(age, bmi) ~ "{mean} ({sd})",
+      c(sex_cat, inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      c(age, bmi) ~ 1
+    ),
+    missing = "no"
+  )
+```
 
 ## All patients by Age and Sex
 
