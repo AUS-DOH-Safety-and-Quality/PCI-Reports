@@ -25,6 +25,7 @@ All proportions are calculated as the fraction of each sex within the respective
 library(ggplot2)
 library(dplyr)
 library(controlcharts)
+library(lubridate)
 
 # Load the data
 data <- read.csv('pci_data.csv')
@@ -128,56 +129,88 @@ This section displays the following SPC charts:
 
 ```{r previous-procedures-transform, include=FALSE}
 # Numerators and denominators for PCI, CABG (now ihtvcab), Previous PCI
-pci_clean <- data %>% mutate(PCI_num = ifelse(pci == 1, 1, 0))
-cabg_clean <- data %>% mutate(CABG_num = ifelse(ihtvcab == 1, 1, 0))
-ppci_clean <- data %>% mutate(PPCI_num = ifelse(ppci == 1, 1, 0))
+# Create end_period as last day of month from dop
+library(lubridate)
+pci_clean <- data %>% mutate(
+  PCI_num = ifelse(pci == 1, 1, 0),
+  end_period = as.Date(ceiling_date(as.Date(dop), "month") - days(1))
+)
+cabg_clean <- data %>% mutate(
+  CABG_num = ifelse(ihtvcab == 1, 1, 0),
+  end_period = as.Date(ceiling_date(as.Date(dop), "month") - days(1))
+)
+ppci_clean <- data %>% mutate(
+  PPCI_num = ifelse(ppci == 1, 1, 0),
+  end_period = as.Date(ceiling_date(as.Date(dop), "month") - days(1))
+)
 pci_denominator <- nrow(data)
 ```
 
 ```{r previous-procedures-PCI}
-PCI_spc <- controlcharts::spc(
-  data = pci_clean,
-  keys = NULL,
-  numerators = pci_clean$PCI_num,
-  denominators = rep(1, nrow(pci_clean)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with PCI", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease"),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE)
-)
-if (nrow(pci_clean) > 0) PCI_spc else print("No PCI data available.")
-PCI_spc
+# SPC Chart for PCI
+if (nrow(pci_clean) > 0) {
+  controlcharts::spc(
+    data = pci_clean,
+    numerators = pci_clean$PCI_num,
+    denominators = rep(1, nrow(pci_clean)),
+    keys = pci_clean$end_period,
+    spc_settings = list(chart_type = "p"),
+    y_axis_settings = list(ylimit_label = "% Patients with PCI", ylimit_label_size = 14),
+    outlier_settings = list(improvement_direction = "decrease", shift = TRUE, trend = TRUE, two_in_three = TRUE, astronomical = TRUE),
+    date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+    canvas_settings = list(upper_padding = 40),
+    nhs_icon_settings = list(show_variation_icons = TRUE)
+  )
+} else {
+  print("No PCI data available.")
+}
 ```
 
 ```{r previous-procedures-CABG}
-CABG_spc <- controlcharts::spc(
-  data = cabg_clean,
-  keys = NULL,
-  numerators = cabg_clean$CABG_num,
-  denominators = rep(1, nrow(cabg_clean)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with CABG", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease"),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE)
-)
-if (nrow(cabg_clean) > 0) CABG_spc else print("No CABG data available.")
+# SPC Chart for CABG
+if (nrow(cabg_clean) > 0) {
+  controlcharts::spc(
+    data = cabg_clean,
+    numerators = cabg_clean$CABG_num,
+    denominators = rep(1, nrow(cabg_clean)),
+    keys = cabg_clean$end_period,
+    spc_settings = list(chart_type = "p"),
+    y_axis_settings = list(ylimit_label = "% Patients with CABG", ylimit_label_size = 14),
+    outlier_settings = list(improvement_direction = "decrease", shift = TRUE, trend = TRUE, two_in_three = TRUE, astronomical = TRUE),
+    date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+    canvas_settings = list(upper_padding = 40),
+    nhs_icon_settings = list(show_variation_icons = TRUE)
+  )
+} else {
+  print("No CABG data available.")
+}
 ```
 
 ```{r previous-procedures-PPCI}
-PPCI_spc <- controlcharts::spc(
-  data = ppci_clean,
-  keys = NULL,
-  numerators = ppci_clean$PPCI_num,
-  denominators = rep(1, nrow(ppci_clean)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous PCI", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease"),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE)
-)
-if (nrow(ppci_clean) > 0) PPCI_spc else print("No Previous PCI data available.")
+# SPC Chart for Previous PCI
+if (nrow(ppci_clean) > 0) {
+  controlcharts::spc(
+    data = ppci_clean,
+    numerators = ppci_clean$PPCI_num,
+    denominators = rep(1, nrow(ppci_clean)),
+    keys = ppci_clean$end_period,
+    spc_settings = list(chart_type = "p"),
+    y_axis_settings = list(ylimit_label = "% Patients with Previous PCI", ylimit_label_size = 14),
+    outlier_settings = list(improvement_direction = "decrease", shift = TRUE, trend = TRUE, two_in_three = TRUE, astronomical = TRUE),
+    date_settings = list(date_format_day = "(blank)",
+                                    date_format_month = "Mon",
+                                    date_format_year = "YY"),
+    canvas_settings = list(upper_padding = 40),
+    nhs_icon_settings = list(show_variation_icons = TRUE)
+  )
+} else {
+  print("No Previous PCI data available.")
+}
 ```
+
 
 
