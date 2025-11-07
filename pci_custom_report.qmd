@@ -32,7 +32,11 @@ library(dplyr)
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |>
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
-                period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
+                period_end = lubridate::ceiling_date(period_start, unit = "month")-1) |>
+  #drop unneeded column
+  dplyr::select(-...1) |>
+  dplyr::filter(!is.na(period_end))
+
 
 # Calculate numerators and denominators for Previous CABG SPC
 pci_data <- pci_data |>
