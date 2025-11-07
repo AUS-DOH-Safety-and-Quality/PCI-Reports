@@ -63,7 +63,23 @@ prev_cabg_spc <- controlcharts::spc(
   date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
 )
 prev_cabg_spc
+
+astpoint <- prev_cabg_spc$limits |> dplyr::filter(astpoint != "none") |> dplyr::slice_max(order_by = date, n = 1)
+astpoint <- if(nrow(astpoint)== 0) "No point was identified" else astpoint$date
+
+trend <- prev_cabg_spc$limits |> dplyr::filter(trend != "none") |> dplyr::slice_max(order_by = date, n = 1)
+trend <- if(nrow(trend)== 0) "No point was identified" else trend$date
+
+shift <- prev_cabg_spc$limits |> dplyr::filter(shift != "none") |> dplyr::slice_max(order_by = date, n = 1)
+shift <- if(nrow(shift)== 0) "No point was identified" else shift$date
+
+two_in_three <- prev_cabg_spc$limits |> dplyr::filter(two_in_three != "none") |> dplyr::slice_max(order_by = date, n = 1)
+two_in_three <- if(nrow(two_in_three)== 0) "No point was identified" else two_in_three$date
+
+
+
 ```
 
-
+Using the Making Data Count approach, the latest patterns have been identified in the SPC chart: 
+`r astpoint$date` as an astronomical point, `r trend$date` as a trend, `r shift$date` as a shift, and `r two_in_three$date` as two in three points.
 
