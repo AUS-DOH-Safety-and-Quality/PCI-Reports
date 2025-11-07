@@ -1,0 +1,65 @@
+---
+title: "<span style='color:#0047AB; font-family:Arial;'>Customised Percutaneous Coronary Interventions Report</span>"
+format:
+  docx:
+    toc: true
+    number-sections: true
+    highlight-style: github
+    fig-format: svg
+execute:
+  echo: false
+---
+
+```{r data import, include=FALSE}
+if (!file.exists("./pci_data.csv")) {
+  stop("NCR dataset not found! Please check that you have a single CSV file named 'pci_data.csv' in the current directory!",
+       call. = FALSE)
+}
+
+#Load in the helper functions/data required
+source("HelperFunctions.R")
+
+#Read in data from PowerBI
+pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
+```
+
+```{r Data transformation, include=FALSE}
+# Load in packages if required
+library(dplyr)
+# library(lubridate)
+# library(controlcharts)
+
+#Creating period start and end, first and last date of the month
+pci_data <- pci_data |>
+  dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
+                period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
+
+# Calculate numerators and denominators for Previous CABG SPC
+pci_data <- pci_data |>
+  dplyr::mutate(
+    prev_cabg_num = if_else(pcabg == 1, 1, 0)
+  )
+```
+
+# Proportion of Patients with Previous CABG
+
+## SPC Chart: Proportion of Patients with Previous CABG
+
+```{r previous-cabg-spc}
+prev_cabg_spc <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = prev_cabg_num,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% Patients with Previous CABG", ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  canvas_settings = list(upper_padding = 40),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+prev_cabg_spc
+```
+
+
+
