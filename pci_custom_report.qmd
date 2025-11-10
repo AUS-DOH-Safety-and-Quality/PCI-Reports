@@ -38,16 +38,29 @@ pci_data <- pci_data |>
   dplyr::filter(!is.na(period_end))
 
 
-# Calculate numerators and denominators for Previous CABG SPC
+# Calculate numerators and denominators for Previous CABG, Previous PCI, Previous Cardiac Arrest & STEMI events
 pci_data <- pci_data |>
   dplyr::mutate(
-    prev_cabg_num = if_else(pcabg == 1, 1, 0)
+    prev_cabg_num = if_else(pcabg == 1, 1, 0),
+    prev_pci_num = if_else(ppci == 1, 1, 0),
+    prev_oca_num = if_else(oca == 1, 1, 0),
+    acs_cat = dplyr::case_when(
+      acst == 0 ~ "Non-ACS",
+      acst == 1 ~ "NSTEMI",
+      acst == 2 ~ "NSTEMI",
+      acst == 3 ~ "STEMI"
+    ),
+    acs_stemi_num = if_else(acs_cat == "STEMI", 1, 0)
   )
 ```
 
-# Proportion of Patients with Previous CABG
+\newpage
 
-## SPC Chart: Proportion of Patients with Previous CABG
+# Indicators for Previous Procedures
+
+## Proportion of Patients with Previous CABG
+
+### SPC Chart: Proportion of Patients with Previous CABG
 
 ```{r previous-cabg-spc}
 prev_cabg_spc <- controlcharts::spc(
