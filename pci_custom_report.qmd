@@ -32,7 +32,11 @@ library(dplyr)
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |>
   dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
-                period_end = lubridate::ceiling_date(period_start, unit = "month")-1)
+                period_end = lubridate::ceiling_date(period_start, unit = "month")-1) |>
+  #drop unneeded column
+  dplyr::select(-...1) |>
+  dplyr::filter(!is.na(period_end))
+
 
 # Calculate numerators and denominators for Previous CABG, Previous PCI, Previous Cardiac Arrest & STEMI events
 pci_data <- pci_data |>
@@ -72,125 +76,23 @@ prev_cabg_spc <- controlcharts::spc(
   date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
 )
 prev_cabg_spc
+
+astpoint <- prev_cabg_spc$limits |> dplyr::filter(astpoint != "none") |> dplyr::slice_max(order_by = date, n = 1)
+astpoint <- if(nrow(astpoint)== 0) "No point was identified" else astpoint$date
+
+trend <- prev_cabg_spc$limits |> dplyr::filter(trend != "none") |> dplyr::slice_max(order_by = date, n = 1)
+trend <- if(nrow(trend)== 0) "No point was identified" else trend$date
+
+shift <- prev_cabg_spc$limits |> dplyr::filter(shift != "none") |> dplyr::slice_max(order_by = date, n = 1)
+shift <- if(nrow(shift)== 0) "No point was identified" else shift$date
+
+two_in_three <- prev_cabg_spc$limits |> dplyr::filter(two_in_three != "none") |> dplyr::slice_max(order_by = date, n = 1)
+two_in_three <- if(nrow(two_in_three)== 0) "No point was identified" else two_in_three$date
+
+
+
 ```
 
-### Funnel Chart: Proportion of Patients with Previous CABG
-
-```{r previous-cabg-funnel}
-prev_cabg_funnel <- controlcharts::funnel(
-  data = pci_data,
-  keys = hname,
-  numerators = prev_cabg_num,
-  denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous CABG", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
-)
-prev_cabg_funnel
-```
-
-## Proportion of Patients with Previous PCI
-
-### SPC Chart: Proportion of Patients with Previous PCI
-
-```{r previous-pci-spc}
-prev_pci_spc <- controlcharts::spc(
-  data = pci_data,
-  keys = period_end,
-  numerators = prev_pci_num,
-  denominators = rep(1, nrow(pci_data)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous PCI", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
-)
-prev_pci_spc
-```
-
-### Funnel Chart: Proportion of Patients with Previous PCI
-
-```{r previous-pci-funnel}
-prev_pci_funnel <- controlcharts::funnel(
-  data = pci_data,
-  keys = hname,
-  numerators = prev_pci_num,
-  denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous PCI", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
-)
-prev_pci_funnel
-```
-
-## Proportion of Patients with Previous Cardiac Arrest
-
-### SPC Chart: Proportion of Patients with Previous Cardiac Arrest
-
-```{r previous-oca-spc}
-prev_oca_spc <- controlcharts::spc(
-  data = pci_data,
-  keys = period_end,
-  numerators = prev_oca_num,
-  denominators = rep(1, nrow(pci_data)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous Cardiac Arrest", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
-)
-prev_oca_spc
-```
-
-### Funnel Chart: Proportion of Patients with Previous Cardiac Arrest
-
-```{r previous-oca-funnel}
-prev_oca_funnel <- controlcharts::funnel(
-  data = pci_data,
-  keys = hname,
-  numerators = prev_oca_num,
-  denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous Cardiac Arrest", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
-)
-prev_oca_funnel
-```
-
-\newpage
-
-## Indicators for Clinical Procedure
-
-### SPC Chart: Proportion of STEMI Presentations
-
-```{r stemi-spc}
-stemi_spc <- controlcharts::spc(
-  data = pci_data,
-  keys = period_end,
-  numerators = acs_stemi_num,
-  denominators = rep(1, nrow(pci_data)),
-  spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% STEMI Presentations", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  canvas_settings = list(upper_padding = 40),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
-)
-stemi_spc
-```
-
-### Funnel Chart: Proportion of STEMI Presentations
-
-```{r stemi-funnel}
-stemi_funnel <- controlcharts::funnel(
-  data = pci_data,
-  keys = hname,
-  numerators = acs_stemi_num,
-  denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = "% STEMI Presentations", ylimit_label_size = 14),
-  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
-)
-stemi_funnel
-```
-
-
+Using the Making Data Count approach, the latest patterns have been identified in the SPC chart: 
+`r astpoint$date` as an astronomical point, `r trend$date` as a trend, `r shift$date` as a shift, and `r two_in_three$date` as two in three points.
 
