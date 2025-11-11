@@ -92,7 +92,7 @@ if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, past
 if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
 if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
 
-if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
+if(pattern_text == "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
 
 ```
 
@@ -116,12 +116,13 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- ""
+pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
 #Only include text if a pattern was identified
 pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+
+if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
-Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
 `r pattern_text`
 
 \newpage
@@ -165,7 +166,7 @@ if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, past
 if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
 if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
 
-if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
+if(pattern_text == "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
 ```
 
 `r pattern_text`
@@ -188,12 +189,13 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- ""
+pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
 #Only include text if a pattern was identified
 pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+
+if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
-Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
 `r pattern_text`
 
 \newpage
@@ -237,7 +239,7 @@ if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, past
 if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
 if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
 
-if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
+if(pattern_text == "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
 
 ```
 
@@ -261,10 +263,11 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- ""
+pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
 #Only include text if a pattern was identified
 pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+
+if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
-Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
 `r pattern_text`
