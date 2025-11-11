@@ -26,8 +26,6 @@ pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
 ```{r Data transformation, include=FALSE}
 # Load in packages if required
 library(dplyr)
-# library(lubridate)
-# library(controlcharts)
 
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |>
@@ -36,7 +34,6 @@ pci_data <- pci_data |>
   #drop unneeded column
   dplyr::select(-...1) |>
   dplyr::filter(!is.na(period_end))
-
 
 # Calculate numerators and denominators for Previous CABG, Previous PCI, Previous Cardiac Arrest & STEMI events
 pci_data <- pci_data |>
@@ -50,49 +47,224 @@ pci_data <- pci_data |>
       acst == 2 ~ "NSTEMI",
       acst == 3 ~ "STEMI"
     ),
-    acs_stemi_num = if_else(acs_cat == "STEMI", 1, 0)
+    acs_stemi_num = dplyr::if_else(acs_cat == "STEMI", 1, 0)
   )
 ```
 
 \newpage
 
-# Indicators for Previous Procedures
+## Proportion of Patients with a previous PCI
 
-## Proportion of Patients with Previous CABG
-
-### SPC Chart: Proportion of Patients with Previous CABG
-
-```{r previous-cabg-spc}
-prev_cabg_spc <- controlcharts::spc(
+### SPC Chart
+```{r spc_setup_ppci, echo=FALSE} 
+#| fig.cap="SPC chart for the proportion of patients with a previous PCI"
+spc_data <- controlcharts::spc(
   data = pci_data,
   keys = period_end,
-  numerators = prev_cabg_num,
+  numerators = prev_pci_num,
   denominators = rep(1, nrow(pci_data)),
   spc_settings = list(chart_type = "p"),
-  y_axis_settings = list(ylimit_label = "% Patients with Previous CABG", ylimit_label_size = 14),
+  y_axis_settings = list(ylimit_label = "% Patients with a previous PCI", ylimit_label_size = 14),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   canvas_settings = list(upper_padding = 40),
   nhs_icon_settings = list(show_variation_icons = TRUE),
   date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
 )
-prev_cabg_spc
+spc_data
+```
 
-astpoint <- prev_cabg_spc$limits |> dplyr::filter(astpoint != "none") |> dplyr::slice_max(order_by = date, n = 1)
-astpoint <- if(nrow(astpoint)== 0) "No point was identified" else astpoint$date
+``` {r spc_patterns_ppci, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
+#Filter to the last point in the ordered dates
+astpoint <- astpoint$date[length(astpoint$date)]
+trend <- spc_data$limits |> dplyr::filter(trend != "none")
+trend <- trend$date[length(trend$date)]
+shift <- spc_data$limits |> dplyr::filter(shift != "none")
+shift <- shift$date[length(shift$date)]
+two_in_three <- spc_data$limits |> dplyr::filter(two_in_three != "none")
+two_in_three <- two_in_three$date[length(two_in_three$date)]
 
-trend <- prev_cabg_spc$limits |> dplyr::filter(trend != "none") |> dplyr::slice_max(order_by = date, n = 1)
-trend <- if(nrow(trend)== 0) "No point was identified" else trend$date
+pattern_text <- "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: "
+#Only include text if a pattern was identified
+if(length(astpoint) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("An astronomical point was identified on ", astpoint, ". ")))
+if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A trend was identified on ", trend, ". ")))
+if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
+if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
 
-shift <- prev_cabg_spc$limits |> dplyr::filter(shift != "none") |> dplyr::slice_max(order_by = date, n = 1)
-shift <- if(nrow(shift)== 0) "No point was identified" else shift$date
-
-two_in_three <- prev_cabg_spc$limits |> dplyr::filter(two_in_three != "none") |> dplyr::slice_max(order_by = date, n = 1)
-two_in_three <- if(nrow(two_in_three)== 0) "No point was identified" else two_in_three$date
-
-
+if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
 
 ```
 
-Using the Making Data Count approach, the latest patterns have been identified in the SPC chart: 
-`r astpoint$date` as an astronomical point, `r trend$date` as a trend, `r shift$date` as a shift, and `r two_in_three$date` as two in three points.
+`r pattern_text`
 
+### Funnel Plot
+```{r fpl_setup_ppci, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hname,
+  numerators = prev_pci_num,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous PCI"), ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+``` {r fpl_patterns_ppci, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
+
+pattern_text <- ""
+#Only include text if a pattern was identified
+pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+```
+
+Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
+`r pattern_text`
+
+\newpage
+
+## Proportion of Patients with a previous CABG
+
+### SPC Chart
+```{r spc_setup_pcabg, echo=FALSE} 
+#| fig.cap="SPC chart for the proportion of patients with a previous CABG"
+spc_data <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = prev_cabg_num,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% Patients with a previous CABG", ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  canvas_settings = list(upper_padding = 40),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+spc_data
+```
+
+``` {r spc_patterns_pcabg, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
+#Filter to the last point in the ordered dates
+astpoint <- astpoint$date[length(astpoint$date)]
+trend <- spc_data$limits |> dplyr::filter(trend != "none")
+trend <- trend$date[length(trend$date)]
+shift <- spc_data$limits |> dplyr::filter(shift != "none")
+shift <- shift$date[length(shift$date)]
+two_in_three <- spc_data$limits |> dplyr::filter(two_in_three != "none")
+two_in_three <- two_in_three$date[length(two_in_three$date)]
+
+pattern_text <- "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: "
+#Only include text if a pattern was identified
+if(length(astpoint) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("An astronomical point was identified on ", astpoint, ". ")))
+if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A trend was identified on ", trend, ". ")))
+if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
+if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
+
+if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
+```
+
+`r pattern_text`
+
+### Funnel Plot
+```{r fpl_setup_pcabg, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hname,
+  numerators = prev_cabg_num,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous CABG"), ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+``` {r fpl_patterns_pcabg, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
+
+pattern_text <- ""
+#Only include text if a pattern was identified
+pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+```
+
+Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
+`r pattern_text`
+
+\newpage
+
+## Proportion of Patients with a previous OHCA
+
+### SPC Chart
+```{r spc_setup_pOHCA, echo=FALSE} 
+#| fig.cap="SPC chart for the proportion of patients with a previous OHCA"
+spc_data <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = prev_oca_num,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% Patients with a previous OHCA", ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  canvas_settings = list(upper_padding = 40),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+spc_data
+```
+
+``` {r spc_patterns_pOHCA, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
+#Filter to the last point in the ordered dates
+astpoint <- astpoint$date[length(astpoint$date)]
+trend <- spc_data$limits |> dplyr::filter(trend != "none")
+trend <- trend$date[length(trend$date)]
+shift <- spc_data$limits |> dplyr::filter(shift != "none")
+shift <- shift$date[length(shift$date)]
+two_in_three <- spc_data$limits |> dplyr::filter(two_in_three != "none")
+two_in_three <- two_in_three$date[length(two_in_three$date)]
+
+pattern_text <- "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: "
+#Only include text if a pattern was identified
+if(length(astpoint) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("An astronomical point was identified on ", astpoint, ". ")))
+if(length(trend) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A trend was identified on ", trend, ". ")))
+if(length(shift) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A shift was identified on ", shift, ". ")))
+if(length(two_in_three) == 1) pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))
+
+if(pattern_text = "Using the Making Data Count approach, the following most recent patterns have been identified in the SPC chart: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
+
+```
+
+`r pattern_text`
+
+### Funnel Plot
+```{r fpl_setup_pOHCA, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hname,
+  numerators = prev_oca_num,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous OHCA"), ylimit_label_size = 14),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+``` {r fpl_patterns_pOHCA, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
+
+pattern_text <- ""
+#Only include text if a pattern was identified
+pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+```
+
+Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: 
+`r pattern_text`
