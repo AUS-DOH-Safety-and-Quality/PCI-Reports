@@ -11,44 +11,34 @@ execute:
 ---
 
 ```{r data import, include=FALSE}
+library(qiverse.azure)
 if (!file.exists("./pci_data.csv")) {
   stop("NCR dataset not found! Please check that you have a single CSV file named 'pci_data.csv' in the current directory!",
        call. = FALSE)
 }
-
 #Load in the helper functions/data required
 source("HelperFunctions.R")
 
-#Read in data from PowerBI
-pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
+# PowerBI Token
+tk <- qiverse.azure::get_az_tk('pbi_df')
+# Load data from PowerBI
+pci_data <- qiverse.powerbi::download_dataflow_table(workspace_name = "PCI Data Set",
+                                                dataflow_name = "Redcap PCI Registry",
+                                                table_name = "PCIRegistryData",
+                                                access_token = tk$credentials$access_token, verbose = TRUE)
 ```
 
 ```{r Data transformation, include=FALSE}
-# Load in packages if required
-library(dplyr)
-
 #Creating period start and end, first and last date of the month
 pci_data <- pci_data |>
-  dplyr::mutate(period_start = lubridate::floor_date(dop, unit = "month"),
-                period_end = lubridate::ceiling_date(period_start, unit = "month")-1) |>
-  #drop unneeded column
-  dplyr::select(-...1) |>
+  dplyr::mutate(dop = as.Date(dop_top),
+  period_start = lubridate::floor_date(dop, unit = "month"),
+  period_end = lubridate::ceiling_date(period_start, unit = "month")-1,
+  prev_cabg_num = dplyr::if_else(pcabg == "Yes", 1, 0),
+  prev_pci_num = dplyr::if_else(ppci == "Yes", 1, 0),
+  prev_oca_num = dplyr::if_else(arrest_pre_pci == "Yes", 1, 0)) |>
   dplyr::filter(!is.na(period_end))
 
-# Calculate numerators and denominators for Previous CABG, Previous PCI, Previous Cardiac Arrest & STEMI events
-pci_data <- pci_data |>
-  dplyr::mutate(
-    prev_cabg_num = if_else(pcabg == 1, 1, 0),
-    prev_pci_num = if_else(ppci == 1, 1, 0),
-    prev_oca_num = if_else(oca == 1, 1, 0),
-    acs_cat = dplyr::case_when(
-      acst == 0 ~ "Non-ACS",
-      acst == 1 ~ "NSTEMI",
-      acst == 2 ~ "NSTEMI",
-      acst == 3 ~ "STEMI"
-    ),
-    acs_stemi_num = dplyr::if_else(acs_cat == "STEMI", 1, 0)
-  )
 ```
 
 \newpage
@@ -103,7 +93,7 @@ if(pattern_text == "Using the Making Data Count approach, the following most rec
 #| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
-  keys = hname,
+  keys = centre,
   numerators = prev_pci_num,
   denominators = rep(1, nrow(pci_data)),
   y_axis_settings = list(ylimit_label = paste0("% Patients with a previous PCI"), ylimit_label_size = 14),
@@ -116,11 +106,10 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
+pattern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 #Only include text if a pattern was identified
-pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+pattern_text <- if(length(astpoint$group) == 0) pattern_text else paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
 
-if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
 `r pattern_text`
@@ -176,7 +165,7 @@ if(pattern_text == "Using the Making Data Count approach, the following most rec
 #| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
-  keys = hname,
+  keys = centre,
   numerators = prev_cabg_num,
   denominators = rep(1, nrow(pci_data)),
   y_axis_settings = list(ylimit_label = paste0("% Patients with a previous CABG"), ylimit_label_size = 14),
@@ -189,11 +178,10 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
+pattern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 #Only include text if a pattern was identified
-pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+pattern_text <- if(length(astpoint$group) == 0) pattern_text else paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
 
-if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
 `r pattern_text`
@@ -250,7 +238,7 @@ if(pattern_text == "Using the Making Data Count approach, the following most rec
 #| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
-  keys = hname,
+  keys = centre,
   numerators = prev_oca_num,
   denominators = rep(1, nrow(pci_data)),
   y_axis_settings = list(ylimit_label = paste0("% Patients with a previous OHCA"), ylimit_label_size = 14),
@@ -263,11 +251,60 @@ fpl_data
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
-pattern_text <- "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: "
+pattern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 #Only include text if a pattern was identified
-pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
+pattern_text <- if(length(astpoint$group) == 0) pattern_text else paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")
 
-if(pattern_text == "Using the Making Data Count approach, the following patterns have been identified in the Funnel Plot: ") patttern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
 ```
 
 `r pattern_text`
+
+\newpage
+
+```{r demographics_sex, echo=FALSE}
+# Plotting the distribution of patients by sex
+ggplot2::ggplot(pci_data, ggplot2::aes(x = sex)) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::labs(title = "Distribution of Patients by Sex",
+       x = "Sex",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+
+```
+
+```{r demographics_inds, echo=FALSE}
+# Plotting the distribution of patients by Indigenous status
+ggplot2::ggplot(pci_data, ggplot2::aes(x = inds)) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::labs(title = "Distribution of Patients by Aboriginal or Torres Strait Islander Identity",
+       x = "Aboriginal or Torres Strait Islander Identity",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+
+```
+
+```{r demographics_age, echo=FALSE}
+# Plotting the distribution of patients by age
+ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::labs(title = "Distribution of Patients by Age",
+       x = "Age",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+
+```
+
+```{r procedures, echo=FALSE}
+# Plotting the distribution of patients by ACS Type
+ggplot2::ggplot(pci_data, ggplot2::aes(x = type_acs)) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::labs(title = "Distribution of Patients by ACS Type",
+       x = "ACS Type",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+
+```
