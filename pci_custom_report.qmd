@@ -53,6 +53,33 @@ pci_data <- pci_data |>
 
 ## Proportion of Patients with a previous PCI
 
+### Funnel Plot
+```{r fpl_setup_ppci, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = centre,
+  numerators = prev_pci_num,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous PCI"), ylimit_label_size = 14, ylimit_sig_figs = 1),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+``` {r fpl_patterns_ppci, echo=FALSE}
+#Filter the spc limits data to get the latest patterns identified
+astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
+
+pattern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
+#Only include text if a pattern was identified
+pattern_text <- if(length(astpoint$group) != 0) {
+    pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")}
+
+```
+
+`r pattern_text`
+
 ### SPC Chart
 ```{r spc_setup_ppci, echo=FALSE} 
 #| fig.cap="SPC chart for the proportion of patients with a previous PCI"
@@ -99,21 +126,25 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 `r pattern_text`
 
+\newpage
+
+## Proportion of Patients with a previous CABG
+
 ### Funnel Plot
-```{r fpl_setup_ppci, echo=FALSE}
-#| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
+```{r fpl_setup_pcabg, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
   keys = centre,
-  numerators = prev_pci_num,
+  numerators = prev_cabg_num,
   denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous PCI"), ylimit_label_size = 14, ylimit_sig_figs = 1),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous CABG"), ylimit_label_size = 14, ylimit_sig_figs = 1),
   outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
 )
 fpl_data
 ```
 
-``` {r fpl_patterns_ppci, echo=FALSE}
+``` {r fpl_patterns_pcabg, echo=FALSE}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
@@ -125,10 +156,6 @@ pattern_text <- if(length(astpoint$group) != 0) {
 ```
 
 `r pattern_text`
-
-\newpage
-
-## Proportion of Patients with a previous CABG
 
 ### SPC Chart
 ```{r spc_setup_pcabg, echo=FALSE} 
@@ -175,21 +202,25 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 `r pattern_text`
 
+\newpage
+
+## Proportion of Patients with a previous OHCA
+
 ### Funnel Plot
-```{r fpl_setup_pcabg, echo=FALSE}
-#| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
+```{r fpl_setup_pOHCA, echo=FALSE}
+#| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
   keys = centre,
-  numerators = prev_cabg_num,
+  numerators = prev_oca_num,
   denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous CABG"), ylimit_label_size = 14, ylimit_sig_figs = 1),
+  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous OHCA"), ylimit_label_size = 14, ylimit_sig_figs = 1),
   outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
 )
 fpl_data
 ```
 
-``` {r fpl_patterns_pcabg, echo=FALSE}
+``` {r fpl_patterns_pOHCA, echo=FALSE}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
@@ -201,10 +232,6 @@ pattern_text <- if(length(astpoint$group) != 0) {
 ```
 
 `r pattern_text`
-
-\newpage
-
-## Proportion of Patients with a previous OHCA
 
 ### SPC Chart
 ```{r spc_setup_pOHCA, echo=FALSE} 
@@ -253,35 +280,9 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 `r pattern_text`
 
-### Funnel Plot
-```{r fpl_setup_pOHCA, echo=FALSE}
-#| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
-fpl_data <- controlcharts::funnel(
-  data = pci_data,
-  keys = centre,
-  numerators = prev_oca_num,
-  denominators = rep(1, nrow(pci_data)),
-  y_axis_settings = list(ylimit_label = paste0("% Patients with a previous OHCA"), ylimit_label_size = 14, ylimit_sig_figs = 1),
-  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
-)
-fpl_data
-```
-
-``` {r fpl_patterns_pOHCA, echo=FALSE}
-#Filter the spc limits data to get the latest patterns identified
-astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
-
-pattern_text <- "Using the Making Data Count approach, no patterns were identified in the Funnel Plot."
-#Only include text if a pattern was identified
-pattern_text <- if(length(astpoint$group) != 0) {
-    pattern_text <- paste0("An astronomical point was identified for ", stringr::str_flatten(astpoint$group, collapse = ", "), ".")}
-
-```
-
-`r pattern_text`
-
 \newpage
 
+## Demographics
 ```{r demographics_sex, echo=FALSE}
 # Plotting the distribution of patients by sex
 ggplot2::ggplot(pci_data, ggplot2::aes(x = sex)) +
@@ -315,12 +316,11 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
        y = "Count") +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
-
 ```
 
 ```{r procedures, echo=FALSE}
 # Plotting the distribution of patients by ACS Type
-ggplot2::ggplot(pci_data, ggplot2::aes(x = type_acs)) +
+ggplot2::ggplot(pci_data, ggplot2::aes(x = stringr::str_wrap(type_acs, 10))) +
   ggplot2::geom_bar(fill = "steelblue") +
   ggplot2::labs(title = "Distribution of Patients by ACS Type",
        x = "ACS Type",
@@ -340,4 +340,64 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 
+```
+
+```{r co-morbidities, echo=FALSE}
+comorbs <- c("db", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failure", "htn", "lung_disease","dial")
+
+ gtsummary::tbl_summary(pci_data,
+    include = c(db, dbm, pvd2, stroke, dyslipidaemia, smk, heart_failure, htn, lung_disease, dial),
+    label = list(
+      db ~ "Diabetes",
+      dbm ~ "Diabetes Type",
+      pvd2 ~ "Peripheral Vascular Disease",
+      stroke ~ "Stroke",
+      dyslipidaemia ~ "Dyslipidaemia",
+      smk ~ "Smoking Status",
+      heart_failure ~ "Heart Failure",
+      htn ~ "Hypertension",
+      lung_disease ~ "Lung Disease",
+      dial ~ "Renal Dialysis"
+    ),
+    statistic = list(
+      c(db, dbm, pvd2, stroke, dyslipidaemia, smk, heart_failure, htn, lung_disease, dial) ~ "N: {n} | D: {N} | %: {p}"
+    ),
+    missing = "no"
+  )
+
+
+```
+
+```{r spc_setup_timings_pain_device, echo=FALSE} 
+
+#Pain to device time
+spc_data <- controlcharts::spc(
+  data = dplyr::filter(pci_data, !is.na(pain_device_time)),
+  keys = period_end,
+  numerators = pain_device_time,
+  spc_settings = list(chart_type = "i"),
+  aggregations = list(numerators = "mean"),
+  y_axis_settings = list(ylimit_label = "Mean time from Onset of Chest Pain to Device", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+spc_data
+```
+
+```{r spc_setup_timing_FMC_device, echo=FALSE} 
+
+#First Medical Contact to device time
+spc_data <- controlcharts::spc(
+  data = dplyr::filter(pci_data, !is.na(fmc_device_time)),
+  keys = period_end,
+  numerators = fmc_device_time,
+  spc_settings = list(chart_type = "i"),
+  aggregations = list(numerators = "mean"),
+  y_axis_settings = list(ylimit_label = "Mean time from First Medical Contact to Device", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+spc_data
 ```
