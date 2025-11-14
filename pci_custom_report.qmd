@@ -11,7 +11,6 @@ execute:
 ---
 
 ```{r data import, include=FALSE}
-library(qiverse.azure)
 if (!file.exists("./pci_data.csv")) {
   stop("NCR dataset not found! Please check that you have a single CSV file named 'pci_data.csv' in the current directory!",
        call. = FALSE)
@@ -342,11 +341,13 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
 
 ```
 
+## Co-morbidities Breakdown
+
 ```{r co-morbidities, echo=FALSE}
-comorbs <- c("db", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failure", "htn", "lung_disease","dial")
+comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failure", "htn", "lung_disease","dial")
 
  gtsummary::tbl_summary(pci_data,
-    include = c(db, dbm, pvd2, stroke, dyslipidaemia, smk, heart_failure, htn, lung_disease, dial),
+    include = dplyr::all_of(comorbs),
     label = list(
       db ~ "Diabetes",
       dbm ~ "Diabetes Type",
@@ -360,14 +361,15 @@ comorbs <- c("db", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failure", "h
       dial ~ "Renal Dialysis"
     ),
     statistic = list(
-      c(db, dbm, pvd2, stroke, dyslipidaemia, smk, heart_failure, htn, lung_disease, dial) ~ "N: {n} | D: {N} | %: {p}"
+      dplyr::all_of(comorbs) ~ "N: {n} | D: {N} | %: {p}"
     ),
     missing = "no"
-  )
+  ) |> gtsummary::as_flex_table()
 
 
 ```
 
+## Onset of Pain to Device Time
 ```{r spc_setup_timings_pain_device, echo=FALSE} 
 
 #Pain to device time
@@ -385,6 +387,7 @@ spc_data <- controlcharts::spc(
 spc_data
 ```
 
+## First Medical Contact to Device Time
 ```{r spc_setup_timing_FMC_device, echo=FALSE} 
 
 #First Medical Contact to device time
@@ -400,4 +403,56 @@ spc_data <- controlcharts::spc(
   date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
 )
 spc_data
+```
+
+## Door to Device Time
+```{r spc_setup_timing_Door_device, echo=FALSE} 
+
+#Door to device time
+spc_data <- controlcharts::spc(
+  data = dplyr::filter(pci_data, !is.na(fmc_device_time)),
+  keys = period_end,
+  numerators = door_device_kpi,
+  spc_settings = list(chart_type = "i"),
+  aggregations = list(numerators = "mean"),
+  y_axis_settings = list(ylimit_label = "Mean time from Door to Device", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+)
+spc_data
+```
+
+
+```{r device_times_setup, echo=FALSE}
+
+devices <- c("door_device_kpi", "door_device_time_2", "door_device_time_3", "door_device_time_5", "fmc_device_time", "fmc_device_time_2", "fmc_device_time_3", "pain_device_time", "pain_device_time_2", "pain_device_time_3", "pain_device_time_4", "pain_device_time_5")
+
+table(pci_data$pain_device_time_4)
+pci_data$pain_device_time_4 <- as.numeric(pci_data$pain_device_time_4)
+
+gtsummary::tbl_summary(pci_data,
+    include = dplyr::all_of(devices),
+    label = list(
+      door_device_kpi ~ "Door to Device: Ambulance",
+      door_device_time_2 ~ "Door to Device: PCI Centre ED",
+      door_device_time_3 ~ "Door to Device: Non PCI Centre ED",
+      door_device_time_5 ~ "Door to Device: Rescue PCI",
+      fmc_device_time ~ "FMC to Device: Ambulance",
+      fmc_device_time_2 ~ "FMC to Device: PCI Centre ED",
+      fmc_device_time_3 ~ "FMC to Device: Non PCI Centre ED",
+      pain_device_time ~ "Pain to Device: Ambulance",
+      pain_device_time_2 ~ "Pain to Device: PCI Centre ED",
+      pain_device_time_3 ~ "Pain to Device: Non PCI Centre ED",
+      pain_device_time_4 ~ "Pain to Device: PCI Centre Ward",
+      pain_device_time_5 ~ "Pain to Device: Rescue PCI"
+    ),
+    statistic = list(
+      dplyr::all_of(devices) ~ "Median: {median} | Mean: {mean} | SD: {sd} | Min: {min} | Max: {max}"
+    ),
+    missing = "no"
+  ) |> gtsummary::as_flex_table()
+
+
+
 ```
