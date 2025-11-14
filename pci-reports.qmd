@@ -256,7 +256,8 @@ pci_data |>
       c(age, bmi) ~ 1
     ),
     missing = "no"
-  )
+  ) |>
+    gtsummary::as_flex_table()
 ```
 
 ## All patients by Age and Sex
