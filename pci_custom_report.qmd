@@ -47,21 +47,11 @@ pci_data <- pci_data |>
 \newpage
 
 ## Demographics
-```{r demographics_intro, echo=FALSE}
-ggplot2::ggplot(pci_data, ggplot2::aes(x = centre)) +
-  ggplot2::geom_bar(fill = "steelblue") +
-  ggplot2::labs(title = "Distribution of PCI Procedures by Hospital",
-       x = "Hospital",
-       y = "Count") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
-```
-
-```{r cumulative sum cases, echo=FALSE} 
+```{r cumulative sum cases, echo=FALSE, fig.width=6, fig.height=4} 
 # Group data to get cumulative counts for each centre over time
 group_data <- pci_data |>
   dplyr::group_by(centre, period_end) |>
-  dplyr::summarise(count = dplyr::n()) |>
+  dplyr::summarise(.groups = "keep", count = dplyr::n()) |>
   dplyr::arrange(centre, period_end) |>
   dplyr::group_by(centre) |>
   dplyr::mutate(cumulative_count = cumsum(count))
@@ -80,10 +70,22 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
   ggplot2::scale_y_continuous(breaks = scales::breaks_pretty(10))
 ```
 
+```{r demographics_intro, echo=FALSE}
+ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(centre, centre, FUN = length, decreasing = T))) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Procedures by Hospital",
+       x = "Hospital",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+```
+
 ```{r demographics_sex, echo=FALSE}
 # Plotting the distribution of patients by sex
-ggplot2::ggplot(pci_data, ggplot2::aes(x = sex) +
+ggplot2::ggplot(pci_data, ggplot2::aes(x = sex)) +
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by Sex",
        x = "Sex",
        y = "Count") +
@@ -96,6 +98,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = sex) +
 # Plotting the distribution of patients by Indigenous status
 ggplot2::ggplot(pci_data, ggplot2::aes(x = inds)) +
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by Aboriginal or Torres Strait Islander Identity",
        x = "Aboriginal or Torres Strait Islander Identity",
        y = "Count") +
@@ -115,11 +118,12 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 ```
 
-```{r procedures, echo=FALSE}
-# Plotting the distribution of patients by ACS Type
-ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(stringr::str_wrap(type_acs, 10), type_acs, FUN = length, decreasing = T))) +
+```{r pci_indication, echo=FALSE}
+# Plotting the distribution of patients by PCI Indication
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(pci_indication)), ggplot2::aes(x = reorder(stringr::str_wrap(pci_indication, 10), pci_indication, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
-  ggplot2::labs(title = "Distribution of PCI Patients by ACS Type",
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Patients by PCI Indication",
        x = "ACS Type",
        y = "Count") +
   ggplot2::theme_minimal() +
@@ -127,10 +131,18 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(stringr::str_wrap(type_acs, 1
 
 ```
 
-```{r pci_indication, echo=FALSE}
+```{r pci_indication_list, echo=FALSE}
+
+indication_list <- pci_data |> 
+  dplyr::group_by(pci_indication_list) |>
+  dplyr::summarise(count = dplyr::n()) |>
+  dplyr::arrange(dplyr::desc(count)) |>
+  dplyr::slice_max(n = 10, order_by = count)
+
 # Plotting the distribution of patients by PCI indication
 ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(stringr::str_wrap(pci_indication_list, 10), pci_indication_list, FUN = length, decreasing = T)))+
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by PCI Indication",
        x = "PCI Indication",
        y = "Count") +
@@ -143,6 +155,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(stringr::str_wrap(pci_indicat
 # Plotting the distribution of patients by ACS Type
 ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by Same Day Discharge",
        x = "Same Day Discharge",
        y = "Count") +
@@ -153,8 +166,9 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
 
 ```{r access, echo=FALSE}
 # Plotting the distribution of patients by Access
-ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(access, access, FUN = length, decreasing = T))) +
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(access)), ggplot2::aes(x = reorder(access, access, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by Access Site",
        x = "Access Site",
        y = "Count") +
@@ -164,13 +178,40 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(access, access, FUN = length,
 ```
 
 ```{r adjunctive, echo=FALSE}
-pci_data <- pci_data |> 
-  dplyr::mutate(type_adjunct___1 = dplyr::if_else(type_adjunct___1 == "Checked", 1, 0))
+#Rename the adjunctive device columns to their lookup
+adjunct_devices <- pci_data |> dplyr::select(type_adjunct___1:type_adjunct___14) |>
+  dplyr::rename(
+"Guide Extension" = "type_adjunct___1",
+"Intravascular Ultrasound" = "type_adjunct___2",
+"Optical Coherence Tomography" = "type_adjunct___3",
+"Pressure Wire" = "type_adjunct___4",
+"Cutting Balloon" = "type_adjunct___5",
+"Scoring Balloon" = "type_adjunct___6",
+"OPN Balloon" = "type_adjunct___7",
+"Thrombus Aspiration" = "type_adjunct___8",
+"Distal Protection" = "type_adjunct___9",
+"Rotational Atherectomy" = "type_adjunct___10",
+"Orbital Atherectomy" = "type_adjunct___11",
+"Intravascular Lithotripsy (Shockwave)" = "type_adjunct___12",
+"Microcatheter" = "type_adjunct___13",
+"Other" = "type_adjunct___14"
+  ) |>
+    #Over all the adjunct columns, convert "Checked" to 1 and everything else to 0
+  dplyr::mutate(dplyr::across(dplyr::everything(), \(x) ifelse(x == "Checked", 1, 0))) |>
+    #Summarise each adjunctive device to get the total count of patients using each device
+  dplyr::summarise(dplyr::across(dplyr::everything(), \(x) sum(x, na.rm = TRUE))) |>
+    #Transpose the data for easier plotting
+  t() |>
+  as.data.frame()
+
+#Transpose takes the column names and makes them row names so we need to pull them out into a column
+adjunct_devices$adjunct <- rownames(adjunct_devices)
 
 # Plotting the distribution of patients by Adjunctive device
-ggplot2::ggplot(pci_data, ggplot2::aes(x = type_adjunct___1)) +
-  ggplot2::geom_bar(fill = "steelblue") +
-  ggplot2::labs(title = "Distribution of PCI Patients by Adjunctive Device",
+ggplot2::ggplot(adjunct_devices, ggplot2::aes(x = stats::reorder(stringr::str_wrap(adjunct, 10), -V1), y = V1)) +
+  ggplot2::geom_bar(stat = "identity", fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = V1), stat = "identity", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of Adjunctive Devices used in PCI Procedures",
        x = "Adjunctve Device",
        y = "Count") +
   ggplot2::theme_minimal() +
@@ -445,6 +486,7 @@ comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failu
 #Convert to numeric
 pci_data$pain_device_time_4 <- as.numeric(pci_data$pain_device_time_4)
 
+#Create lookup tables for each group of times
 device_label = list(
       "Door to Device:" = list(
         door_device_kpi ~ "Ambulance (KPI <90)",
@@ -462,6 +504,7 @@ device_label = list(
         pain_device_time_4 ~ "PCI Centre Ward",
         pain_device_time_5 ~ "Rescue PCI")
       )
+#Same grouping as above in a different format
 device_cols <- list(
       "Door to Device:" = c(
         "door_device_kpi",
@@ -479,11 +522,13 @@ device_cols <- list(
         "pain_device_time_4",
         "pain_device_time_5")
       )
-
+#Table for door to device time
 door_to_device <- gtsummary::tbl_summary(pci_data,
+#Over all the columns for Door to device
     include = dplyr::all_of(device_cols[["Door to Device:"]]),
     label = device_label[["Door to Device:"]],
     statistic = list(
+      #Calculate the statistics
       dplyr::all_of(device_cols[["Door to Device:"]]) ~ "Median: {median} | Mean: {mean} | SD: {sd} | Count: {N_nonmiss}"
     ),
     missing = "no"
