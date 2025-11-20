@@ -9,7 +9,12 @@ format:
 execute:
   echo: false
 ---
-
+```{r setup, include=FALSE}
+#GTSummary set to output as flextables
+gtsummary::theme_gtsummary_printer(print_engine = "flextable")
+#Chunk options set once for all chunks
+knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 4, dpi = 300)
+```
 ```{r data import, include=FALSE}
 #Load in the helper functions/data required
 source("HelperFunctions.R")
@@ -47,7 +52,7 @@ pci_data <- pci_data |>
 \newpage
 
 ## Demographics
-```{r cumulative sum cases, echo=FALSE, fig.width=6, fig.height=4} 
+```{r cumulative sum cases} 
 # Group data to get cumulative counts for each centre over time
 group_data <- pci_data |>
   dplyr::group_by(centre, period_end) |>
@@ -70,9 +75,10 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
   ggplot2::scale_y_continuous(breaks = scales::breaks_pretty(10))
 ```
 
-```{r demographics_intro, echo=FALSE}
+```{r demographics_intro}
 ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(centre, centre, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Procedures by Hospital",
        x = "Hospital",
@@ -81,7 +87,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(centre, centre, FUN = length,
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 ```
 
-```{r demographics_sex, echo=FALSE}
+```{r demographics_sex}
 # Plotting the distribution of patients by sex
 ggplot2::ggplot(pci_data, ggplot2::aes(x = sex)) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -94,7 +100,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = sex)) +
 
 ```
 
-```{r demographics_inds, echo=FALSE}
+```{r demographics_inds}
 # Plotting the distribution of patients by Indigenous status
 ggplot2::ggplot(pci_data, ggplot2::aes(x = inds)) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -107,7 +113,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = inds)) +
 
 ```
 
-```{r demographics_age, echo=FALSE}
+```{r demographics_age}
 # Plotting the distribution of patients by age
 ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -118,9 +124,9 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 ```
 
-```{r pci_indication, echo=FALSE}
+```{r pci_indication}
 # Plotting the distribution of patients by PCI Indication
-ggplot2::ggplot(dplyr::filter(pci_data, !is.na(pci_indication)), ggplot2::aes(x = reorder(stringr::str_wrap(pci_indication, 10), pci_indication, FUN = length, decreasing = T))) +
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(pci_indication)), ggplot2::aes(x = stats::reorder(stringr::str_wrap(pci_indication, 10), pci_indication, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
   ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by PCI Indication",
@@ -131,27 +137,32 @@ ggplot2::ggplot(dplyr::filter(pci_data, !is.na(pci_indication)), ggplot2::aes(x 
 
 ```
 
-```{r pci_indication_list, echo=FALSE}
-
-indication_list <- pci_data |> 
-  dplyr::group_by(pci_indication_list) |>
-  dplyr::summarise(count = dplyr::n()) |>
-  dplyr::arrange(dplyr::desc(count)) |>
-  dplyr::slice_max(n = 10, order_by = count)
-
+```{r pci_indication_list}
 # Plotting the distribution of patients by PCI indication
-ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(stringr::str_wrap(pci_indication_list, 10), pci_indication_list, FUN = length, decreasing = T)))+
+ggplot2::ggplot(pci_data, ggplot2::aes(x = stats::reorder(stringr::str_wrap(pci_indication_list, 10), pci_indication_list, FUN = length, decreasing = T)))+
   ggplot2::geom_bar(fill = "steelblue") +
   ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::labs(title = "Distribution of PCI Patients by PCI Indication",
        x = "PCI Indication",
        y = "Count") +
   ggplot2::theme_minimal() +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
-
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold")) + 
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2))
 ```
 
-```{r same_day_discharge, echo=FALSE}
+```{r pci_indication_list2}
+# Plotting the distribution of patients by PCI indication
+ggplot2::ggplot(pci_data, ggplot2::aes(y = stats::reorder(stringr::str_wrap(pci_indication_list, 30), pci_indication_list, FUN = length, decreasing = T)))+
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", hjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Patients by PCI Indication",
+       y = "PCI Indication",
+       x = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+```
+
+```{r same_day_discharge}
 # Plotting the distribution of patients by ACS Type
 ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -164,7 +175,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dis_length)) +
 
 ```
 
-```{r access, echo=FALSE}
+```{r access}
 # Plotting the distribution of patients by Access
 ggplot2::ggplot(dplyr::filter(pci_data, !is.na(access)), ggplot2::aes(x = reorder(access, access, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -177,7 +188,7 @@ ggplot2::ggplot(dplyr::filter(pci_data, !is.na(access)), ggplot2::aes(x = reorde
 
 ```
 
-```{r adjunctive, echo=FALSE}
+```{r adjunctive_setup}
 #Rename the adjunctive device columns to their lookup
 adjunct_devices <- pci_data |> dplyr::select(type_adjunct___1:type_adjunct___14) |>
   dplyr::rename(
@@ -207,6 +218,12 @@ adjunct_devices <- pci_data |> dplyr::select(type_adjunct___1:type_adjunct___14)
 #Transpose takes the column names and makes them row names so we need to pull them out into a column
 adjunct_devices$adjunct <- rownames(adjunct_devices)
 
+adjunct_devices_10 <- adjunct_devices |> 
+  dplyr::slice_max(n = 10, order_by = V1)
+
+```
+
+```{r adjunctive_plot}
 # Plotting the distribution of patients by Adjunctive device
 ggplot2::ggplot(adjunct_devices, ggplot2::aes(x = stats::reorder(stringr::str_wrap(adjunct, 10), -V1), y = V1)) +
   ggplot2::geom_bar(stat = "identity", fill = "steelblue") +
@@ -215,6 +232,89 @@ ggplot2::ggplot(adjunct_devices, ggplot2::aes(x = stats::reorder(stringr::str_wr
        x = "Adjunctve Device",
        y = "Count") +
   ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold")) + 
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2))
+
+```
+
+```{r adjunctive_plot2}
+# Plotting the distribution of patients by Adjunctive device
+ggplot2::ggplot(adjunct_devices, ggplot2::aes(y = stats::reorder(stringr::str_wrap(adjunct, 20), V1), x = V1)) +
+  ggplot2::geom_bar(stat = "identity", fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = V1), stat = "identity", hjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of Adjunctive Devices used in PCI Procedures",
+       y = "Adjunctve Device",
+       x = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+```
+
+```{r number_lesions}
+pci_data <- pci_data |> 
+  dplyr::mutate(across(c("lesion_type_1", "lesion_type_lesion2", "lesion_type_lesion3",
+    "lesion_type_lesion4", "lesion_type_lesion5"), ~ ifelse(is.na(.), 0, 1)))
+pci_data$lesion_total <- rowSums(pci_data[c("lesion_type_1", "lesion_type_lesion2",
+  "lesion_type_lesion3", "lesion_type_lesion4", "lesion_type_lesion5")])
+
+# Plotting the distribution of patients by number of lesions
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(lesion_total)), ggplot2::aes(x = reorder(lesion_total, 
+  x = lesion_total, FUN = length, decreasing = T))) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Patients by Number of Lesions",
+       x = "Lesions",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"),
+    axis.title.x = ggplot2::element_text(size = 8),
+    axis.title.y = ggplot2::element_text(size = 8))
+
+```
+
+```{r pci_location}
+# Plotting the distribution of patients by first PCI lesion location
+ggplot2::ggplot(pci_data, ggplot2::aes(y = stats::reorder(pci_location_lesion1, pci_location_lesion1, FUN = length, decreasing = F)))+
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", hjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of First PCI Lesions by Location",
+       y = "PCI Lesion Location",
+       x = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+```
+
+```{r technique}
+# Plotting the distribution of patients by PCI Technique
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(final_technique_lesion1)), 
+  ggplot2::aes(x = reorder(stringr::str_wrap(final_technique_lesion1, 10), final_technique_lesion1, FUN = length, decreasing = T))) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Patients by PCI Technique",
+       x = "Technique",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+
+```
+
+```{r stent_count}
+pci_data <- pci_data |> 
+  dplyr::mutate(number_stents_lesion4 = as.integer(number_stents_lesion4),
+                number_stents_lesion5 = as.integer(number_stents_lesion5))
+
+pci_data$stents_total <- rowSums(pci_data[c("number_stents_lesion1", "number_stents_lesion2",
+  "number_stents_lesion3", "number_stents_lesion4", "number_stents_lesion5")], na.rm = TRUE)
+
+# Plotting the distribution of patients by total stents used
+ggplot2::ggplot(dplyr::filter(pci_data, !is.na(stents_total)), ggplot2::aes(x = stents_total)) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Patients by Total Stents Used",
+       x = "Total Stents Used",
+       y = "Count") +
+  ggplot2::theme_minimal() + 
+  ggplot2::scale_x_continuous(breaks = 0:max(pci_data$stents_total)) +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 
 ```
@@ -222,7 +322,7 @@ ggplot2::ggplot(adjunct_devices, ggplot2::aes(x = stats::reorder(stringr::str_wr
 ## Proportion of Patients with a previous PCI
 
 ### Funnel Plot
-```{r fpl_setup_ppci, echo=FALSE, fig.width=6, fig.height=4}
+```{r fpl_setup_ppci}
 #| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
@@ -235,7 +335,7 @@ fpl_data <- controlcharts::funnel(
 fpl_data
 ```
 
-``` {r fpl_patterns_ppci, echo=FALSE, fig.width=3, fig.height=2}
+``` {r fpl_patterns_ppci}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
@@ -249,7 +349,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 `r pattern_text`
 
 ### SPC Chart
-```{r spc_setup_ppci, echo=FALSE} 
+```{r spc_setup_ppci} 
 #| fig.cap="SPC chart for the proportion of patients with a previous PCI"
 spc_data <- controlcharts::spc(
   data = pci_data,
@@ -260,12 +360,12 @@ spc_data <- controlcharts::spc(
   y_axis_settings = list(ylimit_label = "% PCI Patients with a previous PCI", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
 )
 spc_data
 ```
 
-``` {r spc_patterns_ppci, echo=FALSE}
+``` {r spc_patterns_ppci}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
 #Filter to the last point in the ordered dates
@@ -299,7 +399,7 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 ## Proportion of Patients with a previous CABG
 
 ### Funnel Plot
-```{r fpl_setup_pcabg, echo=FALSE}
+```{r fpl_setup_pcabg}
 #| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
@@ -313,7 +413,7 @@ fpl_data <- controlcharts::funnel(
 fpl_data
 ```
 
-``` {r fpl_patterns_pcabg, echo=FALSE}
+``` {r fpl_patterns_pcabg}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
@@ -327,7 +427,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 `r pattern_text`
 
 ### SPC Chart
-```{r spc_setup_pcabg, echo=FALSE} 
+```{r spc_setup_pcabg} 
 #| fig.cap="SPC chart for the proportion of patients with a previous CABG"
 spc_data <- controlcharts::spc(
   data = pci_data,
@@ -338,12 +438,12 @@ spc_data <- controlcharts::spc(
   y_axis_settings = list(ylimit_label = "% PCI Patients with a previous CABG", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
 )
 spc_data
 ```
 
-``` {r spc_patterns_pcabg, echo=FALSE}
+``` {r spc_patterns_pcabg}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
 #Filter to the last point in the ordered dates
@@ -376,7 +476,7 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 ## Proportion of Patients with a previous OHCA
 
 ### Funnel Plot
-```{r fpl_setup_pOHCA, echo=FALSE}
+```{r fpl_setup_pOHCA}
 #| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
@@ -390,7 +490,7 @@ fpl_data <- controlcharts::funnel(
 fpl_data
 ```
 
-``` {r fpl_patterns_pOHCA, echo=FALSE}
+``` {r fpl_patterns_pOHCA}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- fpl_data$limits |> dplyr::filter(three_sigma == "deterioration")
 
@@ -404,7 +504,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 `r pattern_text`
 
 ### SPC Chart
-```{r spc_setup_pOHCA, echo=FALSE} 
+```{r spc_setup_pOHCA} 
 #| fig.cap="SPC chart for the proportion of patients with a previous OHCA"
 spc_data <- controlcharts::spc(
   data = pci_data,
@@ -415,12 +515,12 @@ spc_data <- controlcharts::spc(
   y_axis_settings = list(ylimit_label = "% PCI Patients with a previous OHCA", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
 )
 spc_data
 ```
 
-``` {r spc_patterns_pOHCA, echo=FALSE}
+``` {r spc_patterns_pOHCA}
 #Filter the spc limits data to get the latest patterns identified
 astpoint <- spc_data$limits |> dplyr::filter(astpoint != "none")
 #Filter to the last point in the ordered dates
@@ -444,8 +544,6 @@ if(length(two_in_three) == 1) {
    pattern_text <- stringr::str_flatten(c(pattern_text, paste0("A two in three was identified on ", two_in_three, ". ")))}
 
 if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making Data Count approach, no patterns were identified in the SPC chart."
-
-
 ```
 
 `r pattern_text`
@@ -454,7 +552,7 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 ## Co-morbidities Breakdown
 
-```{r co-morbidities, echo=FALSE}
+```{r co-morbidities}
 comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failure", "htn", "lung_disease","dial")
 
  gtsummary::tbl_summary(pci_data,
@@ -475,13 +573,12 @@ comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failu
       dplyr::all_of(comorbs) ~ "N: {n} | D: {N} | %: {p}"
     ),
     missing = "no"
-  ) |> gtsummary::as_flex_table()
-
+  )
 
 ```
 
 ## Device Timing KPI Summary Table
-```{r device_times_setup, echo=FALSE}
+```{r device_times_setup}
 
 #Convert to numeric
 pci_data$pain_device_time_4 <- as.numeric(pci_data$pain_device_time_4)
@@ -556,13 +653,14 @@ pain_to_device <- gtsummary::tbl_summary(pci_data,
 combined_table <- gtsummary::tbl_stack(list(door_to_device, FMC_to_device, pain_to_device), 
   group_header = c("Door to Device Time", "First Medical Contact to Device Time", "Pain Onset to Device Time")) |>
     gtsummary::modify_header(label = "**Device Timing Indicators**")
+```
 
+```{r devices_times, results='asis'}
 combined_table |> 
-  gtsummary::as_flex_table() |>
   flextable::set_table_properties(layout = "autofit")
 ```
 ### Ambulance Prenotified Arrival at PCI Centre to Device Time
-```{r spc_setup_timings_pain_device, echo=FALSE} 
+```{r spc_setup_timings_pain_device} 
 
 #Ambulance Arrival to device time
 spc_data <- controlcharts::spc(
@@ -573,15 +671,16 @@ spc_data <- controlcharts::spc(
   aggregations = list(numerators = "mean"),
   y_axis_settings = list(ylimit_label = "Mean Time (minutes)", 
     ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
-  line_settings = list(show_alt_target = TRUE, alt_target = 90, colour_alt_target = "#00667B"),
+  line_settings = list(plot_label_show_main = TRUE, plot_label_show_target = TRUE, show_alt_target = TRUE,
+    alt_target = 90, colour_alt_target = "#00667B", plot_label_show_alt_target = TRUE),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY"))
+  nhs_icon_settings = list(show_variation_icons = TRUE, show_assurance_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " "))
 spc_data
 ```
 
 ### PCI Centre ED Arrival to Device Time
-```{r spc_setup_timing_FMC_device, echo=FALSE} 
+```{r spc_setup_timing_FMC_device} 
 
 #PCI Centre ED arrival to device time
 spc_data <- controlcharts::spc(
@@ -592,16 +691,17 @@ spc_data <- controlcharts::spc(
   aggregations = list(numerators = "mean"),
   y_axis_settings = list(ylimit_label = "Mean Time (minutes)", 
     ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
-  line_settings = list(show_alt_target = TRUE, alt_target = 90, colour_alt_target = "#00667B"),
+  line_settings = list(plot_label_show_main = TRUE, plot_label_show_target = TRUE, show_alt_target = TRUE,
+    alt_target = 90, colour_alt_target = "#00667B", plot_label_show_alt_target = TRUE),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+  nhs_icon_settings = list(show_variation_icons = TRUE, show_assurance_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
 )
 spc_data
 ```
 
 ### Non-PCI Centre Arrival to Device Time
-```{r spc_setup_timing_Door_device, echo=FALSE} 
+```{r spc_setup_timing_Door_device} 
 
 #Non PCI Centre Door to device time
 spc_data <- controlcharts::spc(
@@ -611,11 +711,12 @@ spc_data <- controlcharts::spc(
   spc_settings = list(chart_type = "i"),
   aggregations = list(numerators = "mean"),
   y_axis_settings = list(ylimit_label = "Mean Time (minutes)",
-   ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
-     line_settings = list(show_alt_target = TRUE, alt_target = 120, colour_alt_target = "#00667B"),
+    ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  line_settings = list(plot_label_show_main = TRUE, plot_label_show_target = TRUE, show_alt_target = TRUE,
+    alt_target = 120, colour_alt_target = "#00667B", plot_label_show_alt_target = TRUE),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
-  nhs_icon_settings = list(show_variation_icons = TRUE),
-  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY")
+  nhs_icon_settings = list(show_variation_icons = TRUE, show_assurance_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
 )
 spc_data
 ```
