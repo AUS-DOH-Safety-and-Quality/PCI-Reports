@@ -6,9 +6,15 @@ format:
     number-sections: true
     highlight-style: github
     fig-format: svg
+knitr:
+  opts_chunk:
+    dev: "svglite"
 execute:
   echo: false
 ---
+```{r, include=FALSE}
+gtsummary::theme_gtsummary_printer(print_engine = "flextable")
+```
 
 ```{r Data download, include=FALSE}
 if (!file.exists("./pci_data.csv")) {
@@ -37,16 +43,15 @@ pci_data <- pci_data |>
     sex_cat = factor(sex, levels = c(1, 2), labels = c("Male", "Female")),
     # Age
     age_cat = dplyr::case_when(
-      age <= 40 ~ "<= 40 yrs",
-      age >= 41 & age <= 50 ~ "41-50 yrs",
+      age < 50 ~ "< 50 yrs",
       age >= 51 & age <= 60 ~ "51-60 yrs",
       age >= 61 & age <= 70 ~ "61-70 yrs",
       age >= 71 & age <= 80 ~ "71-80 yrs",
-      age > 80 ~ ">= 81 yrs"
+      age > 80 ~ "> 80 yrs"
     ),
     # Set as factor so that label ordering will be respected
-    age_cat = factor(age_cat, levels = c("<= 40 yrs", "41-50 yrs", "51-60 yrs",
-                                         "61-70 yrs", "71-80 yrs", ">= 81 yrs")),
+    age_cat = factor(age_cat, levels = c("< 50 yrs", "51-60 yrs",
+                                         "61-70 yrs", "71-80 yrs", "> 80 yrs")),
     inds_cat = factor(inds, levels = c(0, 1, 2, 3, -1), labels =  c("Neither", "Aboriginal",
                                                                     "Torres Strait Islander", "Both",
                                                                    "Unknown")),
@@ -256,8 +261,7 @@ pci_data |>
       c(age, bmi) ~ 1
     ),
     missing = "no"
-  ) |>
-    gtsummary::as_flex_table()
+  )
 ```
 
 ## All patients by Age and Sex
@@ -270,7 +274,7 @@ library(ggstats)
 
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
-  dplyr::filter(!is.na(age)) |>
+  dplyr::filter(!is.na(age_cat)) |>
   ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
@@ -295,7 +299,7 @@ pci_data |>
 ```{r Split Aboriginal Demographics, fig.width=8, fig.height=5}
 pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
-  dplyr::filter(!is.na(age) & inds %in% c(1, 2, 3)) |>
+  dplyr::filter(!is.na(age_cat) & inds %in% c(1, 2, 3)) |>
   ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
     geom_prop_bar() +
     geom_prop_text() +
@@ -312,6 +316,140 @@ pci_data |>
     theme(
       legend.position = "bottom"
     )
+```
+
+# Clinical Characteristics
+
+## Number of PCI Procedures by Hospital
+
+```{r cumulative sum cases}
+# Group data to get cumulative counts for each hid over time
+group_data <- pci_data |>
+  dplyr::group_by(hid, period_end) |>
+  dplyr::summarise(.groups = "keep", count = dplyr::n()) |>
+  dplyr::arrange(hid, period_end) |>
+  dplyr::group_by(hid) |>
+  dplyr::mutate(cumulative_count = cumsum(count))
+
+# Cumulative sum of PCI cases over time
+ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
+  ggplot2::stat_ecdf(ggplot2::aes(y = ggplot2::after_stat(y) * nrow(pci_data)), geom = "line", color = "black") +
+  ggplot2::geom_col(data = group_data, mapping = ggplot2::aes(x = period_end, y = cumulative_count, fill = hid), position = "dodge", linewidth = 0) +
+  ggplot2::labs(title = "Cumulative Total of PCI Cases Over Time",
+       x = "Date of Procedure",
+       y = "Cumulative Total of PCI Cases",
+       fill = "Hospital",
+       colour = "") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold")) +
+  ggplot2::scale_y_continuous(breaks = scales::breaks_pretty(10))
+```
+
+```{r demographics_intro}
+ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(hid, hid, FUN = length, decreasing = T))) +
+  ggplot2::geom_bar(fill = "steelblue") +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
+  ggplot2::labs(title = "Distribution of PCI Procedures by Hospital",
+       x = "Hospital",
+       y = "Count") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+```
+
+## Proportion of Patients with Previous PCI
+
+```{r fpl_setup_ppci}
+#| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hid,
+  numerators = ppci,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% PCI Patients with a previous PCI"),
+    ylimit_label_size = 14, ylimit_sig_figs = 1, ylimit_u = 35),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE))
+fpl_data
+```
+
+```{r spc_setup_ppci}
+#| fig.cap="SPC chart for the proportion of patients with a previous PCI"
+spc_data <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = ppci,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% PCI Patients with a previous PCI", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
+)
+spc_data
+```
+
+## Proportion of Patients with a previous CABG
+
+```{r fpl_setup_pcabg}
+#| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hid,
+  numerators = pcabg,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% PCI Patients with a previous CABG"),
+    ylimit_label_size = 14, ylimit_sig_figs = 1, ylimit_u = 7),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+```{r spc_setup_pcabg}
+#| fig.cap="SPC chart for the proportion of patients with a previous CABG"
+spc_data <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = pcabg,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% PCI Patients with a previous CABG", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
+)
+spc_data
+```
+
+## Proportion of Patients with out of hospital cardiac arrest (OHCA)
+
+```{r fpl_setup_pOHCA}
+#| fig.cap="Funnel plot for the proportion of patients with an OHCA"
+fpl_data <- controlcharts::funnel(
+  data = pci_data,
+  keys = hid,
+  numerators = oca,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(ylimit_label = paste0("% PCI Patients with OHCA"),
+    ylimit_label_size = 14, ylimit_sig_figs = 1, ylimit_u = 7),
+  outlier_settings = list(improvement_direction = "decrease", three_sigma = TRUE)
+)
+fpl_data
+```
+
+```{r spc_setup_pOHCA}
+#| fig.cap="SPC chart for the proportion of patients with an OHCA"
+spc_data <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = oca,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(ylimit_label = "% PCI Patients with an OHCA", ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
+  outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(date_format_day = "(blank)", date_format_month = "Mon", date_format_year = "YY", date_format_delim = " ")
+)
+spc_data
 ```
 
 # Time from diagnostic ECG to PCI mediated reperfusion
@@ -375,7 +513,7 @@ NCR2_spc
 ```{r NCR3 Funnel}
 ## Generate the Funnel chart
 NCR3_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = ihstr,
                       denominators = NCR3_den,
                       y_axis_settings = list(ylimit_u = 2,
@@ -423,7 +561,7 @@ The Statistical Process Control (SPC) chart above displays the information for *
 ```{r NCR4 Funnel}
 ## Generate the Funnel chart
 NCR4_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR4_num,
                       denominators = NCR4_den,
                       y_axis_settings = list(ylimit_u = 2,
@@ -469,7 +607,7 @@ NCR4_spc
 ```{r NCR5 Funnel}
 ## Generate the Funnel chart
 NCR5_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR5_num,
                       denominators = NCR5_den,
                       y_axis_settings = list(ylimit_u = 5,
@@ -517,7 +655,7 @@ Cardiac readmission data is currently undergoing review. This data was not inclu
 ```{r NCR6 Funnel}
 ## Generate the Funnel chart
 NCR6_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR6_num,
                       denominators = NCR6_den,
                       y_axis_settings = list(ylimit_u = 10,
@@ -563,7 +701,7 @@ NCR6_spc
 ```{r NCR7 Funnel}
 ## Generate the Funnel chart
 NCR7_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR7_num,
                       denominators = NCR7_den,
                       y_axis_settings = list(ylimit_label = "% 30 day unplanned revascularisation after PCI",
@@ -608,7 +746,7 @@ NCR7_spc
 ```{r NCR8 Funnel}
 ## Generate the Funnel chart
 NCR8_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR8_num,
                       denominators = NCR8_den,
                       y_axis_settings = list(ylimit_u = 5,
@@ -654,7 +792,7 @@ NCR8_spc
 ```{r NCR10 Funnel}
 ## Generate the Funnel chart
 NCR10_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR10_num,
                       denominators = NCR10_den,
                       y_axis_settings = list(ylimit_l = 70,
@@ -700,7 +838,7 @@ NCR10_spc
 ```{r NCR9 Funnel}
 ## Generate the Funnel chart
 NCR9_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR9_num,
                       denominators = NCR9_den,
                       y_axis_settings = list(ylimit_u = 100,
@@ -749,7 +887,7 @@ NCR9_spc
 ```{r NCR11 Funnel}
 ## Generate the Funnel chart
 NCR11_fpl <- controlcharts::funnel(data = pci_data,
-                      keys = hname,
+                      keys = hid,
                       numerators = NCR11_num,
                       denominators = NCR11_den,
                       y_axis_settings = list(ylimit_u = 100,

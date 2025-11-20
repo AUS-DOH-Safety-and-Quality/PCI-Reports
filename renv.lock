@@ -617,10 +617,10 @@
     },
     "controlcharts": {
       "Package": "controlcharts",
-      "Version": "0.0.0.9000",
+      "Version": "0.0.1",
       "Source": "GitHub",
       "Title": "Interactive Plotting for Funnel and Statistical Process Control Charts",
-      "Authors@R": "c( person(c(\"Andrew\", \"R.\"), \"Johnson\", , \"andrew.johnson@arjohnsonau.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-7000-8065\")))",
+      "Authors@R": "c( person(c(\"Andrew\", \"R.\"), \"Johnson\", , \"andrew.johnson@arjohnsonau.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-7000-8065\")), person(given = \"Healthcare Quality Intelligence Unit (Western Australia Health)\", family = \"\", role = c(\"aut\"), email = \"safetyandquality@health.wa.gov.au\"))",
       "Description": "Generate fully interactive and dynamic funnel plots and statistical process control (SPC) charts. All data manaipulation, calculation, and plotting is done in JavaScript, allowing for completely dynamic charts without the need for a Shiny server.",
       "License": "MIT + file LICENSE",
       "Encoding": "UTF-8",
@@ -630,7 +630,8 @@
         "htmlwidgets",
         "crosstalk",
         "QuickJSR",
-        "zlib"
+        "zlib",
+        "stats"
       ],
       "Suggests": [
         "rsvg",
@@ -640,14 +641,14 @@
       ],
       "VignetteBuilder": "knitr",
       "URL": "https://aus-doh-safety-and-quality.github.io/controlcharts/",
-      "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>)",
+      "Author": "Andrew R. Johnson [aut, cre] (<https://orcid.org/0000-0001-7000-8065>), Healthcare Quality Intelligence Unit (Western Australia Health) [aut]",
       "Maintainer": "Andrew R. Johnson <andrew.johnson@arjohnsonau.com>",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteUsername": "AUS-DOH-Safety-and-Quality",
       "RemoteRepo": "controlcharts",
       "RemoteRef": "main",
-      "RemoteSha": "ad36ce830679f5f5f11ab812fd920441863acd4b"
+      "RemoteSha": "803741193c780f96026381d925d7042b7270994b"
     },
     "cpp11": {
       "Package": "cpp11",
@@ -3083,6 +3084,54 @@
       "Author": "Hadley Wickham [aut, cre, cph], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
       "Repository": "RSPM"
+    },
+    "svglite": {
+      "Package": "svglite",
+      "Version": "2.2.2",
+      "Source": "Repository",
+      "Title": "An 'SVG' Graphics Device",
+      "Authors@R": "c( person(\"Hadley\", \"Wickham\", , \"hadley@posit.co\", role = \"aut\"), person(\"Lionel\", \"Henry\", , \"lionel@posit.co\", role = \"aut\"), person(\"Thomas Lin\", \"Pedersen\", , \"thomas.pedersen@posit.co\", role = c(\"cre\", \"aut\"), comment = c(ORCID = \"0000-0002-5147-4711\")), person(\"T Jake\", \"Luciani\", , \"jake@apache.org\", role = \"aut\"), person(\"Matthieu\", \"Decorde\", , \"matthieu.decorde@ens-lyon.fr\", role = \"aut\"), person(\"Vaudor\", \"Lise\", , \"lise.vaudor@ens-lyon.fr\", role = \"aut\"), person(\"Tony\", \"Plate\", role = \"ctb\", comment = \"Early line dashing code\"), person(\"David\", \"Gohel\", role = \"ctb\", comment = \"Line dashing code and early raster code\"), person(\"Yixuan\", \"Qiu\", role = \"ctb\", comment = \"Improved styles; polypath implementation\"), person(\"Håkon\", \"Malmedal\", role = \"ctb\", comment = \"Opacity code\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
+      "Description": "A graphics device for R that produces 'Scalable Vector Graphics'. 'svglite' is a fork of the older 'RSvgDevice' package.",
+      "License": "GPL (>= 2)",
+      "URL": "https://svglite.r-lib.org, https://github.com/r-lib/svglite",
+      "BugReports": "https://github.com/r-lib/svglite/issues",
+      "Depends": [
+        "R (>= 4.1)"
+      ],
+      "Imports": [
+        "base64enc",
+        "cli",
+        "lifecycle",
+        "rlang (>= 1.1.0)",
+        "systemfonts (>= 1.3.0)",
+        "textshaping (>= 0.3.0)"
+      ],
+      "Suggests": [
+        "covr",
+        "fontquiver (>= 0.2.0)",
+        "htmltools",
+        "knitr",
+        "rmarkdown",
+        "testthat (>= 3.0.0)",
+        "xml2 (>= 1.0.0)"
+      ],
+      "LinkingTo": [
+        "cpp11",
+        "systemfonts",
+        "textshaping"
+      ],
+      "VignetteBuilder": "knitr",
+      "Config/build/compilation-database": "true",
+      "Config/Needs/website": "tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Config/usethis/last-upkeep": "2025-04-25",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.2",
+      "SystemRequirements": "libpng",
+      "NeedsCompilation": "yes",
+      "Author": "Hadley Wickham [aut], Lionel Henry [aut], Thomas Lin Pedersen [cre, aut] (ORCID: <https://orcid.org/0000-0002-5147-4711>), T Jake Luciani [aut], Matthieu Decorde [aut], Vaudor Lise [aut], Tony Plate [ctb] (Early line dashing code), David Gohel [ctb] (Line dashing code and early raster code), Yixuan Qiu [ctb] (Improved styles; polypath implementation), Håkon Malmedal [ctb] (Opacity code), Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
+      "Maintainer": "Thomas Lin Pedersen <thomas.pedersen@posit.co>",
+      "Repository": "CRAN"
     },
     "sys": {
       "Package": "sys",
