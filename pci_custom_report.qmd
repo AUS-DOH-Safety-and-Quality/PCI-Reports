@@ -13,7 +13,7 @@ execute:
 #GTSummary set to output as flextables
 gtsummary::theme_gtsummary_printer(print_engine = "flextable")
 #Chunk options set once for all chunks
-knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 4, dpi = 300)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 ```{r data import, include=FALSE}
 #Load in the helper functions/data required
@@ -47,6 +47,10 @@ pci_data <- pci_data |>
   dplyr::filter(!is.na(period_end)) |>
   dplyr::filter(period_end <= Sys.Date())
 
+
+pci_data <- pci_data |> 
+  dplyr::mutate(door_device_time_2 = dplyr::if_else(door_device_time_2 > 300, NA_integer_, door_device_time_2),
+                door_device_time_3 = dplyr::if_else(door_device_time_3 > 500, NA_integer_, door_device_time_3))
 ```
 
 \newpage
@@ -323,7 +327,7 @@ ggplot2::ggplot(dplyr::filter(pci_data, !is.na(stents_total)), ggplot2::aes(x = 
 
 ### Funnel Plot
 ```{r fpl_setup_ppci}
-#| fig.cap="Funnel plot for the proportion of patients with a previous PCI"
+#| out-width: 80%
 fpl_data <- controlcharts::funnel(
   data = pci_data,
   keys = centre,
@@ -350,7 +354,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 
 ### SPC Chart
 ```{r spc_setup_ppci} 
-#| fig.cap="SPC chart for the proportion of patients with a previous PCI"
+#| out-width: "80%"
 spc_data <- controlcharts::spc(
   data = pci_data,
   keys = period_end,
@@ -400,7 +404,7 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 ### Funnel Plot
 ```{r fpl_setup_pcabg}
-#| fig.cap="Funnel plot for the proportion of patients with a previous CABG"
+#| out-width: "80%"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
   keys = centre,
@@ -428,7 +432,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 
 ### SPC Chart
 ```{r spc_setup_pcabg} 
-#| fig.cap="SPC chart for the proportion of patients with a previous CABG"
+#| out-width: "80%"
 spc_data <- controlcharts::spc(
   data = pci_data,
   keys = period_end,
@@ -477,7 +481,7 @@ if(stringr::str_length(pattern_text) != 112) patttern_text <- "Using the Making 
 
 ### Funnel Plot
 ```{r fpl_setup_pOHCA}
-#| fig.cap="Funnel plot for the proportion of patients with a previous OHCA"
+#| out-width: "80%"
 fpl_data <- controlcharts::funnel(
   data = pci_data,
   keys = centre,
@@ -505,7 +509,7 @@ pattern_text <- if(length(astpoint$group) != 0) {
 
 ### SPC Chart
 ```{r spc_setup_pOHCA} 
-#| fig.cap="SPC chart for the proportion of patients with a previous OHCA"
+#| out-width: "80%"
 spc_data <- controlcharts::spc(
   data = pci_data,
   keys = period_end,
@@ -573,13 +577,12 @@ comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failu
       dplyr::all_of(comorbs) ~ "N: {n} | D: {N} | %: {p}"
     ),
     missing = "no"
-  )
+  ) |> gtsummary::as_gt()
 
 ```
 
-## Device Timing KPI Summary Table
+## STEMI Device Timing KPI Summary Table
 ```{r device_times_setup}
-
 #Convert to numeric
 pci_data$pain_device_time_4 <- as.numeric(pci_data$pain_device_time_4)
 
@@ -652,16 +655,19 @@ pain_to_device <- gtsummary::tbl_summary(pci_data,
 #stack the tables together
 combined_table <- gtsummary::tbl_stack(list(door_to_device, FMC_to_device, pain_to_device), 
   group_header = c("Door to Device Time", "First Medical Contact to Device Time", "Pain Onset to Device Time")) |>
-    gtsummary::modify_header(label = "**Device Timing Indicators**")
+    gtsummary::modify_header(label = "**STEMI Device Timing Indicators**")
 ```
 
-```{r devices_times, results='asis'}
-combined_table |> 
-  flextable::set_table_properties(layout = "autofit")
+```{r devices_times}
+#| out-width: "80%"
+combined_table |> gtsummary::as_gt()
 ```
+
+\newpage
+
 ### Ambulance Prenotified Arrival at PCI Centre to Device Time
 ```{r spc_setup_timings_pain_device} 
-
+#| out-width: "80%"
 #Ambulance Arrival to device time
 spc_data <- controlcharts::spc(
   data = dplyr::filter(pci_data, !is.na(door_device_kpi)),
@@ -681,7 +687,7 @@ spc_data
 
 ### PCI Centre ED Arrival to Device Time
 ```{r spc_setup_timing_FMC_device} 
-
+#| out-width: "80%"
 #PCI Centre ED arrival to device time
 spc_data <- controlcharts::spc(
   data = dplyr::filter(pci_data, !is.na(door_device_time_2)),
@@ -691,7 +697,7 @@ spc_data <- controlcharts::spc(
   aggregations = list(numerators = "mean"),
   y_axis_settings = list(ylimit_label = "Mean Time (minutes)", 
     ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
-  line_settings = list(plot_label_show_main = TRUE, plot_label_show_target = TRUE, show_alt_target = TRUE,
+  line_settings = list(plot_label_show_target = TRUE, show_alt_target = TRUE,
     alt_target = 90, colour_alt_target = "#00667B", plot_label_show_alt_target = TRUE),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   nhs_icon_settings = list(show_variation_icons = TRUE, show_assurance_icons = TRUE),
@@ -702,7 +708,7 @@ spc_data
 
 ### Non-PCI Centre Arrival to Device Time
 ```{r spc_setup_timing_Door_device} 
-
+#| out-width: "80%"
 #Non PCI Centre Door to device time
 spc_data <- controlcharts::spc(
   data = dplyr::filter(pci_data, !is.na(door_device_time_3)),
@@ -712,7 +718,7 @@ spc_data <- controlcharts::spc(
   aggregations = list(numerators = "mean"),
   y_axis_settings = list(ylimit_label = "Mean Time (minutes)",
     ylimit_label_size = 14, ylimit_tick_rotation = 0, ylimit_sig_figs = 0),
-  line_settings = list(plot_label_show_main = TRUE, plot_label_show_target = TRUE, show_alt_target = TRUE,
+  line_settings = list(plot_label_show_target = TRUE, show_alt_target = TRUE,
     alt_target = 120, colour_alt_target = "#00667B", plot_label_show_alt_target = TRUE),
   outlier_settings = list(improvement_direction = "decrease", astronomical = TRUE, shift = TRUE, trend = TRUE, two_in_three = TRUE),
   nhs_icon_settings = list(show_variation_icons = TRUE, show_assurance_icons = TRUE),
@@ -722,7 +728,5 @@ spc_data
 ```
 
 
-
-
 ## Editing the Report
-This report is created using Quarto and R to produce a Microsoft Word output, if you want to edit the report styling to fit your reporting requirements, right click any graph and select Convert to Shape, this will allow you to edit graphs as needed.
+This report is created using Quarto and R to produce a Microsoft Word output, if you want to edit the report styling to fit your reporting requirements, right click any graph and select **Convert to Shape**, this will allow you to edit graphs as needed.
