@@ -95,42 +95,54 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(centre, centre, FUN = length,
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 ```
 
-```{r demographics_completeness}
+```{r demographics_completeness, warning = FALSE, message = FALSE}
 rename <- c("Patient Details" = "add_new_pci_complete", 
+  "Activation (STEMI)" = "Activation (STEMI)",
   "Risk Factors" = "indication_risk_factors_complete",
   "PCI Details" = "pci_details_complete", 
   "Lesion Details" = "lesion_1_complete", 
   "Discharge Data" = "discharge_data_complete", 
   "30 Day Data" = "day_data_complete")
-
+complete_cols <- c("Patient Details", "Activation (STEMI)", "Risk Factors",
+ "PCI Details", "Lesion Details", "Discharge Data", "30 Day Data")
+act_cols <- c("activation_prehospital_sja_complete", "activation_by_pci_centre_ed_complete", "activation_by_nonpci_centre_ed_iht_complete", "activation_by_other_hospital_ward_at_pci_centre_complete", "rescue_pci_complete")
 completeness <- pci_data |>
-  dplyr::select(add_new_pci_complete, indication_risk_factors_complete, activation_prehospital_sja_complete, activation_by_pci_centre_ed_complete, activation_by_nonpci_centre_ed_iht_complete, activation_by_other_hospital_ward_at_pci_centre_complete, rescue_pci_complete, pci_details_complete, lesion_1_complete, discharge_data_complete, day_data_complete) |>
-  dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == "Complete" ~ 1, TRUE ~ 0)))
+  dplyr::select(add_new_pci_complete, indication_risk_factors_complete, activation_prehospital_sja_complete, activation_by_pci_centre_ed_complete, activation_by_nonpci_centre_ed_iht_complete, activation_by_other_hospital_ward_at_pci_centre_complete, rescue_pci_complete, pci_details_complete, lesion_1_complete, discharge_data_complete, day_data_complete, pci_indication) |>
+    #Select all columns, except the indication col, then transform complete and incomplete to 1 and 0
+  dplyr::mutate(dplyr::across(.cols=c(dplyr::everything(), -dplyr::any_of("pci_indication")), ~ dplyr::case_when(.x == "Complete" ~ 1, .x == "Incomplete" ~ 0))) 
 
-completeness$Activation <- rowSums(completeness[c("activation_prehospital_sja_complete", "activation_by_pci_centre_ed_complete", "activation_by_nonpci_centre_ed_iht_complete", "activation_by_other_hospital_ward_at_pci_centre_complete", "rescue_pci_complete")])
-
-completeness <- completeness |> dplyr::select(-c("activation_prehospital_sja_complete", "activation_by_pci_centre_ed_complete", "activation_by_nonpci_centre_ed_iht_complete", "activation_by_other_hospital_ward_at_pci_centre_complete", "rescue_pci_complete"))
+#Sum the rows for the columns that make up the activation
+completeness$`Activation (STEMI)`<- rowSums(completeness[act_cols])
+#Keep the activation only in its a STEMI
+completeness$`Activation (STEMI)` <- dplyr::if_else(completeness$pci_indication == "STEMI", completeness$`Activation (STEMI)`, NA_integer_)
+#Remove unneeded columns
+completeness <- completeness |> dplyr::select(-c(act_cols, pci_indication))
 
 # Plotting the distribution of Procedures by completeness
-completeness <- completeness |>
+completeness_t <- completeness |>
   dplyr::rename(dplyr::all_of(rename)) |>
-  dplyr::summarise(dplyr::across(dplyr::everything(), \(x) sum(x)/dplyr::n())) |>
+  dplyr::summarise(dplyr::across(dplyr::everything(), \(x) sum(x, na.rm = T)/ sum(!is.na(x)))) |>
+  dplyr::relocate(dplyr::all_of(complete_cols)) |>
     #Transpose the data for easier plotting
   t() |>
   as.data.frame()
 
 #Transpose takes the column names and makes them row names so we need to pull them out into a column
-completeness$columns <- rownames(completeness)
+completeness_t$columns <- rownames(completeness_t)
 
-ggplot2::ggplot(completeness, ggplot2::aes(y = columns, x = V1)) +
+completeness_t$columns <- completeness_t$columns |> factor(levels = complete_cols)
+
+ggplot2::ggplot(completeness_t, ggplot2::aes(x = columns, y = V1)) +
   ggplot2::geom_col(fill = "steelblue") +
   ggplot2::labs(title = "Distribution of PCI Procedures by Completeness",
-       y = "Completeness",
-       x = "Percentage") +
+       x = "Completeness",
+       y = "Percentage") +
   ggplot2::geom_text(ggplot2::aes(label = paste0(round(V1*100,2), "%")), stat = "identity", hjust = -0.5, size = 3) +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold")) +
-  ggplot2::theme(plot.margin = ggplot2::unit(c(0.5, 1, 0.5, 0.5), "cm"))
+  ggplot2::coord_flip(clip = "off") +
+  ggplot2::theme(plot.margin = ggplot2::unit(c(0.5, 1.5, 0.5, 0.5), "cm")) +
+  ggplot2::scale_x_discrete(limits=rev)
 ```
 
 ```{r demographics_sex}
@@ -159,7 +171,7 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = inds)) +
 
 ```
 
-```{r demographics_age}
+```{r demographics_age, warning = FALSE, message = FALSE}
 # Plotting the distribution of Procedures by age
 ggplot2::ggplot(pci_data, ggplot2::aes(x = age)) +
   ggplot2::geom_bar(fill = "steelblue") +
@@ -181,8 +193,6 @@ ggplot2::ggplot(dplyr::filter(pci_data, los >=0, los <25), ggplot2::aes(x = los)
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
 ```
-
-
 
 ```{r pci_indication}
 # Plotting the distribution of Procedures by PCI Indication
@@ -622,6 +632,42 @@ comorbs <- c("db", "dbm", "pvd2", "stroke", "dyslipidaemia", "smk", "heart_failu
     ),
     statistic = list(
       dplyr::all_of(comorbs) ~ "N: {n} | D: {N} | %: {p}"
+    ),
+    missing = "no"
+  ) |> gtsummary::as_gt()
+
+```
+
+## Discharge Outcomes Breakdown
+```{r discharge_outcomes}
+discharge <- c("in_hosp_cs", "in_hosp_new_mi", "planned_subs_pci", "tvr_pci",
+  "planned_cabg", "tvr_cabg", "cert_st", "ihbl", "ihblsite", "ihstrt",
+  "dialysis_post", "discharge_status", "cause_death", "crehab")
+
+dis_data <- pci_data |>
+  dplyr::select(dplyr::all_of(discharge)) |>
+  dplyr::mutate(dplyr::across(dplyr::all_of(discharge), ~ dplyr::case_when(is.na(.x) ~ "Missing", !is.na(.x) ~ .x)))
+
+ gtsummary::tbl_summary(pci_data,
+    include = dplyr::all_of(discharge),
+    label = list(
+      in_hosp_cs ~ "Cardiogenic Shock",
+      in_hosp_new_mi ~ "Myocardial Infaction",
+      ihstrt ~ "Stroke",
+      cert_st ~ "Stent Thrombosis",
+      dialysis_post ~ "Post PCI Dialysis",
+      crehab ~ "Cardiac Rehab Referral",
+      ihbl ~ "Bleeding",
+      ihblsite ~ "Bleeding Site",
+      planned_subs_pci ~ "Plannned Subsequent PCI",
+      tvr_pci ~ "PCI Target Vessel Revascularisation",
+      planned_cabg ~ "Planned Subsequent CABG",
+      tvr_cabg ~ "CABG Target Vessel Revascularisation",
+      discharge_status ~ "Discharge Status",
+      cause_death ~ "Cause of Death"
+    ),
+    statistic = list(
+      dplyr::all_of(discharge) ~ "N: {n} | D: {N} | %: {p}"
     ),
     missing = "no"
   ) |> gtsummary::as_gt()
