@@ -1,13 +1,17 @@
 # PCI-Reports
-Generation of reports for PCI outcomes in WA
+
+This repository contains code for how the Cardiac Registry of Western Australia (CRoWA) prodcues reports.  It contains code, definitions and methods.
+No data relating to hospitals for Western Australia (WA) is in this.
+
+It fulfils our commitment to being open about how the data is transformed, and used to produce reports.  
 
 ### Getting Started
 
-The report generation process assumes that the input data is a single CSV file following the same structure as the submission to the NCR. See the `ncr_extract_template.csv` file for an example of the expected structure.
+The report generation process assumes that the input data is a single Comma Separated Values (CSV) file following the same structure as the submission to the National Cardiac Registry (NCR). See the `ncr_extract_template.csv` file for an example of the expected structure.
 
-### Reproducibility
+### Reproducibility in R
 
-This report uses the `renv` package to ensure a consistent development environment.
+R is the coding language used to produce the reports.  Specifically, this report uses the `renv` package to ensure a consistent development environment.  Using this means the code works consistently on different computers. 
 
 To load the development environment navigate to the project directory in a new R session and run:
 
