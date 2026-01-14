@@ -227,9 +227,14 @@ library(ggimage)        # Custom image markers
 
 # Running the Scripts
 
+::: callout-tip
+## Quick Start - No Data Required!
+The poster generator **works out of the box** with sample data. Just run `source("poster_generator.R")` and it will automatically use the sample dataset in `examples/sample_cardiac_indicators.xlsx` if no real data is present.
+:::
+
 ## Step 1: Generate Sample Data (Optional)
 
-If you don't have real data, generate demo data:
+If you want to regenerate fresh demo data:
 
 ```{r}
 source("setup_data.R")
@@ -237,9 +242,11 @@ source("setup_data.R")
 
 This creates `_files/cardiac_indicators_summary.xlsx` with 3 WA hospitals and 12 months of data.
 
+**Note:** The script automatically falls back to `examples/sample_cardiac_indicators.xlsx` if no data exists in `_files/`, so this step is optional for testing.
+
 ## Step 2: Generate Location Maps
 
-By using the code, most maps are already avialable. You may only need to run this when new hospitals appear in the dataset.
+Maps are already pre-generated for most hospitals. You may only need to run this when new hospitals appear in the dataset.
 
 ```{r}
 source("map_generator.R")
@@ -256,14 +263,14 @@ source("poster_generator.R")
 The script will:
 
 1.  **Load Template**: Read `poster_template.pptx` and identify available placeholders
-2.  **Load Data**: Read indicator summary from `_files/cardiac_indicators_summary.xlsx`
+2.  **Load Data**: Read indicator summary from `_files/` (or `examples/` if no real data)
 3.  **Filter Period**: Use the last 3 months of data (configurable)
 4.  **Loop Hospitals**: For each hospital:
     -   Create a fresh slide from template
     -   Insert hospital name and date range
     -   Insert logo or map image
     -   Insert each indicator value and narrative
-5.  **Save Output**: Export to `outputs/posters/<hospital>_pci_poster.pptx`
+5.  **Save Output**: Export to `_files/posters/<hospital>_pci_poster.pptx`
 
 ------------------------------------------------------------------------
 
@@ -298,8 +305,10 @@ pci_poster/
 ├── poster_generator.R        # Main poster generation script
 ├── map_generator.R           # Hospital location map creation
 ├── setup_data.R              # Demo data generator
-├── _files/
+├── _files/                   # Working data (gitignored)
 │   └── cardiac_indicators_summary.xlsx
+├── examples/                 # Sample data for testing (committed to repo)
+│   └── sample_cardiac_indicators.xlsx
 ├── hospital_logos/           # Hospital logo images (.png)
 ├── hospital_specific_maps/   # Generated location maps
 ├── reference_files/
@@ -307,8 +316,7 @@ pci_poster/
 │   ├── indicators.csv        # NCR indicator definitions
 │   ├── cardiac_pin.png       # Map marker icon
 │   └── ncr_geo_cache.csv     # Geocoding cache
-└── outputs/
-    └── posters/              # Generated poster files
+└── _files/posters/           # Generated poster files
 ```
 
 ------------------------------------------------------------------------

@@ -23,12 +23,21 @@ library(lubridate)  # For date handling
 # -----------------------------------------------------------------------------
 # 2. Configuration Parameters
 # -----------------------------------------------------------------------------
-# Participating Hospitals (Dummy Set)
-hospitals <- c(
+# Read hospitals from reference file (all participating sites)
+hospitals_file <- "reference_files/hospitals.csv"
+if (file.exists(hospitals_file)) {
+  hospitals_df <- read.csv(hospitals_file, stringsAsFactors = FALSE)
+  hospitals <- hospitals_df$hospital_name
+  message(paste("Loaded", length(hospitals), "hospitals from hospitals.csv"))
+} else {
+  # Fallback to WA hospitals if file not found
+  hospitals <- c(
     "Royal Perth Hospital", 
     "Fiona Stanley Hospital", 
     "Sir Charles Gairdner Hospital"
-)
+  )
+  message("hospitals.csv not found - using default WA hospitals")
+}
 
 # Date Range: Full Calendar Year 2024
 months <- seq(as.Date("2024-01-01"), as.Date("2024-12-01"), by = "month")

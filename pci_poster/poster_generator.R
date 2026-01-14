@@ -62,11 +62,17 @@ if (!dir.exists(output_poster_dir)) {
 # 2. Data Loading & Indicator Configuration
 # -----------------------------------------------------------------------------
 data_file       <- file.path(base_dir, "_files", "cardiac_indicators_summary.xlsx")
+sample_data_file <- file.path(base_dir, "examples", "sample_cardiac_indicators.xlsx")
 indicators_file <- file.path(ref_dir, "indicators.csv")
 
-# Check for data file
+# Check for data file - fallback to sample data if real data not found
 if (!file.exists(data_file)) {
-  stop("Data file not found: cardiac_indicators_summary.xlsx")
+  if (file.exists(sample_data_file)) {
+    message("No real data found. Using sample data from examples/ folder.")
+    data_file <- sample_data_file
+  } else {
+    stop("Data file not found. Run setup_data.R to generate sample data, or provide cardiac_indicators_summary.xlsx in _files/")
+  }
 }
 
 # Read the main data
@@ -217,8 +223,8 @@ safe_ph_with <- function(doc, value, label) {
 
 for (hosp in hospitals) {
   
-  # --- A. Initialize Slide ---
-  current_poster <- poster_template
+  # --- A. Initialize Slide (reload template fresh each time to avoid accumulation) ---
+  current_poster <- read_pptx(template_path)
   while (length(current_poster) > 0L) {
     current_poster <- remove_slide(current_poster, index = 1)
   }
