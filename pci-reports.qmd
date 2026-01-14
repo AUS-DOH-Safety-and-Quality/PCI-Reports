@@ -6,6 +6,9 @@ format:
     number-sections: true
     highlight-style: github
     fig-format: svg
+  html:
+    toc: true
+    toc-location: left
 knitr:
   opts_chunk:
     dev: "svglite"
@@ -92,6 +95,125 @@ pci_data <- pci_data |>
       acs == "1" & symptom_to_door > 0 ~ "0",
       acs == "1" & symptom_to_door <= 0 ~ "1",
       acs == "0" ~ NA))
+
+# Phase 1: Hospital Classifications and Additional Variables
+# Hospital volume classification
+hospital_volumes <- pci_data |>
+  dplyr::group_by(hid) |>
+  dplyr::summarise(
+    procedures = dplyr::n(),
+    date_range_days = as.numeric(max(dop, na.rm = TRUE) - min(dop, na.rm = TRUE)),
+    annual_volume = dplyr::if_else(date_range_days > 0,
+                                    procedures * 365 / date_range_days,
+                                    procedures),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(hospital_volume_cat = dplyr::case_when(
+    annual_volume < 250 ~ "Low (<250)",
+    annual_volume <= 500 ~ "Medium (250-500)",
+    annual_volume > 500 ~ "High (>500)",
+    TRUE ~ "Unknown"
+  ))
+
+pci_data <- pci_data |>
+  dplyr::left_join(hospital_volumes |> dplyr::select(hid, hospital_volume_cat, annual_volume),
+                   by = "hid")
+
+# Metro/Non-metro classification from ARIA
+pci_data <- pci_data |>
+  dplyr::mutate(
+    metro_status = dplyr::case_when(
+      aria %in% c("1", "2") ~ "Metro",
+      aria %in% c("3", "4", "5") ~ "Non-metro",
+      TRUE ~ "Unknown"
+    ),
+    metro_status = factor(metro_status, levels = c("Metro", "Non-metro", "Unknown"))
+  )
+
+# Arterial access route (pel = Percutaneous Entry Location)
+pci_data <- pci_data |>
+  dplyr::mutate(
+    access_route = dplyr::case_when(
+      pel == 1 ~ "Brachial",
+      pel == 2 ~ "Radial",
+      pel == 3 ~ "Femoral",
+      TRUE ~ "Unknown"
+    ),
+    access_route = factor(access_route, levels = c("Radial", "Femoral", "Brachial", "Unknown")),
+    # Radial access flag for analysis
+    radial_access = dplyr::if_else(pel == 2, 1, 0, missing = 0)
+  )
+
+# Pre-hospital notification
+pci_data <- pci_data |>
+  dplyr::mutate(
+    prehosp_notif = dplyr::if_else(phn == 1, 1, 0, missing = 0)
+  )
+
+# Drug-eluting stent usage (lr*_sit fields)
+pci_data <- pci_data |>
+  dplyr::mutate(
+    des_used = dplyr::if_else(
+      lr1_sit %in% c(2, 3) | lr2_sit %in% c(2, 3) |
+      lr3_sit %in% c(2, 3) | lr4_sit %in% c(2, 3) |
+      lr5_sit %in% c(2, 3),
+      1, 0, missing = 0
+    ),
+    # BMS only (excludes DES and mixed)
+    bms_only = dplyr::if_else(
+      (lr1_sit == 1 | is.na(lr1_sit)) &
+      (lr2_sit == 1 | is.na(lr2_sit)) &
+      (lr3_sit == 1 | is.na(lr3_sit)) &
+      (lr4_sit == 1 | is.na(lr4_sit)) &
+      (lr5_sit == 1 | is.na(lr5_sit)) &
+      (lr1_sit == 1 | lr2_sit == 1 | lr3_sit == 1 |
+       lr4_sit == 1 | lr5_sit == 1),
+      1, 0, missing = 0
+    ),
+    # In-stent restenosis
+    any_isr = dplyr::if_else(
+      lr1_isr == 1 | lr2_isr == 1 | lr3_isr == 1 |
+      lr4_isr == 1 | lr5_isr == 1,
+      1, 0, missing = 0
+    ),
+    # Number of lesions treated
+    num_lesions = (!is.na(lr1_lesion)) + (!is.na(lr2_lesion)) +
+                  (!is.na(lr3_lesion)) + (!is.na(lr4_lesion)) +
+                  (!is.na(lr5_lesion)),
+    multi_vessel = dplyr::if_else(num_lesions >= 2, 1, 0)
+  )
+
+# Additional timing variables
+pci_data <- pci_data |>
+  dplyr::mutate(
+    # First medical contact to device time
+    fmc_to_device = difftime(tbd, tfmc, units = "mins") +
+                    difftime(dbd, dfmc, units = "mins"),
+    # Symptom onset to reperfusion time
+    symptom_to_reperfusion = difftime(tbd, tso, units = "mins") +
+                             difftime(dbd, dso, units = "mins"),
+    # Out-of-hours procedure (weekends or outside 8am-6pm)
+    out_of_hours = dplyr::if_else(
+      lubridate::wday(dop) %in% c(1, 7) |  # Saturday=7, Sunday=1
+      top < hms::as_hms("08:00:00") |
+      top > hms::as_hms("18:00:00"),
+      1, 0, missing = 0
+    )
+  )
+
+# Primary PCI identification
+# Using clinical definition: STEMI + PCI within 12 hours + not inter-hospital transfer
+# (Assumes no lysis at referring hospital for non-transferred patients)
+pci_data <- pci_data |>
+  dplyr::mutate(
+    primary_pci = dplyr::if_else(
+      acst == 3 &                   # STEMI
+      pci == 1 &                    # PCI performed
+      symptom_to_door < 720 &       # Within 12 hours
+      iht == 0,                     # Not inter-hospital transfer
+      1, 0, missing = 0
+    )
+  )
 ```
 
 ```{r Indicator Definitions, include=FALSE}
@@ -176,12 +298,28 @@ pci_data <- pci_data |>
                                            (doap == "0" | doap == "1")), 1, 0, missing = 0),
                 NCR11_num = dplyr::if_else(NCR9_den == 1 &
                                            (dasp == "1" & doap == "1"), 1, 0, missing = 0))
+
+#Composite Outcomes
+pci_data <- pci_data |>
+  dplyr::mutate(
+    # MACE: Major Adverse Cardiac Events (Death OR in-hospital MI OR unplanned revascularisation)
+    MACE = dplyr::if_else(
+      NCR5_num == 1 | ihmi == "1" | NCR7_num == 1,
+      1, 0, missing = 0
+    ),
+    # MACCE: Major Adverse Cardiac and Cerebrovascular Events (MACE OR stroke)
+    MACCE = dplyr::if_else(
+      MACE == 1 | ihstr == 1,
+      1, 0, missing = 0
+    )
+  )
 ```
 
 \newpage
 
 This report summarises the National Cardiac Registry Indicators for Percutaneous Coronary Intervention.
 
+::: {.callout-tip collapse="true"}
 # Patterns in SPC Charts and Funnel Plots
 
 The following patterns are highlighted in this report.
@@ -225,6 +363,8 @@ An identified point that exceeds 3 sigma limits from the mean.
 ```{r showing Funnel Outlier sample, echo = FALSE}
 funnel_example_plotly(fpl_example_data)
 ```
+
+:::
 
 # Patient Demographics
 
@@ -272,7 +412,7 @@ library(ggplot2)
 # The ggstats package provides several helpful utilities for plotting summarising data
 library(ggstats)
 
-pci_data |>
+age_plt <- pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
   dplyr::filter(!is.na(age_cat)) |>
   ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
@@ -292,12 +432,13 @@ pci_data |>
       legend.position = "bottom"
     )
 
+print_ggplot(age_plt)
 ```
 
 ## All Aboriginal patients by Age and Sex
 
 ```{r Split Aboriginal Demographics, fig.width=8, fig.height=5}
-pci_data |>
+atsi_plt <- pci_data |>
   ## 1 NA age record appears in the cohort, remove these values.
   dplyr::filter(!is.na(age_cat) & inds %in% c(1, 2, 3)) |>
   ggplot(aes(x = age_cat, fill = sex_cat, by = 1, y = after_stat(prop))) +
@@ -316,13 +457,147 @@ pci_data |>
     theme(
       legend.position = "bottom"
     )
+
+print_ggplot(atsi_plt)
+```
+
+## Patient Characteristics by Hospital Volume
+
+```{r demographics by hospital volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(hospital_volume_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(age, sex_cat, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
+    by = "hospital_volume_cat",
+    label = list(
+      age ~ "Age",
+      sex_cat ~ "Sex",
+      inds_cat ~ "Indigenous Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease",
+      bmi ~ "BMI",
+      severe_obesity ~ "Severe Obesity (BMI ≥ 35kg/m²)",
+      ppci ~ "Previous PCI",
+      pcabg ~ "Previous CABG",
+      shock ~ "Cardiogenic Shock",
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay"
+    ),
+    statistic = list(
+      c(age, bmi) ~ "{mean} ({sd})",
+      c(sex_cat, inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      c(age, bmi) ~ 1
+    ),
+    missing = "no"
+  )
+```
+
+## Patient Characteristics by Metro Status
+
+```{r demographics by metro status, message=FALSE, warning=FALSE}
+# Note: ARIA field is currently empty in the data, so all patients are classified as "Unknown"
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(age, sex_cat, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
+    by = "metro_status",
+    label = list(
+      age ~ "Age",
+      sex_cat ~ "Sex",
+      inds_cat ~ "Indigenous Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease",
+      bmi ~ "BMI",
+      severe_obesity ~ "Severe Obesity (BMI ≥ 35kg/m²)",
+      ppci ~ "Previous PCI",
+      pcabg ~ "Previous CABG",
+      shock ~ "Cardiogenic Shock",
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay"
+    ),
+    statistic = list(
+      c(age, bmi) ~ "{mean} ({sd})",
+      c(sex_cat, inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      c(age, bmi) ~ 1
+    ),
+    missing = "no"
+  )
+```
+
+## Patient Characteristics by Sex
+
+```{r demographics by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(sex_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(age, inds_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca, acs_cat),
+    by = "sex_cat",
+    label = list(
+      age ~ "Age",
+      inds_cat ~ "Indigenous Status",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease",
+      bmi ~ "BMI",
+      severe_obesity ~ "Severe Obesity (BMI ≥ 35kg/m²)",
+      ppci ~ "Previous PCI",
+      pcabg ~ "Previous CABG",
+      shock ~ "Cardiogenic Shock",
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay",
+      acs_cat ~ "Clinical Presentation"
+    ),
+    statistic = list(
+      c(age, bmi) ~ "{mean} ({sd})",
+      c(inds_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat, acs_cat) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      c(age, bmi) ~ 1
+    ),
+    missing = "no"
+  )
+```
+
+## Aboriginal and Torres Strait Islander Patients by Clinical Presentation
+
+```{r atsi by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(inds %in% c(1, 2, 3) & !is.na(age) & !is.na(acs_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(age, sex_cat, bmi, severe_obesity, los_cat, db, pvd, ppci, pcabg, shock, oca),
+    by = "acs_cat",
+    label = list(
+      age ~ "Age",
+      sex_cat ~ "Sex",
+      db ~ "Diabetic",
+      pvd ~ "Peripheral Vascular Disease",
+      bmi ~ "BMI",
+      severe_obesity ~ "Severe Obesity (BMI ≥ 35kg/m²)",
+      ppci ~ "Previous PCI",
+      pcabg ~ "Previous CABG",
+      shock ~ "Cardiogenic Shock",
+      oca ~ "Out of Hospital Cardiac Arrest",
+      los_cat ~ "Length of Stay"
+    ),
+    statistic = list(
+      c(age, bmi) ~ "{mean} ({sd})",
+      c(sex_cat, db, pvd, severe_obesity, ppci, pcabg, shock, oca, los_cat) ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      c(age, bmi) ~ 1
+    ),
+    missing = "no"
+  )
 ```
 
 # Clinical Characteristics
 
 ## Number of PCI Procedures by Hospital
 
-```{r cumulative sum cases}
+```{r cumulative sum cases, warning=FALSE, message=FALSE}
 # Group data to get cumulative counts for each hid over time
 group_data <- pci_data |>
   dplyr::group_by(hid, period_end) |>
@@ -332,7 +607,7 @@ group_data <- pci_data |>
   dplyr::mutate(cumulative_count = cumsum(count))
 
 # Cumulative sum of PCI cases over time
-ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
+suppressWarnings(sum_plt <- ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
   ggplot2::stat_ecdf(ggplot2::aes(y = ggplot2::after_stat(y) * nrow(pci_data)), geom = "line", color = "black") +
   ggplot2::geom_col(data = group_data, mapping = ggplot2::aes(x = period_end, y = cumulative_count, fill = hid), position = "dodge", linewidth = 0) +
   ggplot2::labs(title = "Cumulative Total of PCI Cases Over Time",
@@ -342,11 +617,12 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = dop, colour = "Cumulative Total")) +
        colour = "") +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold")) +
-  ggplot2::scale_y_continuous(breaks = scales::breaks_pretty(10))
+  ggplot2::scale_y_continuous(breaks = scales::breaks_pretty(10)))
+suppressWarnings(print_ggplot(sum_plt))
 ```
 
 ```{r demographics_intro}
-ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(hid, hid, FUN = length, decreasing = T))) +
+demo_plt <- ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(hid, hid, FUN = length, decreasing = T))) +
   ggplot2::geom_bar(fill = "steelblue") +
   ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
   ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(count)), stat = "count", vjust = -0.5, size = 3) +
@@ -355,7 +631,10 @@ ggplot2::ggplot(pci_data, ggplot2::aes(x = reorder(hid, hid, FUN = length, decre
        y = "Count") +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 10, face = "bold"))
+print_ggplot(demo_plt)
 ```
+
+
 
 ## Proportion of Patients with Previous PCI
 
@@ -451,6 +730,1305 @@ spc_data <- controlcharts::spc(
 )
 spc_data
 ```
+
+# Procedural Characteristics
+
+This section presents procedural characteristics stratified by key patient and hospital factors, following the NCR Annual Report structure.
+
+## Procedural Characteristics by Clinical Presentation
+
+```{r procedural by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(access_route, radial_access, des_used, any_isr, multi_vessel, num_lesions),
+    by = "acs_cat",
+    label = list(
+      access_route ~ "Arterial Access Route",
+      radial_access ~ "Radial Access",
+      des_used ~ "Drug-Eluting Stent Used",
+      any_isr ~ "In-Stent Restenosis",
+      multi_vessel ~ "Multi-Vessel Disease",
+      num_lesions ~ "Number of Lesions"
+    ),
+    type = list(
+      num_lesions ~ "continuous"
+    ),
+    statistic = list(
+      c(access_route, radial_access, des_used, any_isr, multi_vessel) ~ "{n} ({p}%)",
+      c(num_lesions) ~ "{mean} ({sd})"
+    ),
+    digits = list(
+      c(num_lesions) ~ 1
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Procedural Characteristics by Hospital Volume
+
+```{r procedural by volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(hospital_volume_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(access_route, radial_access, des_used, any_isr, multi_vessel, num_lesions),
+    by = "hospital_volume_cat",
+    label = list(
+      access_route ~ "Arterial Access Route",
+      radial_access ~ "Radial Access",
+      des_used ~ "Drug-Eluting Stent Used",
+      any_isr ~ "In-Stent Restenosis",
+      multi_vessel ~ "Multi-Vessel Disease",
+      num_lesions ~ "Number of Lesions"
+    ),
+    type = list(
+      num_lesions ~ "continuous"
+    ),
+    statistic = list(
+      c(access_route, radial_access, des_used, any_isr, multi_vessel) ~ "{n} ({p}%)",
+      c(num_lesions) ~ "{mean} ({sd})"
+    ),
+    digits = list(
+      c(num_lesions) ~ 1
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Procedural Characteristics by Metro Status
+
+```{r procedural by metro, message=FALSE, warning=FALSE}
+# Note: ARIA field is currently empty in data, all cases will show as "Unknown"
+pci_data |>
+  dplyr::filter(!is.na(metro_status)) |>
+  gtsummary::tbl_summary(
+    include = c(access_route, radial_access, des_used, any_isr, multi_vessel, num_lesions),
+    by = "metro_status",
+    label = list(
+      access_route ~ "Arterial Access Route",
+      radial_access ~ "Radial Access",
+      des_used ~ "Drug-Eluting Stent Used",
+      any_isr ~ "In-Stent Restenosis",
+      multi_vessel ~ "Multi-Vessel Disease",
+      num_lesions ~ "Number of Lesions"
+    ),
+    type = list(
+      num_lesions ~ "continuous"
+    ),
+    statistic = list(
+      c(access_route, radial_access, des_used, any_isr, multi_vessel) ~ "{n} ({p}%)",
+      c(num_lesions) ~ "{mean} ({sd})"
+    ),
+    digits = list(
+      c(num_lesions) ~ 1
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Procedural Characteristics by Sex
+
+```{r procedural by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(sex_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(access_route, radial_access, des_used, any_isr, multi_vessel, num_lesions),
+    by = "sex_cat",
+    label = list(
+      access_route ~ "Arterial Access Route",
+      radial_access ~ "Radial Access",
+      des_used ~ "Drug-Eluting Stent Used",
+      any_isr ~ "In-Stent Restenosis",
+      multi_vessel ~ "Multi-Vessel Disease",
+      num_lesions ~ "Number of Lesions"
+    ),
+    type = list(
+      num_lesions ~ "continuous"
+    ),
+    statistic = list(
+      c(access_route, radial_access, des_used, any_isr, multi_vessel) ~ "{n} ({p}%)",
+      c(num_lesions) ~ "{mean} ({sd})"
+    ),
+    digits = list(
+      c(num_lesions) ~ 1
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Procedural Characteristics for Aboriginal and Torres Strait Islander Patients
+
+```{r procedural atsi by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(inds %in% c(1, 2, 3), !is.na(acs_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(access_route, radial_access, des_used, any_isr, multi_vessel, num_lesions),
+    by = "acs_cat",
+    label = list(
+      access_route ~ "Arterial Access Route",
+      radial_access ~ "Radial Access",
+      des_used ~ "Drug-Eluting Stent Used",
+      any_isr ~ "In-Stent Restenosis",
+      multi_vessel ~ "Multi-Vessel Disease",
+      num_lesions ~ "Number of Lesions"
+    ),
+    type = list(
+      num_lesions ~ "continuous"
+    ),
+    statistic = list(
+      c(access_route, radial_access, des_used, any_isr, multi_vessel) ~ "{n} ({p}%)",
+      c(num_lesions) ~ "{mean} ({sd})"
+    ),
+    digits = list(
+      c(num_lesions) ~ 1
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+# Temporal Trends
+
+This section presents trends over time for key procedural characteristics and quality indicators.
+
+## Registry Growth Over Time
+
+```{r registry growth, message=FALSE, warning=FALSE, fig.height=5, fig.width=10}
+# Monthly procedure counts
+monthly_counts <- pci_data |>
+  dplyr::group_by(period_end) |>
+  dplyr::summarise(
+    procedures = dplyr::n(),
+    .groups = "drop"
+  ) |>
+  dplyr::arrange(period_end) |>
+  dplyr::mutate(cumulative = cumsum(procedures))
+
+# Create dual-axis plot for monthly and cumulative counts
+suppressWarnings(
+  growth_plt <- ggplot2::ggplot(monthly_counts, ggplot2::aes(x = period_end)) +
+    ggplot2::geom_col(ggplot2::aes(y = procedures, fill = "Monthly Procedures"), alpha = 0.7) +
+    ggplot2::geom_line(ggplot2::aes(y = cumulative / max(cumulative) * max(procedures), colour = "Cumulative Total"), linewidth = 1.2) +
+    ggplot2::scale_y_continuous(
+      name = "Monthly Procedures",
+      sec.axis = ggplot2::sec_axis(~ . * max(monthly_counts$cumulative) / max(monthly_counts$procedures), name = "Cumulative Total")
+    ) +
+    ggplot2::scale_fill_manual(values = c("Monthly Procedures" = "steelblue")) +
+    ggplot2::scale_colour_manual(values = c("Cumulative Total" = "darkred")) +
+    ggplot2::labs(
+      title = "PCI Registry Growth Over Time",
+      x = "Month",
+      fill = "",
+      colour = ""
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, size = 12, face = "bold"),
+      legend.position = "bottom"
+    )
+)
+print_ggplot(growth_plt)
+```
+
+## Radial Access Rate
+
+### Funnel Plot - Hospital Comparison
+
+```{r radial access funnel, message=FALSE, warning=FALSE}
+# Funnel plot for radial access rate by hospital
+radial_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(!is.na(pel)),
+  keys = hid,
+  numerators = radial_access,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(pel)))),
+  y_axis_settings = list(
+    ylimit_label = "% Radial Access",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of PCI Procedures",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+radial_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r radial access spc, message=FALSE, warning=FALSE}
+# SPC chart for radial access rate
+radial_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(!is.na(pel)),
+  keys = period_end,
+  numerators = radial_access,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(pel)))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Radial Access",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+radial_spc
+```
+
+## Radial Access Rate by Sex - SPC Charts
+
+### Female Patients
+
+```{r radial female spc, message=FALSE, warning=FALSE}
+# SPC chart for radial access rate - Female
+radial_female_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(!is.na(pel) & sex == 2),
+  keys = period_end,
+  numerators = radial_access,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(pel) & sex == 2))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Radial Access (Female)",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+radial_female_spc
+```
+
+### Male Patients
+
+```{r radial male spc, message=FALSE, warning=FALSE}
+# SPC chart for radial access rate - Male
+radial_male_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(!is.na(pel) & sex == 1),
+  keys = period_end,
+  numerators = radial_access,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(pel) & sex == 1))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Radial Access (Male)",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+radial_male_spc
+```
+
+## Drug-Eluting Stent Usage
+
+### Funnel Plot - Hospital Comparison
+
+```{r des funnel, message=FALSE, warning=FALSE}
+# Funnel plot for DES usage rate by hospital
+des_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(!is.na(des_used)),
+  keys = hid,
+  numerators = des_used,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(des_used)))),
+  y_axis_settings = list(
+    ylimit_label = "% Drug-Eluting Stent Usage",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of PCI Procedures",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+des_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r des spc, message=FALSE, warning=FALSE}
+# SPC chart for DES usage rate
+des_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(!is.na(des_used)),
+  keys = period_end,
+  numerators = des_used,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(!is.na(des_used)))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Drug-Eluting Stent Usage",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+des_spc
+```
+
+## Door-to-Device Time ≤60 Minutes
+
+```{r d2d indicators setup, message=FALSE, warning=FALSE}
+# Create indicators for achieving targets (moved outside chunks for reuse)
+pci_data <- pci_data |>
+  dplyr::mutate(
+    d2d_under_60 = dplyr::if_else(NCR2_den == 1 & !is.na(dbdt) & dbdt <= 60, 1, 0, missing = 0),
+    d2d_under_90 = dplyr::if_else(NCR2_den == 1 & !is.na(dbdt) & dbdt <= 90, 1, 0, missing = 0)
+  )
+```
+
+### Funnel Plot - Hospital Comparison
+
+```{r d2d 60 funnel, message=FALSE, warning=FALSE}
+# Funnel plot for door-to-device ≤60 min by hospital
+d2d_60_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)),
+  keys = hid,
+  numerators = d2d_under_60,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)))),
+  y_axis_settings = list(
+    ylimit_label = "% Achieving Door-to-Device ≤60 min",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of Primary PCI Procedures",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+d2d_60_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r d2d 60 spc, message=FALSE, warning=FALSE}
+# SPC chart for door-to-device ≤60 min achievement
+d2d_60_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)),
+  keys = period_end,
+  numerators = d2d_under_60,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Achieving Door-to-Device ≤60 min",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+d2d_60_spc
+```
+
+## Door-to-Device Time ≤90 Minutes
+
+### Funnel Plot - Hospital Comparison
+
+```{r d2d 90 funnel, message=FALSE, warning=FALSE}
+# Funnel plot for door-to-device ≤90 min by hospital
+d2d_90_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)),
+  keys = hid,
+  numerators = d2d_under_90,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)))),
+  y_axis_settings = list(
+    ylimit_label = "% Achieving Door-to-Device ≤90 min",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of Primary PCI Procedures",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+d2d_90_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r d2d 90 spc, message=FALSE, warning=FALSE}
+# SPC chart for door-to-device ≤90 min achievement
+d2d_90_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)),
+  keys = period_end,
+  numerators = d2d_under_90,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR2_den == 1 & !is.na(dbdt)))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Achieving Door-to-Device ≤90 min",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+d2d_90_spc
+```
+
+## DAPT at Discharge
+
+### Funnel Plot - Hospital Comparison
+
+```{r dapt funnel, message=FALSE, warning=FALSE}
+# Funnel plot for DAPT at discharge by hospital
+dapt_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(NCR11_den == 1),
+  keys = hid,
+  numerators = NCR11_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR11_den == 1))),
+  y_axis_settings = list(
+    ylimit_label = "% DAPT at Discharge",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of Eligible Patients",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+dapt_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r dapt spc, message=FALSE, warning=FALSE}
+# SPC chart for DAPT at discharge
+dapt_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(NCR11_den == 1),
+  keys = period_end,
+  numerators = NCR11_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR11_den == 1))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% DAPT at Discharge",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+dapt_spc
+```
+
+## Lipid-Lowering Therapy at Discharge
+
+### Funnel Plot - Hospital Comparison
+
+```{r llt funnel, message=FALSE, warning=FALSE}
+# Funnel plot for lipid-lowering therapy at discharge by hospital
+llt_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(NCR9_den == 1),
+  keys = hid,
+  numerators = NCR9_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR9_den == 1))),
+  y_axis_settings = list(
+    ylimit_label = "% Lipid-Lowering Therapy at Discharge",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of Eligible Patients",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+llt_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r llt spc, message=FALSE, warning=FALSE}
+# SPC chart for lipid-lowering therapy at discharge
+llt_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(NCR9_den == 1),
+  keys = period_end,
+  numerators = NCR9_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR9_den == 1))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Lipid-Lowering Therapy at Discharge",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+llt_spc
+```
+
+## Cardiac Rehabilitation Referral
+
+### Funnel Plot - Hospital Comparison
+
+```{r rehab funnel, message=FALSE, warning=FALSE}
+# Funnel plot for cardiac rehabilitation referral by hospital
+rehab_fpl <- controlcharts::funnel(
+  data = pci_data |> dplyr::filter(NCR10_den == 1),
+  keys = hid,
+  numerators = NCR10_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR10_den == 1))),
+  y_axis_settings = list(
+    ylimit_label = "% Cardiac Rehabilitation Referral",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0,
+    ylimit_u = 100
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of Eligible Patients",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    three_sigma = TRUE
+  )
+)
+rehab_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r rehab spc, message=FALSE, warning=FALSE}
+# SPC chart for cardiac rehabilitation referral
+rehab_spc <- controlcharts::spc(
+  data = pci_data |> dplyr::filter(NCR10_den == 1),
+  keys = period_end,
+  numerators = NCR10_num,
+  denominators = rep(1, nrow(pci_data |> dplyr::filter(NCR10_den == 1))),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% Cardiac Rehabilitation Referral",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 0
+  ),
+  outlier_settings = list(
+    improvement_direction = "increase",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+rehab_spc
+```
+
+## In-Hospital Mortality
+
+### Funnel Plot - Hospital Comparison
+
+```{r mortality funnel, message=FALSE, warning=FALSE}
+# Funnel plot for in-hospital mortality by hospital
+mortality_fpl <- controlcharts::funnel(
+  data = pci_data,
+  keys = hid,
+  numerators = NCR5_num,
+  denominators = rep(1, nrow(pci_data)),
+  y_axis_settings = list(
+    ylimit_label = "% In-Hospital Mortality",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 1,
+    ylimit_u = 10
+  ),
+  x_axis_settings = list(
+    xlimit_label = "Number of PCI Procedures",
+    xlimit_label_size = 14
+  ),
+  outlier_settings = list(
+    improvement_direction = "decrease",
+    three_sigma = TRUE
+  )
+)
+mortality_fpl$static_plot
+```
+
+### SPC Chart - Trend Over Time
+
+```{r mortality spc, message=FALSE, warning=FALSE}
+# SPC chart for in-hospital mortality
+mortality_spc <- controlcharts::spc(
+  data = pci_data,
+  keys = period_end,
+  numerators = NCR5_num,
+  denominators = rep(1, nrow(pci_data)),
+  spc_settings = list(chart_type = "p"),
+  y_axis_settings = list(
+    ylimit_label = "% In-Hospital Mortality",
+    ylimit_label_size = 14,
+    ylimit_sig_figs = 1
+  ),
+  outlier_settings = list(
+    improvement_direction = "decrease",
+    astronomical = TRUE,
+    shift = TRUE,
+    trend = TRUE,
+    two_in_three = TRUE
+  ),
+  nhs_icon_settings = list(show_variation_icons = TRUE),
+  date_settings = list(
+    date_format_day = "(blank)",
+    date_format_month = "Mon",
+    date_format_year = "YY"
+  )
+)
+mortality_spc
+```
+
+## Hospital Performance Comparison
+
+```{r hospital performance, message=FALSE, warning=FALSE, fig.height=6, fig.width=10}
+# Hospital-level performance metrics
+hospital_performance <- pci_data |>
+  dplyr::group_by(hid) |>
+  dplyr::summarise(
+    procedures = dplyr::n(),
+    radial_pct = sum(radial_access, na.rm = TRUE) / dplyr::n() * 100,
+    des_pct = sum(des_used, na.rm = TRUE) / sum(!is.na(des_used)) * 100,
+    dapt_pct = sum(NCR11_num, na.rm = TRUE) / sum(stringr::str_detect(dis, "[12345]"), na.rm = TRUE) * 100,
+    llt_pct = sum(NCR9_num, na.rm = TRUE) / sum(stringr::str_detect(dis, "[12345]"), na.rm = TRUE) * 100,
+    mortality_pct = sum(NCR5_num, na.rm = TRUE) / dplyr::n() * 100,
+    .groups = "drop"
+  )
+
+# Reshape for plotting
+hospital_perf_long <- hospital_performance |>
+  tidyr::pivot_longer(
+    cols = c(radial_pct, des_pct, dapt_pct, llt_pct),
+    names_to = "metric",
+    values_to = "percentage"
+  ) |>
+  dplyr::mutate(
+    metric = dplyr::case_when(
+      metric == "radial_pct" ~ "Radial Access",
+      metric == "des_pct" ~ "DES Usage",
+      metric == "dapt_pct" ~ "DAPT at Discharge",
+      metric == "llt_pct" ~ "Lipid-Lowering Therapy"
+    ),
+    metric = factor(metric, levels = c("Radial Access", "DES Usage", "DAPT at Discharge", "Lipid-Lowering Therapy"))
+  )
+
+suppressWarnings(
+  hosp_perf_plt <- ggplot2::ggplot(hospital_perf_long, ggplot2::aes(x = hid, y = percentage, fill = metric)) +
+    ggplot2::geom_col(position = "dodge") +
+    ggplot2::geom_hline(yintercept = 80, linetype = "dashed", colour = "black", linewidth = 0.5) +
+    ggplot2::labs(
+      title = "Hospital Performance on Key Quality Metrics",
+      x = "Hospital",
+      y = "Achievement Rate (%)",
+      fill = "Metric"
+    ) +
+    ggplot2::scale_y_continuous(limits = c(0, 100)) +
+    ggplot2::scale_fill_brewer(palette = "Set2") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, size = 12, face = "bold"),
+      legend.position = "bottom",
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+    )
+)
+print_ggplot(hosp_perf_plt)
+```
+
+## Procedure Volume by Hospital Over Time
+
+```{r volume by hospital trend, message=FALSE, warning=FALSE, fig.height=5, fig.width=10}
+# Monthly volume by hospital
+volume_trend <- pci_data |>
+  dplyr::group_by(period_end, hid) |>
+  dplyr::summarise(
+    procedures = dplyr::n(),
+    .groups = "drop"
+  )
+
+suppressWarnings(
+  volume_plt <- ggplot2::ggplot(volume_trend, ggplot2::aes(x = period_end, y = procedures, fill = hid)) +
+    ggplot2::geom_area(position = "stack", alpha = 0.8) +
+    ggplot2::labs(
+      title = "Monthly PCI Volume by Hospital",
+      x = "Month",
+      y = "Number of Procedures",
+      fill = "Hospital"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, size = 12, face = "bold"),
+      legend.position = "bottom"
+    )
+)
+print_ggplot(volume_plt)
+```
+
+# STEMI Analysis
+
+This section provides detailed analysis of STEMI cases, focusing on primary PCI procedures and reperfusion timing - key quality metrics for acute myocardial infarction care.
+
+## Primary PCI Rates
+
+Primary PCI is defined as PCI performed for STEMI patients within 12 hours of symptom onset, without prior lysis, presenting directly to the PCI center (not via inter-hospital transfer).
+
+```{r primary pci summary}
+# Calculate primary PCI rates
+stemi_data <- pci_data |> dplyr::filter(acs_cat == "STEMI")
+primary_pci_summary <- stemi_data |>
+  dplyr::summarise(
+    total_stemi = dplyr::n(),
+    primary_pci = sum(primary_pci, na.rm = TRUE),
+    primary_pci_rate = round(sum(primary_pci, na.rm = TRUE) / dplyr::n() * 100, 1)
+  )
+```
+
+There were a total of `r primary_pci_summary$total_stemi` STEMI cases, with `r primary_pci_summary$primary_pci` undergoing primary PCI, resulting in a primary PCI rate of `r primary_pci_summary$primary_pci_rate`%.
+
+### Primary PCI Rates by Hospital Characteristics
+
+```{r primary pci by characteristics, message=FALSE, warning=FALSE}
+stemi_data |>
+  dplyr::group_by(hospital_volume_cat) |>
+  dplyr::summarise(
+    `Total STEMI` = dplyr::n(),
+    `Primary PCI` = sum(primary_pci, na.rm = TRUE),
+    `Primary PCI Rate (%)` = round(sum(primary_pci, na.rm = TRUE) / dplyr::n() * 100, 1),
+    .groups = "drop"
+  ) |>
+  gtsummary::tbl_summary(
+    label = list(
+      `Total STEMI` ~ "Total STEMI Cases",
+      `Primary PCI` ~ "Primary PCI Cases",
+      `Primary PCI Rate (%)` ~ "Primary PCI Rate (%)"
+    ),
+    type = list(
+      `Total STEMI` ~ "continuous",
+      `Primary PCI` ~ "continuous",
+      `Primary PCI Rate (%)` ~ "continuous"
+    ),
+    statistic = gtsummary::all_continuous() ~ "{median} ({min}, {max})"
+  )
+```
+
+## Door-to-Device Time Analysis
+
+Door-to-device time is a critical quality metric for primary PCI. The national target is ≤60 minutes, with ≤90 minutes as an acceptable secondary target.
+
+```{r door to device summary}
+# Filter to primary PCI cases with valid door-to-device times
+d2d_data <- pci_data |>
+  dplyr::filter(NCR2_den == 1 & !is.na(dbdt) & dbdt > 0)
+
+d2d_summary <- d2d_data |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    median_time = round(median(dbdt, na.rm = TRUE), 0),
+    iqr_lower = round(quantile(dbdt, 0.25, na.rm = TRUE), 0),
+    iqr_upper = round(quantile(dbdt, 0.75, na.rm = TRUE), 0),
+    pct_under_60 = round(mean(dbdt <= 60, na.rm = TRUE) * 100, 1),
+    pct_under_90 = round(mean(dbdt <= 90, na.rm = TRUE) * 100, 1)
+  )
+```
+
+Of the `r d2d_summary$n` eligible primary PCI cases, the median door-to-device time was `r d2d_summary$median_time` minutes (IQR: `r d2d_summary$iqr_lower` - `r d2d_summary$iqr_upper` minutes).
+
+`r d2d_summary$pct_under_60`% of cases achieved the target door-to-device time of ≤60 minutes, while `r d2d_summary$pct_under_90`% achieved the acceptable threshold of ≤90 minutes.
+
+### Door-to-Device Time by Hospital
+
+```{r door to device by hospital, message=FALSE, warning=FALSE}
+d2d_by_hospital <- d2d_data |>
+  dplyr::group_by(hid, hname) |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    median_time = round(median(dbdt, na.rm = TRUE), 0),
+    iqr_lower = round(quantile(dbdt, 0.25, na.rm = TRUE), 0),
+    iqr_upper = round(quantile(dbdt, 0.75, na.rm = TRUE), 0),
+    pct_under_60 = round(mean(dbdt <= 60, na.rm = TRUE) * 100, 1),
+    pct_under_90 = round(mean(dbdt <= 90, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+d2d_by_hospital |>
+  dplyr::select(-hid) |>
+  gtsummary::tbl_summary(
+    by = hname,
+    label = list(
+      n ~ "Number of Cases",
+      median_time ~ "Median Time (min)",
+      iqr_lower ~ "IQR Lower (min)",
+      iqr_upper ~ "IQR Upper (min)",
+      pct_under_60 ~ "% ≤60 minutes",
+      pct_under_90 ~ "% ≤90 minutes"
+    ),
+    type = gtsummary::all_continuous() ~ "continuous",
+    statistic = gtsummary::all_continuous() ~ "{median}"
+  )
+```
+
+### Door-to-Device Box Plot by Hospital
+
+```{r door to device boxplot, fig.width=8, fig.height=5}
+d2d_plot <- d2d_data |>
+  dplyr::filter(dbdt <= 200) |>  # Exclude extreme outliers for visualization
+  ggplot2::ggplot(ggplot2::aes(x = hname, y = as.numeric(dbdt), fill = hname)) +
+  ggplot2::geom_boxplot(alpha = 0.7) +
+  ggplot2::geom_hline(yintercept = 60, linetype = "dashed", color = "red", linewidth = 1) +
+  ggplot2::geom_hline(yintercept = 90, linetype = "dashed", color = "orange", linewidth = 1) +
+  ggplot2::annotate("text", x = 0.5, y = 65, label = "Target: ≤60 min", hjust = 0, color = "red") +
+  ggplot2::annotate("text", x = 0.5, y = 95, label = "Acceptable: ≤90 min", hjust = 0, color = "orange") +
+  ggplot2::labs(
+    title = "Door-to-Device Time Distribution by Hospital",
+    x = "Hospital",
+    y = "Door-to-Device Time (minutes)"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    legend.position = "none",
+    plot.title = ggplot2::element_text(hjust = 0.5, face = "bold")
+  )
+
+print_ggplot(d2d_plot)
+```
+
+### Target Achievement by Hospital
+
+```{r target achievement chart, fig.width=8, fig.height=5}
+achievement_plot <- d2d_by_hospital |>
+  tidyr::pivot_longer(cols = c(pct_under_60, pct_under_90),
+                      names_to = "target",
+                      values_to = "percentage") |>
+  dplyr::mutate(
+    target_label = dplyr::case_when(
+      target == "pct_under_60" ~ "≤60 minutes",
+      target == "pct_under_90" ~ "≤90 minutes"
+    )
+  ) |>
+  ggplot2::ggplot(ggplot2::aes(x = hname, y = percentage, fill = target_label)) +
+  ggplot2::geom_bar(stat = "identity", position = "dodge") +
+  ggplot2::geom_text(ggplot2::aes(label = paste0(percentage, "%")),
+                     position = ggplot2::position_dodge(width = 0.9),
+                     vjust = -0.5, size = 3) +
+  ggplot2::scale_fill_manual(values = c("≤60 minutes" = "#d62728", "≤90 minutes" = "#ff7f0e")) +
+  ggplot2::labs(
+    title = "Door-to-Device Target Achievement by Hospital",
+    x = "Hospital",
+    y = "Percentage Achieving Target (%)",
+    fill = "Target"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    legend.position = "bottom",
+    plot.title = ggplot2::element_text(hjust = 0.5, face = "bold")
+  ) +
+  ggplot2::ylim(0, 100)
+
+print_ggplot(achievement_plot)
+```
+
+## Pre-Hospital Notification Impact
+
+Pre-hospital notification allows the cardiac catheterization lab team to prepare in advance, potentially reducing door-to-device times.
+
+```{r prehosp notification summary}
+prehosp_data <- d2d_data |>
+  dplyr::mutate(
+    notification_status = dplyr::if_else(prehosp_notif == 1,
+                                         "Pre-hospital Notification",
+                                         "No Pre-hospital Notification")
+  )
+
+prehosp_summary <- prehosp_data |>
+  dplyr::group_by(notification_status) |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    median_time = round(median(dbdt, na.rm = TRUE), 0),
+    iqr_lower = round(quantile(dbdt, 0.25, na.rm = TRUE), 0),
+    iqr_upper = round(quantile(dbdt, 0.75, na.rm = TRUE), 0),
+    pct_under_60 = round(mean(dbdt <= 60, na.rm = TRUE) * 100, 1),
+    pct_under_90 = round(mean(dbdt <= 90, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+prehosp_summary |>
+  gtsummary::tbl_summary(
+    by = notification_status,
+    label = list(
+      n ~ "Number of Cases",
+      median_time ~ "Median Door-to-Device (min)",
+      iqr_lower ~ "IQR Lower (min)",
+      iqr_upper ~ "IQR Upper (min)",
+      pct_under_60 ~ "% Achieving ≤60 min",
+      pct_under_90 ~ "% Achieving ≤90 min"
+    ),
+    type = gtsummary::all_continuous() ~ "continuous",
+    statistic = gtsummary::all_continuous() ~ "{median}"
+  )
+```
+
+### Pre-Hospital Notification Rates by Hospital
+
+```{r prehosp notification rates, message=FALSE, warning=FALSE}
+prehosp_rates <- stemi_data |>
+  dplyr::group_by(hname) |>
+  dplyr::summarise(
+    total_stemi = dplyr::n(),
+    with_notification = sum(prehosp_notif, na.rm = TRUE),
+    notification_rate = round(sum(prehosp_notif, na.rm = TRUE) / dplyr::n() * 100, 1),
+    .groups = "drop"
+  )
+
+prehosp_rates |>
+  gtsummary::tbl_summary(
+    by = hname,
+    label = list(
+      total_stemi ~ "Total STEMI Cases",
+      with_notification ~ "Pre-hospital Notifications",
+      notification_rate ~ "Notification Rate (%)"
+    ),
+    type = gtsummary::all_continuous() ~ "continuous",
+    statistic = gtsummary::all_continuous() ~ "{median}"
+  )
+```
+
+## Out-of-Hours Procedures
+
+Procedures performed outside regular business hours (weekends or outside 8am-6pm) may face staffing or resource challenges.
+
+```{r out of hours analysis, message=FALSE, warning=FALSE}
+ooh_data <- d2d_data |>
+  dplyr::mutate(
+    hours_status = dplyr::if_else(out_of_hours == 1,
+                                  "Out-of-Hours",
+                                  "In-Hours")
+  )
+
+ooh_summary <- ooh_data |>
+  dplyr::group_by(hours_status) |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    median_time = round(median(dbdt, na.rm = TRUE), 0),
+    pct_under_60 = round(mean(dbdt <= 60, na.rm = TRUE) * 100, 1),
+    pct_under_90 = round(mean(dbdt <= 90, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+ooh_summary |>
+  gtsummary::tbl_summary(
+    by = hours_status,
+    label = list(
+      n ~ "Number of Cases",
+      median_time ~ "Median Door-to-Device (min)",
+      pct_under_60 ~ "% Achieving ≤60 min",
+      pct_under_90 ~ "% Achieving ≤90 min"
+    ),
+    type = gtsummary::all_continuous() ~ "continuous",
+    statistic = gtsummary::all_continuous() ~ "{median}"
+  )
+```
+
+# Secondary Prevention
+
+This section presents discharge medication and cardiac rehabilitation rates, stratified by key patient and hospital characteristics. Secondary prevention measures are critical for reducing recurrent cardiac events.
+
+## Discharge Medications by Clinical Presentation
+
+```{r discharge meds by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR11_num, NCR9_num),
+    by = "acs_cat",
+    label = list(
+      NCR11_num ~ "Discharged on DAPT (Aspirin + P2Y12 Inhibitor)",
+      NCR9_num ~ "Discharged on Lipid-Lowering Therapy"
+    ),
+    statistic = list(
+      c(NCR11_num, NCR9_num) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Discharge Medications by Hospital Volume
+
+```{r discharge meds by volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(hospital_volume_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR11_num, NCR9_num),
+    by = "hospital_volume_cat",
+    label = list(
+      NCR11_num ~ "Discharged on DAPT (Aspirin + P2Y12 Inhibitor)",
+      NCR9_num ~ "Discharged on Lipid-Lowering Therapy"
+    ),
+    statistic = list(
+      c(NCR11_num, NCR9_num) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Discharge Medications by Metro Status
+
+```{r discharge meds by metro, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(metro_status) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR11_num, NCR9_num),
+    by = "metro_status",
+    label = list(
+      NCR11_num ~ "Discharged on DAPT (Aspirin + P2Y12 Inhibitor)",
+      NCR9_num ~ "Discharged on Lipid-Lowering Therapy"
+    ),
+    statistic = list(
+      c(NCR11_num, NCR9_num) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Discharge Medications by Sex
+
+```{r discharge meds by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(sex_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR11_num, NCR9_num),
+    by = "sex_cat",
+    label = list(
+      NCR11_num ~ "Discharged on DAPT (Aspirin + P2Y12 Inhibitor)",
+      NCR9_num ~ "Discharged on Lipid-Lowering Therapy"
+    ),
+    statistic = list(
+      c(NCR11_num, NCR9_num) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Cardiac Rehabilitation Referral by Clinical Presentation
+
+```{r cardiac rehab by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR10_num),
+    by = "acs_cat",
+    label = list(
+      NCR10_num ~ "Referred to Cardiac Rehabilitation"
+    ),
+    statistic = list(
+      NCR10_num ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Cardiac Rehabilitation Referral by Hospital Volume
+
+```{r cardiac rehab by volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(hospital_volume_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR10_num),
+    by = "hospital_volume_cat",
+    label = list(
+      NCR10_num ~ "Referred to Cardiac Rehabilitation"
+    ),
+    statistic = list(
+      NCR10_num ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Cardiac Rehabilitation Referral by Metro Status
+
+```{r cardiac rehab by metro, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(metro_status) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR10_num),
+    by = "metro_status",
+    label = list(
+      NCR10_num ~ "Referred to Cardiac Rehabilitation"
+    ),
+    statistic = list(
+      NCR10_num ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Cardiac Rehabilitation Referral by Sex
+
+```{r cardiac rehab by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(sex_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR10_num),
+    by = "sex_cat",
+    label = list(
+      NCR10_num ~ "Referred to Cardiac Rehabilitation"
+    ),
+    statistic = list(
+      NCR10_num ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Combined Secondary Prevention Measures
+
+```{r combined secondary prevention, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat) & stringr::str_detect(dis, "[12345]")) |>
+  gtsummary::tbl_summary(
+    include = c(NCR11_num, NCR9_num, NCR10_num),
+    by = "acs_cat",
+    label = list(
+      NCR11_num ~ "DAPT at Discharge",
+      NCR9_num ~ "Lipid-Lowering Therapy at Discharge",
+      NCR10_num ~ "Cardiac Rehabilitation Referral"
+    ),
+    statistic = list(
+      c(NCR11_num, NCR9_num, NCR10_num) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+The table above shows the combined achievement of key secondary prevention measures. Optimal secondary prevention includes all three components: DAPT, lipid-lowering therapy, and cardiac rehabilitation referral.
+
+# Quality Indicators - Timing Metrics
 
 # Time from diagnostic ECG to PCI mediated reperfusion
 
@@ -927,4 +2505,216 @@ NCR11_spc <- controlcharts::spc(data = pci_data,
                                     date_format_month = "Mon",
                                     date_format_year = "YY"))
 NCR11_spc
+```
+
+# Comprehensive Outcomes Analysis
+
+This section provides stratified analysis of in-hospital outcomes including mortality, complications, and composite endpoints.
+
+## In-Hospital Mortality by Patient Subgroups
+
+```{r mortality by subgroups, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(NCR5_den == 1) |>
+  dplyr::mutate(
+    age_group = dplyr::case_when(
+      age < 50 ~ "< 50 years",
+      age >= 50 & age < 60 ~ "50-59 years",
+      age >= 60 & age < 70 ~ "60-69 years",
+      age >= 70 & age < 80 ~ "70-79 years",
+      age >= 80 ~ "≥ 80 years"
+    ),
+    age_group = factor(age_group, levels = c("< 50 years", "50-59 years", "60-69 years", "70-79 years", "≥ 80 years")),
+    shock_ohca = dplyr::if_else(shock == 1 | oca == 1, "Shock/OHCA", "No Shock/OHCA")
+  ) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num),
+    by = age_group,
+    label = list(NCR5_num ~ "In-Hospital Mortality"),
+    statistic = NCR5_num ~ "{n} ({p}%)",
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+### By Clinical Presentation
+
+```{r mortality by presentation, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(NCR5_den == 1 & !is.na(acs_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num),
+    by = acs_cat,
+    label = list(NCR5_num ~ "In-Hospital Mortality"),
+    statistic = NCR5_num ~ "{n} ({p}%)",
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+### By Shock/OHCA Status
+
+```{r mortality by shock, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(NCR5_den == 1) |>
+  dplyr::mutate(
+    shock_ohca = dplyr::if_else(shock == 1 | oca == 1, "With Shock/OHCA", "Without Shock/OHCA")
+  ) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num),
+    by = shock_ohca,
+    label = list(NCR5_num ~ "In-Hospital Mortality"),
+    statistic = NCR5_num ~ "{n} ({p}%)",
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## In-Hospital Mortality by Hospital Characteristics
+
+```{r mortality by hospital volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(NCR5_den == 1 & !is.na(hospital_volume_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num),
+    by = hospital_volume_cat,
+    label = list(NCR5_num ~ "In-Hospital Mortality"),
+    statistic = NCR5_num ~ "{n} ({p}%)",
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+### By Sex
+
+```{r mortality by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(NCR5_den == 1 & !is.na(sex_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num),
+    by = sex_cat,
+    label = list(NCR5_num ~ "In-Hospital Mortality"),
+    statistic = NCR5_num ~ "{n} ({p}%)",
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Comprehensive In-Hospital Outcomes by Clinical Presentation
+
+```{r comprehensive outcomes by acs, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE),
+    by = acs_cat,
+    label = list(
+      NCR5_num ~ "In-Hospital Mortality",
+      ihmi ~ "In-Hospital MI",
+      ihstr ~ "In-Hospital Stroke",
+      NCR4_num ~ "Major Bleeding",
+      MACE ~ "MACE",
+      MACCE ~ "MACCE"
+    ),
+    statistic = list(
+      c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+The table above shows all major in-hospital outcomes stratified by clinical presentation. MACE (Major Adverse Cardiac Events) includes death, MI, or unplanned revascularisation. MACCE (Major Adverse Cardiac and Cerebrovascular Events) includes MACE plus stroke.
+
+## Comprehensive Outcomes by Hospital Volume
+
+```{r comprehensive outcomes by volume, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(hospital_volume_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE),
+    by = hospital_volume_cat,
+    label = list(
+      NCR5_num ~ "In-Hospital Mortality",
+      ihmi ~ "In-Hospital MI",
+      ihstr ~ "In-Hospital Stroke",
+      NCR4_num ~ "Major Bleeding",
+      MACE ~ "MACE",
+      MACCE ~ "MACCE"
+    ),
+    statistic = list(
+      c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## Comprehensive Outcomes by Sex
+
+```{r comprehensive outcomes by sex, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(sex_cat)) |>
+  gtsummary::tbl_summary(
+    include = c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE),
+    by = sex_cat,
+    label = list(
+      NCR5_num ~ "In-Hospital Mortality",
+      ihmi ~ "In-Hospital MI",
+      ihstr ~ "In-Hospital Stroke",
+      NCR4_num ~ "Major Bleeding",
+      MACE ~ "MACE",
+      MACCE ~ "MACCE"
+    ),
+    statistic = list(
+      c(NCR5_num, ihmi, ihstr, NCR4_num, MACE, MACCE) ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) |>
+  gtsummary::add_overall()
+```
+
+## MACE and MACCE Rates by Clinical Characteristics
+
+```{r mace macce summary, message=FALSE, warning=FALSE}
+mace_summary <- pci_data |>
+  dplyr::summarise(
+    total_cases = dplyr::n(),
+    mace_cases = sum(MACE, na.rm = TRUE),
+    mace_rate = round(sum(MACE, na.rm = TRUE) / dplyr::n() * 100, 1),
+    macce_cases = sum(MACCE, na.rm = TRUE),
+    macce_rate = round(sum(MACCE, na.rm = TRUE) / dplyr::n() * 100, 1)
+  )
+```
+
+**Overall MACE Rate:** `r mace_summary$mace_rate`% (`r mace_summary$mace_cases` of `r mace_summary$total_cases` cases)
+
+**Overall MACCE Rate:** `r mace_summary$macce_rate`% (`r mace_summary$macce_cases` of `r mace_summary$total_cases` cases)
+
+### MACE Rates by Patient Characteristics
+
+```{r mace by characteristics, message=FALSE, warning=FALSE}
+pci_data |>
+  dplyr::filter(!is.na(acs_cat)) |>
+  dplyr::group_by(acs_cat) |>
+  dplyr::summarise(
+    Cases = dplyr::n(),
+    `MACE Events` = sum(MACE, na.rm = TRUE),
+    `MACE Rate (%)` = round(sum(MACE, na.rm = TRUE) / dplyr::n() * 100, 1),
+    `MACCE Events` = sum(MACCE, na.rm = TRUE),
+    `MACCE Rate (%)` = round(sum(MACCE, na.rm = TRUE) / dplyr::n() * 100, 1),
+    .groups = "drop"
+  ) |>
+  gtsummary::tbl_summary(
+    by = acs_cat,
+    label = list(
+      Cases ~ "Total Cases",
+      `MACE Events` ~ "MACE Events",
+      `MACE Rate (%)` ~ "MACE Rate (%)",
+      `MACCE Events` ~ "MACCE Events",
+      `MACCE Rate (%)` ~ "MACCE Rate (%)"
+    ),
+    type = gtsummary::all_continuous() ~ "continuous",
+    statistic = gtsummary::all_continuous() ~ "{median}"
+  )
 ```

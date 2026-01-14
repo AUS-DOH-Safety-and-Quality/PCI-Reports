@@ -1,3 +1,11 @@
+print_ggplot <- function(x) {
+  if (knitr::is_html_output()) {
+    plotly::ggplotly(x)
+  } else {
+    x
+  }
+}
+
 spc_example_data <- data.frame(
   shorthospitalname = 'Hospital',
   descriptionshort = 'Example Indicator',
