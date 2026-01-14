@@ -48,15 +48,15 @@ RACS_BLUE  <- "#004C97"
 # Robust check: Look for the reference file or map_generator itself if referenced via path
 if (file.exists(file.path("reference_files", "hospitals.csv"))) {
   base_dir <- "."
-} else if (file.exists(file.path("cardiac_poster", "reference_files", "hospitals.csv"))) {
-  base_dir <- "cardiac_poster"
+} else if (file.exists(file.path("pci_poster", "reference_files", "hospitals.csv"))) {
+  base_dir <- "pci_poster"
 } else {
   # Fallback to local if we are INSIDE the folder structure (e.g. setwd to reference_files)
   # But assuming standard execution:
   if(file.exists("map_generator.R")) {
      base_dir <- "."
   } else {
-     base_dir <- "cardiac_poster"
+     base_dir <- "pci_poster"
   }
 }
 

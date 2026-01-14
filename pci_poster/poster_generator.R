@@ -39,11 +39,11 @@ library(readr)      # For reading CSV files
 # Robust check: Look for the template file itself
 if (file.exists("poster_template.pptx")) {
   base_dir <- "."
-} else if (file.exists(file.path("cardiac_poster", "poster_template.pptx"))) {
-  base_dir <- "cardiac_poster"
+} else if (file.exists(file.path("pci_poster", "poster_template.pptx"))) {
+  base_dir <- "pci_poster"
 } else {
   # Fallback: check if we are in a weird relative state or fail
-  stop("Could not find 'poster_template.pptx'. Please set working directory to the project root or 'cardiac_poster'.")
+  stop("Could not find 'poster_template.pptx'. Please set working directory to the project root or 'pci_poster'.")
 }
 
 # Define Paths
@@ -78,8 +78,8 @@ if (file.exists(indicators_file)) {
   ind_desc_df <- read_csv(indicators_file, show_col_types = FALSE)
   names(ind_desc_df) <- tolower(names(ind_desc_df))
   
-  # Create a lookup vector: Indicator ID -> Description
-  desc_lookup <- setNames(ind_desc_df$description, ind_desc_df$ncr_indicator_number)
+  # Create a lookup vector: Indicator ID -> Description (using short description)
+  desc_lookup <- setNames(ind_desc_df$description_short, ind_desc_df$ncr_indicator_number)
 } else {
   warning("Indicators reference file not found. Using fallback descriptions.")
   desc_lookup <- c()
@@ -138,7 +138,7 @@ indicator_mapping <- c(
   "NCR4"    = "ph_ihbl",                     # Map Bleeding
   "NCR8"    = "ph_mort30r",                  # Map Mortality (Preserve existing)
   "NCR6"    = "ph_postop_critical_care",     # Map Readmission
-  "NCR10"   = "ph_crehab",                   # Map Referrals to cardiac rehab (Moved to NCR10)
+  "NCR10"   = "ph_crehab",                   # Map Referrals to cardiac rehab
   "NCR11"   = "ph_pre_risk_assess",          # Map DAPT
   "VOL_PCI" = "ph_pci_count"                 # Map Volume
 )
@@ -176,12 +176,12 @@ poster_summary_data <- poster_summary_data %>%
         TRUE ~ scales::percent(safe_pct, accuracy = 1)
     ),
     
-    # Construct the full narrative string: "85% - The time from..."
+    # Construct the full narrative string: "X out of Y patients..."
     descriptive_text = case_when(
         metric_type == "count" ~ format(total_num, big.mark = ",", scientific = FALSE),
         is.na(total_den) | total_den == 0 ~ "Data unavailable",
         metric_type == "median" ~ paste0(round(total_num), "m (Median) ", raw_desc),
-        TRUE ~ paste0(scales::percent(safe_pct, accuracy = 0.1), " ", raw_desc)
+        TRUE ~ paste0(total_num, " out of ", total_den, " patients ", raw_desc)
     )
   ) %>% ungroup()
 

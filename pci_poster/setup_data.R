@@ -42,7 +42,7 @@ indicators <- c(
   "NCR4",   # Major Bleeding
   "NCR6",   # Readmission
   "NCR8",   # 30-day Mortality
-  "NCR9",   # Referral to Cardiac Rehab
+  "NCR10",  # Referral to Cardiac Rehab
   "NCR11"   # DAPT at Discharge
 )
 
@@ -82,7 +82,7 @@ for (h in hospitals) {
         den <- sample(50:150, 1)
         num <- round(den * runif(1, 0.01, 0.05)) 
         
-      } else if (i == "NCR9") {
+      } else if (i == "NCR10") {
         # Cardiac Rehab: Moderate-High compliance (60-85%)
         den <- sample(30:60, 1)
         num <- round(den * runif(1, 0.60, 0.85))
