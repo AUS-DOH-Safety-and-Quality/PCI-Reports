@@ -183,7 +183,7 @@ for (i in 1:nrow(plot_data)) {
       # Use geom_image if available, else fallback
       {
          if (use_custom_pin) {
-             geom_image(data = focal_df, aes(x = long, y = lat, image = image), size = 0.1)
+             geom_image(data = focal_df, aes(x = long, y = lat, image = image), size = 0.12)
          } else {
              geom_point(data = focal_df, aes(x = long, y = lat), color = "red", size = 5)
          }
