@@ -60,4 +60,4 @@ Rscript poster_generator.R
 
 ## 3. Contact
 **Department**: WA Health, HQIU
-**Author**: Richard Gillett
+**Author**: Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)

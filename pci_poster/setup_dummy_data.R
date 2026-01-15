@@ -1,9 +1,9 @@
 ################################################################################
-## Name: setup_data.R
+## Name: setup_dummy_data.R
 ## Purpose: Generates dummy data for the National Cardiac Registry (NCR) Poster.
 ##          Constructs a dataset mimicking the structure of real registry outputs.
 ##
-## Author: Antigravity (Assistant)
+## Author: Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)
 ## Date: January 2026
 ##
 ## Overview:

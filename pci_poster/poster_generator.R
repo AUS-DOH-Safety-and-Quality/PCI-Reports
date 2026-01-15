@@ -1,13 +1,13 @@
 ################################################################################
-## Project: Cardiac Outcomes Registry (NCR) Reporting
+## Project: Cardiac Registry of Western Australia (CRoWA) reporting
 ## Script: poster_generator.R
-## Department: WA Health, HQIU
+## Department: WA Health, Healthcare Quality Intelligence Unit (HQIU) 
 ## Warning: Standard Header
 ##
 ## Purpose: Creates National Cardiac Registry (NCR) Posters for hospitals
-##          incorporating user-specified data and ANZELA-style visuals.
+##          incorporating user-specified data and NCR-style visuals.
 ##
-## Author: Richard Gillett
+## Author: Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)
 ## Date: January 2026
 ################################################################################
 ##
@@ -71,7 +71,7 @@ if (!file.exists(data_file)) {
     message("No real data found. Using sample data from examples/ folder.")
     data_file <- sample_data_file
   } else {
-    stop("Data file not found. Run setup_data.R to generate sample data, or provide cardiac_indicators_summary.xlsx in _files/")
+    stop("Data file not found. Run setup_dummy_data.R to generate sample data, or provide cardiac_indicators_summary.xlsx in _files/")
   }
 }
 
@@ -129,23 +129,21 @@ poster_summary_data <- ncr_data %>%
     )
   )
 
-# -----------------------------------------------------------------------------
-# 4. Placeholder Mapping
-# -----------------------------------------------------------------------------
 # Maps NCR Indicator IDs to the PowerPoint Shape Names (Placeholders).
-# Note: Current mapping target is the standard ANZELA template slots as fallback.
-
-
-# Maps NCR Indicator IDs to the PowerPoint Shape Names (Placeholders).
-# Note: Current mapping target is the standard ANZELA template slots as fallback.
+# Note: Current mapping target is the standard NCR template slots.
 
 indicator_mapping <- c(
+  # "NCR1"    = "ph_ecg_to_reperfusion",     # Time from ECG to Reperfusion
   "NCR2"    = "ph_door_to_reperfusion",      # Map Door-to-PCI
+  # "NCR3"    = "ph_stroke",                 # Peri-PCI Stroke (Unused)
   "NCR4"    = "ph_ihbl",                     # Map Bleeding
-  "NCR8"    = "ph_mort30r",                  # Map Mortality (Preserve existing)
-  "NCR6"    = "ph_postop_critical_care",     # Map Readmission
+  # "NCR5"    = "ph_mort_hosp",              # In-hospital Mortality (Unused)
+  # "NCR6"    = "ph_readmit_30",             # Readmission (Unused)
+  # "NCR7"    = "ph_revasc_30",              # Unplanned Revascularisation (Unused)
+  "NCR8"    = "ph_mort30r",                  # Map Mortality (30 days)
+  # "NCR9"    = "ph_meds_lipid",             # Lipid Lowering Therapy (Unused)
   "NCR10"   = "ph_crehab",                   # Map Referrals to cardiac rehab
-  "NCR11"   = "ph_pre_risk_assess",          # Map DAPT
+  "NCR11"   = "ph_disch_meds_dapt",          # Map DAPT
   "VOL_PCI" = "ph_pci_count"                 # Map Volume
 )
 
@@ -182,12 +180,21 @@ poster_summary_data <- poster_summary_data %>%
         TRUE ~ scales::percent(safe_pct, accuracy = 1)
     ),
     
-    # Construct the full narrative string: "X out of Y patients..."
+    # Append patient noun if available, else default
+    patient_noun = if("patient_noun" %in% names(ind_desc_df)) {
+       noun_lookup <- setNames(ind_desc_df$patient_noun, ind_desc_df$ncr_indicator_number)
+       noun <- noun_lookup[indicator_id]
+       ifelse(is.na(noun), "patients", noun)
+    } else {
+       "patients"
+    },
+
+    # Construct the full narrative string: "X out of Y [noun]..."
     descriptive_text = case_when(
         metric_type == "count" ~ format(total_num, big.mark = ",", scientific = FALSE),
         is.na(total_den) | total_den == 0 ~ "Data unavailable",
         metric_type == "median" ~ paste0(round(total_num), "m (Median) ", raw_desc),
-        TRUE ~ paste0(total_num, " out of ", total_den, " patients ", raw_desc)
+        TRUE ~ paste0(total_num, " out of ", total_den, " ", patient_noun, " ", raw_desc)
     )
   ) %>% ungroup()
 

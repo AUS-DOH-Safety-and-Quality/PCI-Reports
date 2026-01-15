@@ -1,10 +1,8 @@
 ################################################################################
-## Name: map_generator.R
-## Purpose: Generates stylized location maps for participating hospitals.
-##          Mimics ANZELA style (Grey land, Blue dots) but uses a custom
-##          Project Logo Pin for the focal point.
+##          Uses National Cardiac Registry (NCR) styling (Grey land, NCR Red dots)
+##          and a custom Project Logo Pin for the focal point.
 ##
-## Author: Antigravity (Assistant)
+## Author: Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)
 ## Date: January 2026
 ##
 ## Overview:
@@ -12,8 +10,8 @@
 ## 2. Geocodes addresses using OpenStreetMap (Nominatim).
 ## 3. Caches results to 'ncr_geo_cache.csv'.
 ## 4. Uses ggplot2 + sf + ggimage to draw:
-##    - Australia base map (RACS Grey #E6E7E8).
-##    - Scatter points for all hospitals (RACS Blue #004C97).
+##    - Australia base map (NCR Grey #E6E7E8).
+##    - Scatter points for all hospitals (NCR Red #D1202F).
 ##    - Custom Image Pin for the target hospital.
 ## 5. Exports PNG files for use in the Poster Generator.
 ################################################################################
@@ -37,9 +35,9 @@ options(timeout = 120)
 # Also set libcurl timeout through environment (backup approach)
 Sys.setenv("LIBCURL_TIMEOUT" = "120")
 
-# Define Visual Constants (ANZELA Style Guide)
-RACS_GREY  <- "#E6E7E8"
-RACS_BLUE  <- "#004C97"
+# Define Visual Constants (NCR Style Guide)
+NCR_LAND    <- "#E6E7E8"
+NCR_PRIMARY <- "#D1202F" # NCR Red (Primary)
 
 # -----------------------------------------------------------------------------
 # 2. Paths and Data Loading
@@ -62,6 +60,7 @@ if (file.exists(file.path("reference_files", "hospitals.csv"))) {
 
 ref_dir  <- file.path(base_dir, "reference_files")
 map_dir  <- file.path(base_dir, "hospital_specific_maps")
+images_dir <- file.path(base_dir, "images")
 
 # Ensure output directory exists
 if (!dir.exists(map_dir)) {
@@ -75,10 +74,10 @@ hospital_list_file <- file.path(ref_dir, "hospitals.csv")
 cache_file         <- file.path(ref_dir, "ncr_geo_cache.csv")
 
 # LOGO PIN ASSET
-pin_path <- file.path(ref_dir, "cardiac_pin.png")
+pin_path <- file.path(images_dir, "cardiac_pin.png")
 
 if (!file.exists(pin_path)) {
-   warning("Cardiac Pin image not found in reference_files! Generating fallback maps.")
+   warning("Cardiac Pin image not found in images folder! Generating fallback maps.")
    use_custom_pin <- FALSE
 } else {
    use_custom_pin <- TRUE
@@ -173,17 +172,17 @@ for (i in 1:nrow(plot_data)) {
     
     # --- Plotting Logic ---
     p <- ggplot() +
-      # A. Base Layer: Australia (Grey)
-      geom_sf(data = oz_states, fill = RACS_GREY, color = "white", size = 0.2) +
+      # A. Base Layer: Australia (NCR Grey)
+      geom_sf(data = oz_states, fill = NCR_LAND, color = "white", size = 0.2) +
       
-      # B. Context Layer: All other hospitals (Small Blue Dots)
-      geom_sf(data = sites_sf, color = RACS_BLUE, size = 2, alpha = 0.5) +
+      # B. Context Layer: All other hospitals (NCR Red, size increased 33%)
+      geom_sf(data = sites_sf, color = NCR_PRIMARY, size = 2.7, alpha = 0.5) +
       
       # C. Focal Layer: CUSTOM IMAGE PIN
       # Use geom_image if available, else fallback
       {
          if (use_custom_pin) {
-             geom_image(data = focal_df, aes(x = long, y = lat, image = image), size = 0.12)
+             geom_image(data = focal_df, aes(x = long, y = lat, image = image), size = 0.18)
          } else {
              geom_point(data = focal_df, aes(x = long, y = lat), color = "red", size = 5)
          }
@@ -195,7 +194,7 @@ for (i in 1:nrow(plot_data)) {
       
     # --- Export ---
     # Save as PNG with transparent background
-    ggsave(out_path, plot = p, width = 6, height = 5, dpi = 300, bg = "transparent")
+    ggsave(out_path, plot = p, width = 6, height = 6, dpi = 300, bg = "transparent")
     
     message(paste("Saved map for:", site_name))
 }

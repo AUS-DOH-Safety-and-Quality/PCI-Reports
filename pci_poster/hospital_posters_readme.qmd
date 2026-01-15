@@ -1,7 +1,7 @@
 ---
 title: "Hospital Cardiac Poster Generator"
 subtitle: "WA Health - National Cardiac Registry (NCR) Reporting"
-author: "WA Health HQIU"
+author: "Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)"
 date: last-modified
 format: 
   html:
@@ -237,7 +237,7 @@ The poster generator **works out of the box** with sample data. Just run `source
 If you want to regenerate fresh demo data:
 
 ```{r}
-source("setup_data.R")
+source("setup_dummy_data.R")
 ```
 
 This creates `_files/cardiac_indicators_summary.xlsx` with 3 WA hospitals and 12 months of data.
@@ -304,17 +304,18 @@ pci_poster/
 ├── poster_template.pptx      # PowerPoint template
 ├── poster_generator.R        # Main poster generation script
 ├── map_generator.R           # Hospital location map creation
-├── setup_data.R              # Demo data generator
+├── setup_dummy_data.R        # Demo data generator
 ├── _files/                   # Working data (gitignored)
 │   └── cardiac_indicators_summary.xlsx
 ├── examples/                 # Sample data for testing (committed to repo)
 │   └── sample_cardiac_indicators.xlsx
 ├── hospital_logos/           # Hospital logo images (.png)
 ├── hospital_specific_maps/   # Generated location maps
+├── images/                   # Asset images
+│   └── cardiac_pin.png       # Map marker icon
 ├── reference_files/
 │   ├── hospitals.csv         # Hospital address list
 │   ├── indicators.csv        # NCR indicator definitions
-│   ├── cardiac_pin.png       # Map marker icon
 │   └── ncr_geo_cache.csv     # Geocoding cache
 └── _files/posters/           # Generated poster files
 ```

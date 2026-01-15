@@ -1,7 +1,7 @@
 ################################################################################
-## Project: Cardiac Outcomes Registry (NCR) Reporting
+## Project: Cardiac Registry of Western Australia (CRoWA) analysis & reporting
 ## Script: process_ncr_data.R
-## Department: WA Health, HQIU
+## Department: WA Health, Healthcare Quality Intelligence Unit (HQIU) 
 ## Warning: Standard Header
 ##
 ## Purpose: Processes raw 'pci_data.csv' to apply NCR Indicator logic.
@@ -182,9 +182,9 @@ pci_data <- pci_data %>%
 message("Applying Indicator Logic...")
 
 # Helper function to categorize status
-# status: "Pass" (Good Outcome), "Fail" (Bad Outcome), "Excluded"
-# For metrics where outcome=1 is BAD (e.g. Mortality), Outcome=1 -> Fail
-# For metrics where outcome=1 is GOOD (e.g. Rehab), Outcome=1 -> Pass
+# status: "Pass" (Favourable Outcome), "Fail" (Unfavourable Outcome), "Excluded"
+# For metrics where outcome=1 is UNFAVOURABLE (e.g. Mortality), Outcome=1 -> Fail
+# For metrics where outcome=1 is FAVOURABLE (e.g. Rehab), Outcome=1 -> Pass
 
 apply_indicator_logic <- function(data) {
     data %>%
