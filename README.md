@@ -1,7 +1,7 @@
 # PCI-Reports
 
 This repository contains code for how the Cardiac Registry of Western Australia (CRoWA) prodcues reports.  It contains code, definitions and methods.
-No data relating to hospitals for Western Australia (WA) is in this.
+There is no actual data included in this repository of code.
 
 It fulfils our commitment to being open about how the data is transformed, and used to produce reports.  
 
