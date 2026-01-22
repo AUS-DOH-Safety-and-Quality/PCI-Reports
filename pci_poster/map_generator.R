@@ -10,7 +10,7 @@
 ## 2. Geocodes addresses using OpenStreetMap (Nominatim).
 ## 3. Caches results to 'ncr_geo_cache.csv'.
 ## 4. Uses ggplot2 + sf + ggimage to draw:
-##    - Australia base map (NCR Grey #E6E7E8).
+##    - Australia base map (National Cardiac Registry (NCR) Grey #E6E7E8).
 ##    - Scatter points for all hospitals (NCR Red #D1202F).
 ##    - Custom Image Pin for the target hospital.
 ## 5. Exports PNG files for use in the Poster Generator.
@@ -58,6 +58,8 @@ if (file.exists(file.path("reference_files", "hospitals.csv"))) {
   }
 }
 
+# Set reference directories for the reference files, maps and images
+
 ref_dir  <- file.path(base_dir, "reference_files")
 map_dir  <- file.path(base_dir, "hospital_specific_maps")
 images_dir <- file.path(base_dir, "images")
@@ -71,9 +73,13 @@ if (!dir.exists(map_dir)) {
 hospital_list_file <- file.path(ref_dir, "hospitals.csv")
 
 # Cache file: stored coordinates from previous runs
+# This stops us from having to geocode every time we run the script
 cache_file         <- file.path(ref_dir, "ncr_geo_cache.csv")
 
 # LOGO PIN ASSET
+# this is the 'pin' on the map which shows where the hospital is
+# whihch is used if we don't have the logo
+
 pin_path <- file.path(images_dir, "cardiac_pin.png")
 
 if (!file.exists(pin_path)) {
