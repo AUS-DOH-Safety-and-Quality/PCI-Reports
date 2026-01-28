@@ -1,5 +1,10 @@
 # Outputs/temporaries from the render process
 *.html
 *_files/
+*cardiac_poster/_files/
 *.docx
 pci_data.csv
+
+# R session files
+.RData
+.Rhistory
