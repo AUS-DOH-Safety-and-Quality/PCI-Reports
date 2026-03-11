@@ -2545,7 +2545,7 @@ NCR11_fpl <- pci_funnel(
 
 ```{r NCR9 Funnel}
 ## Generate the Funnel chart
-NCR9_fpl <- pci_funnel(
+pci_funnel(
   data = pci_data,
   numerator_col = "NCR9_num",
   denominator_col = "NCR9_den",
@@ -2562,7 +2562,6 @@ NCR9_fpl <- pci_funnel(
   ),
   outlier_settings = list(improvement_direction = "increase", three_sigma = TRUE)
 )
-NCR9_fpl
 ```
 
 ## SPC
@@ -2585,7 +2584,7 @@ spc_filtered_data <- preaggregate_spc_counts(spc_filtered_data, numerator_col = 
 if (nrow(spc_filtered_data) < 2) {
   cat("Not enough eligible data to generate the SPC chart for lipid-lowering therapy at discharge.")
 } else {
-  NCR9_spc <- controlcharts::spc(data = spc_filtered_data,
+  controlcharts::spc(data = spc_filtered_data,
                    keys = period_end,
                    numerators = NCR9_num,
                    denominators = NCR9_den,
@@ -2603,7 +2602,6 @@ if (nrow(spc_filtered_data) < 2) {
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
                                     date_format_year = "YY"))
-  NCR9_spc
 }
 ```
 
@@ -2613,7 +2611,7 @@ if (nrow(spc_filtered_data) < 2) {
 
 ```{r NCR11 Funnel}
 ## Generate the Funnel chart
-NCR11_fpl <- pci_funnel(
+pci_funnel(
   data = pci_data,
   numerator_col = "NCR11_num",
   denominator_col = "NCR11_den",
@@ -2630,7 +2628,6 @@ NCR11_fpl <- pci_funnel(
   ),
   outlier_settings = list(improvement_direction = "increase", three_sigma = TRUE)
 )
-NCR11_fpl
 ```
 
 ## SPC
@@ -2653,7 +2650,7 @@ spc_filtered_data <- preaggregate_spc_counts(spc_filtered_data, numerator_col = 
 if (nrow(spc_filtered_data) < 2) {
   cat("Not enough eligible data to generate the SPC chart for dual antiplatelet therapy at discharge.")
 } else {
-  NCR11_spc <- controlcharts::spc(data = spc_filtered_data,
+  controlcharts::spc(data = spc_filtered_data,
                    keys = period_end,
                    numerators = NCR11_num,
                    denominators = NCR11_den,
@@ -2671,7 +2668,6 @@ if (nrow(spc_filtered_data) < 2) {
                    date_settings = list(date_format_day = "(blank)",
                                     date_format_month = "Mon",
                                     date_format_year = "YY"))
-  NCR11_spc
 }
 ```
 
