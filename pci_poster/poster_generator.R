@@ -144,7 +144,9 @@ indicator_mapping <- c(
   # "NCR9"    = "ph_meds_lipid",             # Lipid Lowering Therapy (Unused)
   "NCR10"   = "ph_crehab",                   # Map Referrals to cardiac rehab
   "NCR11"   = "ph_disch_meds_dapt",          # Map DAPT
-  "VOL_PCI" = "ph_pci_count"                 # Map Volume
+  "VOL_PCI" = "ph_pci_count",                # Map Volume
+  "Q2101"   = "ph_stemi",                    # Map STEMI
+  "Q2100"   = "ph_radial"                    # Map Radial
 )
 
 # Metric Types (Default is Percentage)
