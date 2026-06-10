@@ -133,15 +133,9 @@ poster_summary_data <- ncr_data %>%
 # Note: Current mapping target is the standard NCR template slots.
 
 indicator_mapping <- c(
-  # "NCR1"    = "ph_ecg_to_reperfusion",     # Time from ECG to Reperfusion
   "NCR2"    = "ph_door_to_reperfusion", # Map Door-to-PCI
-  # "NCR3"    = "ph_stroke",                 # Peri-PCI Stroke (Unused)
   "NCR4"    = "ph_ihbl", # Map Bleeding
-  # "NCR5"    = "ph_mort_hosp",              # In-hospital Mortality (Unused)
-  # "NCR6"    = "ph_readmit_30",             # Readmission (Unused)
-  # "NCR7"    = "ph_revasc_30",              # Unplanned Revascularisation (Unused)
   "NCR8"    = "ph_mort30r", # Map Mortality (30 days)
-  # "NCR9"    = "ph_meds_lipid",             # Lipid Lowering Therapy (Unused)
   "NCR10"   = "ph_crehab", # Map Referrals to cardiac rehab
   "NCR11"   = "ph_disch_meds_dapt", # Map Dual Anti-Platelet Therapy (DAPT)
   "VOL_PCI" = "ph_pci_count", # Map Volume
