@@ -32,8 +32,8 @@ if (file.exists(hospitals_file)) {
 } else {
   # Fallback to WA hospitals if file not found
   hospitals <- c(
-    "Royal Perth Hospital", 
-    "Fiona Stanley Hospital", 
+    "Royal Perth Hospital",
+    "Fiona Stanley Hospital",
     "Sir Charles Gairdner Hospital"
   )
   message("hospitals.csv not found - using default WA hospitals")
@@ -52,7 +52,9 @@ indicators <- c(
   "NCR6",   # Readmission
   "NCR8",   # 30-day Mortality
   "NCR10",  # Referral to Cardiac Rehab
-  "NCR11"   # DAPT at Discharge
+  "NCR11",  # DAPT at Discharge
+  "Q2100",  # PCI Radial
+  "Q2101"   # PCI STEMI %
 )
 
 # -----------------------------------------------------------------------------
@@ -66,42 +68,52 @@ data_list <- list()
 
 for (h in hospitals) {
   for (d in as.character(dates)) {
-    
+
     # --- A. Generate Clinical Performance Indicators ---
     for (i in indicators) {
-      
+
       # Logic: Customize ranges to make data look realistic for each metric
       if (i == "NCR2") {
         # Door-to-PCI: High compliance expected (75-95%)
         den <- sample(20:50, 1)
         num <- round(den * runif(1, 0.75, 0.95))
-        
+
       } else if (i == "NCR4") {
         # Bleeding: Low event rate (0-3%)
         den <- sample(20:50, 1)
-        num <- round(den * runif(1, 0.00, 0.03)) 
-        
+        num <- round(den * runif(1, 0.00, 0.03))
+
       } else if (i == "NCR6") {
         # Readmission: Moderate event rate (5-12%)
         den <- sample(80:150, 1)
-        num <- round(den * runif(1, 0.05, 0.12)) 
-        
+        num <- round(den * runif(1, 0.05, 0.12))
+
       } else if (i == "NCR8") {
         # Mortality: Low event rate (1-5%)
         den <- sample(50:150, 1)
-        num <- round(den * runif(1, 0.01, 0.05)) 
-        
+        num <- round(den * runif(1, 0.01, 0.05))
+
       } else if (i == "NCR10") {
         # Cardiac Rehab: Moderate-High compliance (60-85%)
         den <- sample(30:60, 1)
         num <- round(den * runif(1, 0.60, 0.85))
-        
+
       } else if (i == "NCR11") {
         # DAPT: Very High compliance expected (90-100%)
         den <- sample(50:150, 1)
-        num <- round(den * runif(1, 0.90, 1.00)) 
+        num <- round(den * runif(1, 0.90, 1.00))
+
+      } else if (i == "Q2100") {
+        # PCI Radial: Low-moderate event rate (30-50%)
+        den <- sample(50:150, 1)
+        num <- round(den * runif(1, 0.30, 0.50))
+
+      } else if (i == "Q2101") {
+        # PCI STEMI: Moderate-high event rate (60-80%)
+        den <- sample(50:150, 1)
+        num <- round(den * runif(1, 0.60, 0.80))
       }
-      
+
       # Store row
       data_list[[paste(h, d, i)]] <- data.frame(
         hospital_name = h,
@@ -124,8 +136,8 @@ vol_list <- list()
 for (h in hospitals) {
   for (d in as.character(dates)) {
      # Random monthly volume between 150-250 cases
-     vol <- sample(150:250, 1) 
-     
+     vol <- sample(150:250, 1)
+
      vol_list[[paste(h, d)]] <- data.frame(
         hospital_name = h,
         month_end_date = as.Date(d),
