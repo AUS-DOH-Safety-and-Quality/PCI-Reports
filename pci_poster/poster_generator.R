@@ -61,7 +61,7 @@ if (!dir.exists(output_poster_dir)) {
 # -----------------------------------------------------------------------------
 # 2. Data Loading & Indicator Configuration
 # -----------------------------------------------------------------------------
-data_file <- file.path(base_dir, "_files", "cardiac_indicators_summary.xlsx")
+data_file <- here("_files", "cardiac_indicators_summary.xlsx")
 sample_data_file <- file.path(base_dir, "examples", "sample_cardiac_indicators.xlsx")
 indicators_file <- file.path(ref_dir, "indicators.csv")
 
