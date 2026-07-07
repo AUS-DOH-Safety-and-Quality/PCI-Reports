@@ -63,7 +63,7 @@ if (!dir.exists(output_poster_dir)) {
 # -----------------------------------------------------------------------------
 data_file <- here("_files", "cardiac_indicators_summary.xlsx")
 sample_data_file <- file.path(base_dir, "examples", "sample_cardiac_indicators.xlsx")
-indicators_file <- file.path(ref_dir, "indicators.csv")
+indicators_file <- file.path(base_dir, "additional_indicators.csv")
 
 # Check for data file - fallback to sample data if real data not found
 if (!file.exists(data_file)) {
@@ -85,7 +85,7 @@ if (file.exists(indicators_file)) {
   names(ind_desc_df) <- tolower(names(ind_desc_df))
 
   # Create a lookup vector: Indicator ID -> Description (using short description)
-  desc_lookup <- setNames(ind_desc_df$description_short, ind_desc_df$ncr_indicator_number)
+  desc_lookup <- setNames(ind_desc_df$descriptionshort, ind_desc_df$indicator_id)
 } else {
   warning("Indicators reference file not found. Using fallback descriptions.")
   desc_lookup <- c()
