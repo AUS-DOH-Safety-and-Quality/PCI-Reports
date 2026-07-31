@@ -487,6 +487,14 @@ final_summary <- bind_rows(summary_list)
 # Map known HIDs to Names if necessary, or assume HID is the Name
 # The previous scripts used full names. If pci_data has codes, we might need a mapping.
 # For now, we assume raw data has names or we utilize it as is.
+final_summary <- final_summary |>
+  mutate(
+    hospital_name = case_when(
+      hospital_name == 1 ~ "Royal Perth Hospital",
+      hospital_name == 2 ~ "Fiona Stanley Hospital",
+      hospital_name == 3 ~ "Sir Charles Gairdner Hospital",
+    )
+  )
 
 output_summary <- here("_files", "cardiac_indicators_summary.xlsx")
 write_xlsx(final_summary, output_summary)
