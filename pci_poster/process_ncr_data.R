@@ -117,7 +117,7 @@ combine_datetime <- function(date_val, time_val) {
   
   # Attempt combination
   # Paste date and time strings
-  dt_text <- paste(as.character(date_val), as.character(time_val))
+  dt_text <- paste(as.character(date_val), hms::as_hms(time_val))
   # Parse using lubridate (flexible format)
   out <- lubridate::ymd_hms(dt_text, quiet = TRUE)
   
@@ -174,7 +174,7 @@ pci_data <- pci_data %>%
            as.character(acs) == "1" & symptom_to_door <= 0 ~ "1",
            TRUE ~ NA_character_
         ),
-        inp = if_else(!is.na(inp), as.character(inp), inp_derived)
+        inp = inp_derived
     )
 
 # -----------------------------------------------------------------------------
