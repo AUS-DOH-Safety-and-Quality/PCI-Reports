@@ -1,6 +1,8 @@
 # Outputs/temporaries from the render process
 *.html
 *_files/
+!**/reference_files/
+!**/reference_files/**
 *cardiac_poster/_files/
 *.docx
 pci_data.csv
