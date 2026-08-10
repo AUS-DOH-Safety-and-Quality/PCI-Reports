@@ -895,7 +895,9 @@ controlcharts_spc <- function(
     height = 200,
     width = 250,
     xlimit_label = NULL,
-    ylimit_label = NULL
+    ylimit_label = NULL,
+    ylimit_sig_figs = 0,
+    ll_truncate = NULL
 ) {
   # Pre-aggregate data for SPC chart
   data_summary <- data |>
@@ -997,7 +999,8 @@ controlcharts_spc <- function(
     spc_settings = list(
       chart_type = chart_type,
       multiplier = 1,
-      sig_figs = 1
+      sig_figs = 1,
+      ll_truncate = ll_truncate
     ),
     outlier_settings = list(
       process_flag_type = "both",
@@ -1029,7 +1032,7 @@ controlcharts_spc <- function(
       xlimit_label_colour = "#000000"
     ),
     y_axis_settings = list(
-      ylimit_sig_figs = 0,
+      ylimit_sig_figs = ylimit_sig_figs,
       ylimit_l = NULL,
       ylimit_u = NULL,
       ylimit_ticks = TRUE,
@@ -1084,7 +1087,8 @@ controlcharts_funnel <- function(
   width = 250,
   shape = 'Circle',
   xlimit_label = NULL,
-  ylimit_label = NULL
+  ylimit_label = NULL,
+  ylimit_sig_figs = 0
 ) {
   # Pre-aggregate data for SPC chart
   fp_data <- data |>
@@ -1155,9 +1159,7 @@ controlcharts_funnel <- function(
     ),
     scatter_settings = list(
       shape = shape,
-      size = 2.5,
-      colour = "#000000",
-      colour_outline = "#000000"
+      size = 2.5
     ),
     x_axis_settings = list(
       xlimit_ticks = TRUE,
@@ -1172,7 +1174,7 @@ controlcharts_funnel <- function(
       xlimit_label_colour = "#000000"
     ),
     y_axis_settings = list(
-      ylimit_sig_figs = 0,
+      ylimit_sig_figs = ylimit_sig_figs,
       ylimit_l = NULL,
       ylimit_u = NULL,
       ylimit_ticks = TRUE,
