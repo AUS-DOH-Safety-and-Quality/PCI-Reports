@@ -1,10 +1,5 @@
 project:
   type: default
   render:
-    - pci-reports.qmd
+    - pci_clinician_report/pci_clinician_report.qmd
   output-dir: _output
-
-profile:
-  group:
-    - [statewide, hospital, clinician]
-  default: statewide

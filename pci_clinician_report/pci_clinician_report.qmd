@@ -6,10 +6,10 @@ format:
     number-sections: false
     fig-format: svg
 params:
-  target_po: "Sample Clinician"
+  target_po: "Target Clinician"
   period_start: "2023-01-01"
   period_end: "2025-12-31"
-  period_frequency: "quarterly"
+  period_frequency: "monthly"
 knitr:
   opts_chunk:
     dev: "svglite"
@@ -31,16 +31,16 @@ knitr::opts_chunk$set(
 ```
 
 ```{r Data download, include=FALSE}
-if (!file.exists("./pci_data.csv")) {
+if (!file.exists("../pci_data.csv")) {
   stop("NCR dataset not found! Please check that you have a single CSV file named \"pci_data.csv\" in the current directory!",
        call. = FALSE)
 }
 
 #Load in the helper functions/data required
-source("HelperFunctions.R")
+source("../utilities/utilities.R")
 
 #Read in data from PowerBI
-pci_data_raw <- readr::read_csv("./pci_data.csv")
+pci_data_raw <- readr::read_csv("../pci_data.csv")
 # pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
 ```
 
@@ -99,7 +99,7 @@ if (params$period_frequency == "quarterly") {
 <!-- Title Page -->
 
 ::: {custom-style="Title"}
-![](./reference_files/images/crowa_logo_800.png)
+![](../reference_files/images/crowa_logo_800.png)
 :::
 
 ::: {custom-style="Title"}
@@ -449,7 +449,7 @@ p_db | p_pvd
 ```
 
 ::: {custom-style="Normal (Centered)"}
-![](./reference_files/images/ggplot2_bar_point_legend.png)
+![](../reference_files/images/ggplot2_bar_point_legend.png)
 :::
 
 # Procedural Characteristics

@@ -1,3 +1,8 @@
+################################################################################
+## Name: utilities.R
+## Purpose: Helpful utility functions used in the reports
+################################################################################
+
 # Plotting #####################################################################
 # Convert ggplot to plotly object
 print_ggplot <- function(x) {
