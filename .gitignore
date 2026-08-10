@@ -1,10 +1,7 @@
 # Outputs/temporaries from the render process
 *.html
-*_files/
-!**/reference_files/
-!**/reference_files/**
-*cardiac_poster/_files/
 *.docx
+*.pptx
 
 _files/
 _outputs/
@@ -12,8 +9,14 @@ _outputs/
 /.quarto/
 **/*.quarto_ipynb
 
-.Rhistory
+# Specific files
 pci_data.csv
+
+# Exclusions
+!*style_template.docx
+!*poster_template.pptx
+!*rhyl_example.pptx
+!*sample_cardiac_indicators.xlsx
 
 # R session files
 .RData
