@@ -1,0 +1,328 @@
+---
+title: "Hospital Cardiac Poster Generator"
+subtitle: "WA Health - National Cardiac Registry (NCR) Reporting"
+author: "Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)"
+date: last-modified
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    number-sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+# Overview
+
+This project automates the creation of **hospital-specific posters** for sites participating in the National Cardiac Registry (NCR), focusing on Percutaneous Coronary Intervention (PCI) quality indicators. It reads a summary dataset and populates a PowerPoint template using the `officer` package.
+
+**Key Features:**
+
+-   Generates one poster per hospital in your dataset
+-   Dynamically inserts hospital logos or location maps
+-   Displays NCR quality indicators with formatted percentages
+-   Updates date ranges and production timestamps automatically
+
+::: callout-tip
+The more hospitals in your data, the more posters will be generated. Each poster is saved as a separate PowerPoint file.
+:::
+
+## Sample Output
+
+The poster template displays quality indicators prominently with colour-coded percentage values:
+
+![Example Poster (artificially generated data)](images/clipboard-629935011.png){width="296"}
+
+------------------------------------------------------------------------
+
+# The PowerPoint Template
+
+The poster uses `poster_template.pptx` as a base template. The template uses **Slide Master** architecture (not the "Normal" view), which allows for consistent placeholder naming and styling. This makes it muh easier to make edits to the poster.
+
+## Making Changes
+
+1.  Open **`poster_template.pptx`** (in the `pci_poster/` folder)
+2.  Switch views: **View** \> **Slide Master**
+3.  ![](images/clipboard-3150665848.png)
+
+::: callout-note
+Changes made in Slide Master view will apply to all posters generated from this template.
+:::
+
+## Identifying Placeholders (Selection Pane)
+
+To see the specific names of your boxes (which the R script needs to target them):
+
+1.  Stay in **Slide Master** view
+
+2.  On the **Home** ribbon, go to **Select** \> **Selection Pane**
+
+3.  A side panel will list every element on the slide::
+
+    ![](images/clipboard-266710462.png)
+
+Click on a box in the slide to see it highlighted in the list. The name shown is the `ph_label` or `id` used in R. In the code, we reference each placeholder using the same name, prefixed with `ph_` (short for placeholder).
+
+## Adding New Content
+
+::: callout-warning
+**Don't** add a standard "Text Box" from the Insert menu—the automation script cannot easily populate standard text boxes.
+:::
+
+**Instead, use:**
+
+-   **Slide Master** ribbon \> **Insert Placeholder**
+    -   Select **Text** for commentary or titles
+
+    -   Select **Picture** for logos or maps
+
+        ![](images/clipboard-842280073.png)
+
+After drawing the box, rename it in the **Selection Pane** to match the naming convention:
+
+| Placeholder Purpose | Naming Convention       | Example        |
+|---------------------|-------------------------|----------------|
+| Percentage display  | `ph_<indicator_id>_pct` | `ph_ncr4_pct`  |
+| Narrative text      | `ph_<indicator_id>`     | `ph_ncr4`      |
+| Images              | `ph_<purpose>`          | `ph_hosp_logo` |
+
+::: callout-tip
+Use `officer::layout_properties()` in R to double-check available placeholder labels in your template.
+:::
+
+------------------------------------------------------------------------
+
+# Placeholder Reference
+
+The script targets specific placeholders on the slide. If these are deleted, the script will skip them gracefully.
+
+## Header and Footer
+
+| R Variable | Placeholder Label | Description |
+|------------------------|------------------------|------------------------|
+| `hosp_date_range_text` | `ph_hosp_date_range` | Subtitle with hospital name and date range |
+| `report_run_date` | `ph_poster_production_date` | Footer timestamp for when the poster was generated |
+
+## NCR Quality Indicators
+
+The following NCR indicators are mapped to poster placeholders:
+
+| Indicator ID | Description | Placeholder (Pct) | Placeholder (Text) |
+|------------------|------------------|------------------|------------------|
+| `NCR2` | Door-to-PCI Time | `ph_door_to_reperfusion_pct` | `ph_door_to_reperfusion` |
+| `NCR4` | Major Bleeding | `ph_ihbl_pctl` | `ph_ihbl` |
+| `NCR6` | 30-day Readmission | *not shown* | *not shown* |
+| `NCR8` | 30-day Mortality | ph_mort_pct | ph_mort |
+| `NCR9` | Cardiac Rehab Referral | ph_crehab_pct | ph_crehab |
+| `NCR11` | DAPT at Discharge | *not shown* | *not shown* |
+| `VOL_PCI` | PCI Volume Count | `ph_pci_count` | — |
+
+## Logo Placeholder
+
+| Placeholder  | `ph_hosp_logo`                                |
+|--------------|-----------------------------------------------|
+| **Purpose**  | Hospital logo or location map                 |
+| **Fallback** | If no logo exists, a map with pin is inserted |
+
+------------------------------------------------------------------------
+
+# Data Requirements
+
+## Source File
+
+The script expects an Excel file with hospital indicator summary data. By default, this is generated by `setup_data.R` to:
+
+```         
+_files/cardiac_indicators_summary.xlsx
+```
+
+## Required Columns
+
+The following columns must be present:
+
+| Column | Type | Description |
+|------------------------|------------------------|------------------------|
+| `hospital_name` | Text | Exact hospital name (must match logo/map filenames) |
+| `month_end_date` | Date | Reporting month end date |
+| `indicator_id` | Text | NCR indicator code (e.g., `NCR2`, `NCR4`) |
+| `num` | Integer | Numerator value |
+| `den` | Integer | Denominator value |
+
+------------------------------------------------------------------------
+
+# Hospital Logos and Maps
+
+Each poster displays either a hospital logo or a location map in the upper-right corner.
+
+## Logo & Map Priority Logic
+
+1.  **Hospital Logo**: If a `.png` file exists in `hospital_logos/` matching the hospital name, it is used
+2.  **Location Map**: Otherwise, a map from `hospital_specific_maps/` is inserted
+
+## Logo and Map File Naming
+
+Logo and map files must use a **snake_case** version of the hospital name:
+
+| Hospital Name        | Expected Filename                    |
+|----------------------|--------------------------------------|
+| Royal Perth Hospital | `royal_perth_hospital.png` (logo)    |
+| Royal Perth Hospital | `royal_perth_hospital_map.png` (map) |
+
+::: callout-note
+The `map_generator.R` script automatically creates location maps for all hospitals in `reference_files/hospitals.csv`.
+:::
+
+## Map Generation
+
+The `map_generator.R` script:
+
+1.  Reads hospital addresses from `reference_files/hospitals.csv`
+2.  Geocodes locations using OpenStreetMap (Nominatim)
+3.  Caches coordinates in `ncr_geo_cache.csv`
+4.  Generates styled PNG maps with:
+    -   Grey Australia base map (RACS style)
+    -   Blue dots for all participating sites
+    -   Custom pin icon for the focal hospital
+
+![Example map output for Fiona Stanley Hospital](hospital_specific_maps/fiona_stanley_hospital_map.png){width="300"}
+
+------------------------------------------------------------------------
+
+# R Environment
+
+## Required Packages
+
+```{r}
+# Core packages
+library(tidyverse)  # dplyr, readr, lubridate
+library(readxl)     # Excel file reading
+library(officer)    # PowerPoint generation
+library(scales)     # Percentage formatting
+
+# For logo downloader
+library(magick)     # Image processing
+library(here)       # Cross-platform paths
+library(svDialogs)  # File selection dialogs
+
+# For map generator
+library(sf)             # Spatial features
+library(tidygeocoder)   # Geocoding
+library(rnaturalearth)  # Base map data
+library(ggplot2)        # Plotting
+library(ggimage)        # Custom image markers
+```
+
+## Package Notes
+
+| Package | Purpose |
+|------------------------------------|------------------------------------|
+| `here` | Identifies working directory across different user environments |
+| `scales` | Provides `percent()` function for formatting |
+| `svDialogs` | Legacy compatibility for file selection popups |
+
+------------------------------------------------------------------------
+
+# Running the Scripts
+
+::: callout-tip
+## Quick Start - No Data Required!
+The poster generator **works out of the box** with sample data. Just run `source("poster_generator.R")` and it will automatically use the sample dataset in `examples/sample_cardiac_indicators.xlsx` if no real data is present.
+:::
+
+## Step 1: Generate Sample Data (Optional)
+
+If you want to regenerate fresh demo data:
+
+```{r}
+source("setup_dummy_data.R")
+```
+
+This creates `_files/cardiac_indicators_summary.xlsx` with 3 WA hospitals and 12 months of data.
+
+**Note:** The script automatically falls back to `examples/sample_cardiac_indicators.xlsx` if no data exists in `_files/`, so this step is optional for testing.
+
+## Step 2: Generate Location Maps
+
+Maps are already pre-generated for most hospitals. You may only need to run this when new hospitals appear in the dataset.
+
+```{r}
+source("map_generator.R")
+```
+
+Maps are saved to `hospital_specific_maps/`.
+
+## Step 3: Generate Posters
+
+```{r}
+source("poster_generator.R")
+```
+
+The script will:
+
+1.  **Load Template**: Read `poster_template.pptx` and identify available placeholders
+2.  **Load Data**: Read indicator summary from `_files/` (or `examples/` if no real data)
+3.  **Filter Period**: Use the last 3 months of data (configurable)
+4.  **Loop Hospitals**: For each hospital:
+    -   Create a fresh slide from template
+    -   Insert hospital name and date range
+    -   Insert logo or map image
+    -   Insert each indicator value and narrative
+5.  **Save Output**: Export to `_files/posters/<hospital>_pci_poster.pptx`
+
+------------------------------------------------------------------------
+
+# Troubleshooting
+
+## Common Errors
+
+| Error | Cause | Solution |
+|------------------------|------------------------|------------------------|
+| `Column 'hospital_name' not found` | Excel headers don't match expected names | Check for spaces or capital letters in Excel header row |
+| Map pin showing instead of logo | Logo file not found | Ensure `.png` exists in `hospital_logos/` with exact snake_case name |
+| `Permission denied` | Template or output file is open | Close all PowerPoint files before running |
+| Missing indicator text | Placeholder not in template | Add placeholder in Slide Master with correct naming |
+
+## Debugging Tips
+
+Use `officer::layout_properties()` to inspect available placeholders:
+
+```{r}
+library(officer)
+pptx <- read_pptx("poster_template.pptx")
+layout_properties(pptxs)
+```
+
+------------------------------------------------------------------------
+
+# File Structure
+
+```         
+pci_poster/
+├── poster_template.pptx      # PowerPoint template
+├── poster_generator.R        # Main poster generation script
+├── map_generator.R           # Hospital location map creation
+├── setup_dummy_data.R        # Demo data generator
+├── _files/                   # Working data (gitignored)
+│   └── cardiac_indicators_summary.xlsx
+├── examples/                 # Sample data for testing (committed to repo)
+│   └── sample_cardiac_indicators.xlsx
+├── hospital_logos/           # Hospital logo images (.png)
+├── hospital_specific_maps/   # Generated location maps
+├── images/                   # Asset images
+│   └── cardiac_pin.png       # Map marker icon
+├── reference_files/
+│   ├── hospitals.csv         # Hospital address list
+│   ├── indicators.csv        # NCR indicator definitions
+│   └── ncr_geo_cache.csv     # Geocoding cache
+└── _files/posters/           # Generated poster files
+```
+
+------------------------------------------------------------------------
+
+# Further Resources
+
+-   [officer package documentation](https://davidgohel.github.io/officer/)
+-   [WA Health R Coding Standards](https://github.com/AUS-DOH-Safety-and-Quality/HQIU-Coding-Styles)

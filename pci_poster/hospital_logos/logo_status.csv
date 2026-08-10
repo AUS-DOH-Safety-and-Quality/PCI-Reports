@@ -1,0 +1,13 @@
+hospital,domain,country,state_or_region,address,lat,lon,status
+Fiona Stanley Hospital,fsh.health.wa.gov.au,AU,WA,NA,NA,NA,ok
+Royal Perth Hospital,rph.wa.gov.au,AU,WA,NA,NA,NA,missing
+Sir Charles Gairdner Hospital,scgh.health.wa.gov.au,AU,WA,NA,NA,NA,ok
+Gold Coast University Hospital,goldcoast.health.qld.gov.au,AU,QLD,NA,NA,NA,ok
+Logan Hospital,health.qld.gov.au,AU,QLD,NA,NA,NA,ok
+Royal Adelaide Hospital,sahealth.sa.gov.au,AU,SA,NA,NA,NA,ok
+The Alfred Hospital,alfredhealth.org.au,AU,VIC,NA,NA,NA,ok
+Royal Melbourne Hospital,theroyalmelbourne.org.au,AU,VIC,NA,NA,NA,missing
+St Vincent's Hospital Melbourne,svhm.org.au,AU,VIC,NA,NA,NA,ok
+Austin Health,austin.org.au,AU,VIC,NA,NA,NA,ok
+Flinders Medical Centre,sahealth.sa.gov.au,AU,SA,NA,NA,NA,ok
+Auckland City Hospital,adhb.health.nz,NZ,Tāmaki Makaurau,NA,NA,NA,missing
