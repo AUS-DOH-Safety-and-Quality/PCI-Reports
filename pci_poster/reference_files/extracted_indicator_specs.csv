@@ -1,0 +1,260 @@
+NCR Indicator #,PCI Clinical Quality Indicators as set by the NCR,Description,Rationale,WA Rationale,Numerator,Denominator,Method of Calculation,Exclusions,Sources of Data,Data items required for indicator,Data items currently collected & source,NCR Variables not yet collected,Data items requiring definition/clarification as appropriate data items for indicator,Data items not currently collected /on NCR data item list -  may be  required for indicator,Queries,Additional information/comments,...18,...19,...20,...21,...22,...23,...24,...25,...26,...27,...28,...29,...30,...31,...32,...33,...34,...35,...36,...37,...38
+NCR1,Time from diagnostic ECG to PCI mediated reperfusion.,"For STEMI patients, the time from diagnostic ECG to first  balloon  inflation or (where guidewire or device prevented from crossing by lesion) the time the guide catheter was introduced.",The aim of reperfusion is the timely restoration of coronary flow.  Primary PCI is preferred for reperfusion therapy in patients with STEMI if it can be performed within 90 minutes of first medical contact (diagnosis)2.,"The rationale for measuring this indicator is based on the principle of ""time is muscle,"" which refers to the fact that the longer it takes to restore blood flow to the heart during a heart attack, the more damage is done to the heart muscle.
+
+In cases of STEMI, rapid restoration of blood flow is crucial to limit the size of the infarcted area and prevent further damage to the heart. Guidelines recommend that patients with STEMI undergo PCI within 90 minutes of their first medical contact, or within 120 minutes if they need to be transferred to a PCI-capable hospital. Measuring the time from diagnostic ECG to PCI-mediated reperfusion allows hospitals to evaluate how quickly they are able to provide this life-saving treatment to their patients and identify areas for improvement in their processes of care",NA,NA,Time of balloon inflation (minutes) - time of diagnostic ECG (minutes),Non-STEMI patients,"Cardiobase
+Risk module","*acst
+*tbd (balloon device time)
+*dbd (balloon device date)
+*decgd (Date of diagnostic ECG)
+*tecgd (Time of diagnostic ECG) 
+*ecgdb","*Date/Time first balloon inflation (Cardiobase)
+*First ECG date/time
+*Activation time
+*Test date/time","* fmctr [FMC to reperfusion (mins)]
+*fmctecg (FMC to diagnostic ECG [mins] )
+*sor [Symptom onset to reperfusion (mins)]
+*dbdt (door to balloon device time (mins))","*fmctecg [FMC to diagnostic ECG [mins] (Cardiobase)]
+*ecgdb [Diagnostic ECG to balloon time (mins)](Cardiobase)
+*sor (Symptom onset to reperfusion)
+*fmctr [FMC to reperfusion (mins)]
+*tvr30_1,tvr30_2, tvr30_3, tvr30_4, tvr30_5 [Target vessel revascularisation (PCI) 1 - 5]
+*tlr30_1, tlr30_2,tlr30_3, tlr30_4, tlr30_5 [Target lesion revascularisation (TLR) 1-5]",Time of PCI mediated reperfusion,"*For multiple vessel reperfusion, what do we count as 'time to PCI mediated reperfusion'?  Is the data item 'Diagnostic ECG to balloon time [mins] recorded for each vessel reperfusion?  If so, do we add all mins for a total reperfusion time?
+
+*Does Diagnostic ECG to balloon time [mins] = Time from diagnostic ECG  to ' PCI mediated perfusion""? 
+
+Which measure if/or when to use in relation to this indicator? - Target vessel revascularisation and/or Target lesion revascularisation;  
+
+Is coronary flow time a better data item to use for this indicator as that is the rationale?
+
+*Exclusions - are there any cases that we need to exclude from denominator? e.g.  Failed attempts to revascularize target lesion where there was unsuccessful implantation of stent or balloon angioplasty (In-hospital target lesion revascularisation (responses 0 = No)","Revascularization therapy is distinct from reperfusion therapy. Revascularisation takes place in non-ST-elevation or ST-elevation ACS, while reperfusion is employed only for ST-elevation myocardial infarction.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR2,Time from door to PCI mediated reperfusion,The time from the patient's presentation to the PCI room and completed reperfusion via coronary intervention.,Reperfusion treatment for patients with STEMI is time critical and excessive delays can have serious adverse impacts on patient outcomes.,"The rationale for measuring this indicator is that it reflects the time it takes for patients to receive appropriate treatment from the time they arrive at the hospital, and can help to identify delays in the care process that may impact patient outcomes.
+
+Delays in the care process can occur at multiple stages, such as delays in recognizing symptoms, transport to the hospital, triage in the emergency department, and activation of the cardiac catheterization team. Guidelines recommend that patients with STEMI receive primary PCI within 90 minutes of arriving at the hospital, or within 120 minutes if they need to be transferred to a PCI-capable hospital.
+
+Measuring the time from door to PCI-mediated reperfusion allows hospitals to evaluate how quickly they are able to provide this life-saving treatment to their patients and identify areas for improvement in their processes of care. This indicator can also be useful for tracking changes over time and comparing performance across different hospitals or healthcare systems.
+
+It is important to note, however, that this indicator should be used in conjunction with other measures of quality of care for PCI, such as procedural success rates, complication rates, and long-term outcomes for patients.",NA,NA,Time of restored flow (minutes) - Time of arrival at PCI lab(minutes).,Non-STEMI patients,Risk module Cardiobase,"*tbd (balloon device time)
+*dbd (balloon device date)
+*doa (Date of arrival at PCI Hospital)
+*toa (Time of arrival at PCI Hospital)","*First balloon inflation date/time (Cardiobase)
+*Activation date/time (Cardiobase)
+*Principal Procedure (HMDS)
+*dop (PCI procedure date - Cardiobase)
+*top (PCI procedure time - Cardiobase) 
+","*dbdt [Door to balloon/ device time (mins)]
+*fmctd [FMC to door (mins)]
+*doa [Date of arrival at PCI hospital ]","*dop [PCI Procedure date]
+*top [PCI Procedure time]
+*dbdt [Door to balloon/ device time (mins)]
+*fmctd [FMC to door (mins)]
+*doa [Date of arrival at PCI hospital]",*Time from door to PCI mediated reperfusion,"From Door - what is the definition:?  Is it time of arrival at PCI hospital, is it activation time, is it arrival at Cath lab for PCI or is it test time? 
+Is reperfusion time when coronary flow has been restored?  When balloon is inflated?",Not relevant to in-hospital events,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR3,Peri-PCI stroke,The rate of stroke for patients undergoing Percutaneous Coronary Intervention (PCI) within the same episode of care.,To indicate whether a new stroke has occurred during or after the PCI prior to discharge.,"Peri-PCI stroke is a potential complication of percutaneous coronary intervention (PCI) and refers to a stroke that occurs during or immediately after the procedure. The rationale for measuring the rate of peri-PCI stroke is to assess the safety of the procedure and to identify areas for improvement in preventing this serious complication.
+
+PCI is a common procedure for treating coronary artery disease, but it carries a small risk of stroke. Factors that may increase the risk of peri-PCI stroke include advanced age, previous stroke or transient ischemic attack, high blood pressure, diabetes, and complex or lengthy procedures.
+
+Measuring the rate of peri-PCI stroke can help hospitals and healthcare systems to monitor the safety of their PCI procedures and identify any factors that may be contributing to an increased risk of stroke. This indicator can also be used to compare performance across different hospitals or healthcare systems, and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of peri-PCI stroke.
+
+It is important to note that while the rate of peri-PCI stroke is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients.",Number of patients in the denominator who had a stroke during or after the PCI,All patients undergoing PCI during the selected observation period,"Crude rate: (numerator / denominator) x 100
+? Adjust for sex, age, diabetes with complications, heart failure/pulmonary oedema, cardiac dysrhythmia, shock, PIC and cardiac surgery (CABG and/or valve surgery) in same episode of care, previous cerebral vascular discase, previous AMI, STEMI and unstable angina",Stroke symptoms (neurological deficits) not persisting for > 72 hours during the episode to be excluded,"NaCs
+Cardiobase","*dop (PCI procedure date)
+*top (PCI procedure time)
+*ihstr (In-hospital stroke)","*In-hospital stroke, 0=No, 1 = Yes, (NaCs)
+*In-hospital stroke type 1: Haemorrhagic, 2: Ischaemic, 3: Unknown, (NaCs)* Test date / time (Cardiobase)","*ihstr [In-hospital stroke]
+*ihstrt [In-hospital stroke type]
+*nstr [New stroke]
+*nstrt [New stroke type]","Indication - is this sufficient to account for stroke diagnosis?  If so, what indications to include?",NA,NA,Has been added to the non-Wacor Cardiovascular dashboard as a feature request.,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR4,In-hospital major bleeding,In-hospital major bleeding during or immediately after an admission for PCI,"May indicate unintentional misadventure has occurred during the procedure, exacerbation or other cause of major bleed.","The rationale for measuring the rate of in-hospital major bleeding is to assess the safety of the procedure and to identify areas for improvement in preventing this serious complication.
+
+PCI involves the insertion of a catheter into the artery, which can damage the blood vessel and cause bleeding. Factors that may increase the risk of in-hospital major bleeding include advanced age, female gender, previous history of bleeding or anaemia, renal insufficiency, and use of anticoagulant or antiplatelet medications.
+
+Measuring the rate of in-hospital major bleeding can help hospitals and healthcare systems to monitor the safety of their PCI procedures and identify any factors that may be contributing to an increased risk of bleeding. This indicator can also be used to compare performance across different hospitals or healthcare systems, and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of in-hospital major bleeding.
+
+It is important to note that while the rate of in-hospital major bleeding is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients.",Number of patients in the denominator who had a major bleed during or after the PCI,All patients undergoing PCI during the selected observation period,Crude rate:( numerator / denominator) x 100,Bleeding or haemorrhage not meeting the 'major bleed ' definition ????,"Cardiobase
+Risk module
+HMDS diagnosis codes for major  haemorrhage","*ihbl [In-hospital bleeding (NaCs)]
+*ihblsite [In-hospital bleeding site (NaCs)]","*ihbl [In-hospital bleeding (Types 0-5b), (NaCs)]
+*ihblsite [In-hospital bleeding site (1: Retroperitoneal, 2: Percutaneous entry site, 3: Gastrointestinal tract, 4: Cerebral, 5: Genital/Urinary, 6: Other. (NaCs)]","*ihbl [In-hospital bleeding]
+*ihblsite [In-hospital bleeding site]",NA,NA,"What is defined as 'major bleeding' ? E.g. - anything type 2-5b i.e. excluding  type 0 - no bleedings, type 1 - bleeding that is not actionable and does not cause the patient to seek treatment.",Has been added to the non-Wacor Cardiovascular dashboard as a feature request.,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR5,In-hospital mortality,In-hospital deaths for patient admitted for PCI.,A measure of risk of PCI procedures,"In-hospital mortality is a crucial outcome measure for patients undergoing percutaneous coronary intervention (PCI) and refers to death occurring during the hospitalization for the procedure. The rationale for measuring the rate of in-hospital mortality is to evaluate the effectiveness of PCI procedures and to identify areas for improvement in patient care and outcomes.
+
+PCI is a common procedure for treating coronary artery disease, but it carries a small risk of complications, including death. Factors that may increase the risk of in-hospital mortality include advanced age, heart failure, diabetes, and severe coronary artery disease.
+
+Measuring the rate of in-hospital mortality allows hospitals and healthcare systems to monitor the effectiveness of their PCI procedures and identify any factors that may be contributing to an increased risk of mortality. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of in-hospital mortality.
+
+It is important to note that while the rate of in-hospital mortality is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients. Additionally, it is essential to consider the severity of illness and comorbidities of the patient population undergoing PCI, as these factors can significantly influence the rate of in-hospital mortality.
+
+
+
+
+",Number of PCI patients who deceased in hospital during the same PCI admission during the refence period.,Total number of PCI inpatients in the reference period.,Crude rate: Numerator / denominator x 100,"Exclude transfers to other hospitals; 
+Exclude deaths for admissions not for PCI","HMDS
+Cardiobase","*dmort30 (Date of death)
+*dis (Discharge status)
+*dop (PCI procedure date)
+
+","* Procedure end date / time
+* Discharged to (0912, 0914) - (HMDS)
+* Mode of Separation (8- Deceased) (HMDS)
+* Discharge status, 6: Hospital mortality, (NaCs)
+* dmort30 [Date of Death (Births, Deaths, Marriages)]
+*Admission date (HMDS)
+*Admission time (HMDS)
+*Separation date (HMDS)
+*Separation time (HMDS)","*Date of Discharge / mortality 
+* dmort30 [Date of death]
+* mortc [Primary cause of death]",NA,NA,NA,"Incorrect: Given there is a lag in death data, this indicator will be delayed for possibly up to 3- 6months. 
+
+Has been added to the non-Wacor Cardiovascular dashboard as a feature request.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR6,30 day unplanned cardiac readmission rate after PCI,The rate of unplanned cardiac readmissions within 30 days of percutaneous coronary intervention being performed.,30-day readmission could be suggestive of procedure related adverse outcomes and needs to be differentiated from planned readmissions for PCI or CABG.,"The rationale for measuring this indicator is to evaluate the effectiveness of PCI procedures and to identify areas for improvement in patient care and outcomes.
+
+PCI is a common procedure for treating coronary artery disease, but it can be associated with complications that may result in unplanned hospital readmissions. Factors that may increase the risk of unplanned cardiac readmission after PCI include the presence of comorbidities, medication non-adherence, and lack of follow-up care.
+
+Measuring the 30-day unplanned cardiac readmission rate allows hospitals and healthcare systems to monitor the effectiveness of their PCI procedures and identify any factors that may be contributing to an increased risk of readmission. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of unplanned cardiac readmissions.
+
+It is important to note that while the 30-day unplanned cardiac readmission rate is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients. Additionally, it is important to consider the reasons for readmission and to distinguish between planned and unplanned readmissions, as planned readmissions may be necessary for ongoing management of the patient's condition.",Number of patients in the denominator who experience an urgent readmission to any hospital on or before the 30th day following the date of discharge from the index PCI procedure.,All patients undergoing PCI who were discharged alive after the index PCI.,Crude rate:( numerator / denominator) x 100,"exclude non-cardiac readmissions
+exclude cardiac readmissions >30 from admission for PCI
+? Count only once if multiple cardiac re-admissions in 30 day period from PCI","HMDS
+Cardiobase","*dop (PCI procedure date)
+*top (PCI procedure time)
+*dis (Discharge status)
+*crh30_1 [Cardiac rehospitalisation 1]
+*pci30_1 [PCI rehospitalisation 1]
+*pc30_1 [Planned cardiac rehospitalisation 1]","*dop (PCI procedure date - Cardiobase)
+*top (PCI procedure time - Cardiobase)
+*Admission date (HMDS)
+*Admission time (HMDS)
+*Planned subsequent PCI (NaCs)","* crh30_1, crh30_2, crh30_3, crh30_4, crh30_5 [Cardiac rehospitalisation 1-5]
+* pc30_1, pc30_2, pc30_3, pc30_4, pc30_5 [Planned cardiac rehospitalisation 1-5]
+*pci30_1, pci30_2, pci30_3, pci30_4, pci30_5 [PCI rehospitalisation 1-5]","Which or all of these data items are appropriate for this indicator - to ascertain exclusions/inclusions?
+
+* crh30_1, crh30_2, crh30_3, crh30_4, crh30_5 [Cardiac rehospitalisation 1-5]
+* pc30_1, pc30_2, pc30_3, pc30_4, pc30_5 [Planned cardiac rehospitalisation 1-5]
+*pci30_1, pci30_2, pci30_3, pci30_4, pci30_5 [PCI rehospitalisation 1-5]",NA,"Would cardiac rehospitalisation be more appropriate for this indicator as it is any cardiac reason for readmission?  Would planned cardiac rehospitalisation enable exclusion of patients for this indicator?
+Would PCI rehospitalisation similarly be included for this indicator - would it be already counted in 'cardiac rehospitalisation'?",Has been added to the non-Wacor Cardiovascular dashboard as a feature request.,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR7,Unplanned revascularisation within 30 days,The rate of unplanned readmission for revascularisation within 30 days of PCI admission,May indicate previous revascularisation was unsuccessful and required repeat procedure.,"Unplanned revascularization within 30 days is an important outcome measure for patients undergoing percutaneous coronary intervention (PCI) and refers to the need for additional revascularization procedures within 30 days of the initial procedure. The rationale for measuring this indicator is to evaluate the effectiveness of PCI procedures and to identify areas for improvement in patient care and outcomes.
+
+PCI is a common procedure for treating coronary artery disease, but it can be associated with restenosis or recurrence of the blockage, requiring further intervention. Factors that may increase the risk of unplanned revascularization after PCI include the presence of comorbidities, inadequate stent deployment, and suboptimal medical therapy.
+
+Measuring the rate of unplanned revascularization within 30 days allows hospitals and healthcare systems to monitor the effectiveness of their PCI procedures and identify any factors that may be contributing to an increased risk of revascularization. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of unplanned revascularization.
+
+It is important to note that while the rate of unplanned revascularization within 30 days is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients. Additionally, it is important to consider the reasons for revascularization and to distinguish between planned and unplanned revascularization, as planned revascularization may be necessary for ongoing management of the patient's condition.",Number of patients who were readmitted within 30 days of last PCI admission,All patients who underwent PCI within the reference period.,Crude rate:( numerator / denominator) x 100,"all planned / booked revascularisation procedures  (HMDS - Readmission status)
+Non-STEMI patients",Cardiobase,"*tvr30_1 [target vessel revascularisation (PCI) 1]
+*tlr30_1 [target lesion revascularisation (TLR) 1]
+*ihtlr [in-hospital target lesion revascularisation]",?Current data items that show revascularisation,"*tvr30_1. tvr30_2, tvr30_3, tr30_4, tvr30_5 [target vessel revascularisation (PCI) 1-5]
+*tlr30_1, tlr30_2, tlr30_3, tlr30_4, tlr30_5 target lesion revascularisation (TLR) 1-5] target vessel revascularisation (PCI) 1-5
+* intlr [In hospital target lesion revascularisation]
+","Which or all of these data items are appropriate for this indicator?
+*tvr30_1. tvr30_2, tvr30_3, tr30_4, tvr30_5 [target vessel revascularisation (PCI) 1-5]
+*tlr30_1, tlr30_2, tlr30_3, tlr30_4, tlr30_5 target lesion revascularisation (TLR) 1-5] target vessel revascularisation (PCI) 1-5
+* intlr [In hospital target lesion revascularisation]",NA,Which target lesion/vessel revascularisation data item would be most appropriate - or are all?  Does in-hospital target lesion revascularisation get counted in target lesion revascularisation?,"Revascularisation - any procedure performed to restore luminal patency after there has been late luminal loss attributable to ISR.
+
+Has been added to the non-Wacor Cardiovascular dashboard as a feature request.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR8,30 day mortality after PCI,The 30-day all-cause mortality for adult patients undergoing Percutaneous Coronary Intervention (PCI),May indicate higher risk vs benefits of PCI procedures for some higher risk patients,"The 30-day mortality rate after percutaneous coronary intervention (PCI) is an important outcome measure for patients undergoing the procedure. The rationale for measuring this indicator is to evaluate the safety and effectiveness of PCI procedures and to identify areas for improvement in patient care and outcomes.
+
+PCI is a common procedure for treating coronary artery disease, but it carries a small risk of complications, including death. Factors that may increase the risk of mortality after PCI include advanced age, heart failure, diabetes, and severe coronary artery disease.
+
+Measuring the 30-day mortality rate allows hospitals and healthcare systems to monitor the safety and effectiveness of their PCI procedures and identify any factors that may be contributing to an increased risk of mortality. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at reducing the incidence of mortality after PCI.
+
+It is important to note that while the 30-day mortality rate is an important measure of quality of care, it should be interpreted in the context of other measures of PCI safety and effectiveness, such as procedural success rates, complication rates, and long-term outcomes for patients. Additionally, it is essential to consider the severity of illness and comorbidities of the patient population undergoing PCI, as these factors can significantly influence the rate of 30-day mortality after the procedure.","The number of patients in the denominator who died during the 30 days after the procedure including: 1: All deaths occurring during hospitalisation in which the procedure was performed and up to 30 days, 2: deaths occurring after discharge from hospital within 30 days of the procedure",All patients undergoing PCI during the selected observation period,Crude rate:( numerator / denominator) x 100,Mortality > 30days post PCI procedure,Hospital Morbidity Data Collection; Cardiobase; NaCs,"*dop (PCI procedure date)
+*top (PCI procedure time)
+*stat30 (Status 30 days from discharge)
+","*Discharged to 0912, 0914 (HMDS)
+*Mode of Separation =8 (deceased) (HMDS)
+*Discharge status & Hospital mortality (NaCs)
+*dmort30 [Date of Death (Births, Deaths, Marriages)]
+","* dmort30 [Date of death]
+* mortc [Primary cause of death]",NA,NA,NA,Already completed in the non-wacor cardiovascular dashboard.,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR9,Patients without contraindication discharged on lipid-lowering therapy,Proportion of patients with a final diagnosis of ACS who are prescribed lipid lowering therapy at hospital discharge.,"Lowering lipid levels is an effective primary and secondary prevention treatment for vascular events, including stroke1.","The rationale for measuring this indicator is to ensure that eligible patients are receiving appropriate secondary prevention therapy to reduce the risk of future cardiovascular events.
+
+Lipid-lowering therapy, such as statins, is a recommended therapy for patients with ACS to reduce the risk of recurrent events. According to the Australian Clinical Care Standards for ACS, all patients with ACS should receive lipid-lowering therapy, unless there are contraindications such as allergy, intolerance, or liver disease.
+
+Measuring the proportion of patients without contraindication who are discharged on LLT allows hospitals and healthcare systems to monitor the implementation of the ACS clinical care standard and identify any barriers to the implementation of this therapy. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at increasing the proportion of eligible patients receiving LLT.
+
+It is important to note that while the proportion of patients without contraindication discharged on LLT is an important measure of quality of care, it should be interpreted in the context of other measures of ACS care, such as timely revascularization, appropriate use of antithrombotic therapy, and provision of cardiac rehabilitation.",Total number of patients with a diagnosis of ACS who are prescribed a statin or other lipid lowering therapy at hospital discharge.,Total number of patients with a final diagnosis of ACS who are discharged from hospital,Crude rate:( numerator / denominator) x 100,Patients with documented contraindications for lipid lowering therapy i.e. advanced care directive,NaCs,"*dop (PCI procedure date)
+*top (PCI procedure time)
+*dstp (Statin prescribed at discharge)
+*doll (Other lipid lowering therapies prescribed at discharge)
+*acs (Acute coronary syndrome)","*Prescribed therapies - NaCs
+*Principal or additional diagnoses (HMDS)
+*dop (PCI procedure date -Cardiobase, HMDS)
+*top (PCI procedure time - Cardiobase) 
+","*dstp [Statin prescribed at discharge (? pharmacy)]
+*doll {Other lipid lowering therapies prescribed at discharge (? pharmacy)]",NA,NA,How & where will contraindications be recorded so cases can be excluded? Contraindications - is there to be a set list to include in this indicator.  What contraindications are excluded?,"
+Has been added to the non-Wacor Cardiovascular dashboard as a feature request.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR10,Patients referred to cardiac rehabilitation or other secondary prevention program,Proportion of patients with documented referral prior to discharge to a cardiac rehabilitation or alternative secondary prevention program,Cardiac rehabilitation or other secondary prevention programs are recommended to reduce risk of subsequent cardiac events.  All patients with cardiovascular disease should have access to and be actively referred to comprehensive ongoing prevention and cardiac rehabilitation services.,"The rationale for measuring this indicator is to ensure that eligible patients are receiving appropriate secondary prevention therapy and support to reduce the risk of future cardiovascular events.
+
+Cardiac rehabilitation is a recommended therapy for patients with ACS to reduce the risk of recurrent events and improve overall cardiovascular health. According to the Australian Clinical Care Standards for ACS, all patients with ACS should be referred to a cardiac rehabilitation program or other secondary prevention program, unless there are contraindications such as severe comorbidities or patient refusal.
+
+Measuring the proportion of patients referred to cardiac rehabilitation or other secondary prevention program allows hospitals and healthcare systems to monitor the implementation of the ACS clinical care standard and identify any barriers to the implementation of this therapy. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at increasing the proportion of eligible patients referred to these programs.
+
+It is important to note that while the proportion of patients referred to cardiac rehabilitation or other secondary prevention program is an important measure of quality of care, it should be interpreted in the context of other measures of ACS care, such as timely revascularization, appropriate use of antithrombotic therapy, and provision of lipid-lowering therapy.",Total number of patients with a diagnosis of ACS with a documented referral prior to discharge to a cardiac rehabilitation or an alternative secondary prevention program.,Total number of patients with a final diagnosis of ACS who are discharged from hospital,Crude rate:( numerator / denominator) x 100,"Patients for who cardiac rehabilitation or other secondary prevention program are contraindicated and for whom the contraindication is documented.
+Contraindications for cardiac rehabilitation and other secondary prevention programs may include advanced care directives, being on a palliative care pathway, and clinical judgement, subject to discussion with patients, family and carers.",NaCs,"*dop (PCI procedure date)
+*top (PCI procedure time)
+*crehab [Cardiac rehab referral (1=Yes)]
+*acs (Acute coronary syndrome)","*Test date/ test time (Cardiobase)
+*Separation date (HMDS)
+*Separation time (HMDS)
+","* crehab [Cardiac rehab referral (0-No, 1- Yes, -1 Unknown)]",NA,NA,What constitutes cardiac rehabilitation program or secondary prevention program ? Should there be a list of included approved programs?  Other secondary prevention programs - will they be counted in the data item -'cardiac rehab referral' [given it isn't named in the data item?],NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NCR11,"Proportion of patients without a clear and documented contraindication for aspirin and/or a P2Y12 inhibitor, discharged on DAPT",Proportion of discharged patients on dual antiplatelet therapy (DAPT) with no clear documented contraindication for aspirin or P2Y12 inhibitor.,"ACS patients on aspirin and dual antiplatelet therapies have a reduced risk of secondary cardiac events.
+ACS patients on aspirin and dual antiplatelet therapies have a reduced risk of secondary cardiac events. The Guidelines for the management of acute coronary syndromes 2006 (Acute Coronary Syndrome Guidelines Working Group 2006) recommend that, before separation, patients with an ACS should be initiated on a medication regimen, including antiplatelet agent(s), beta-blocker, angiotensin-converting enzyme inhibitor, statin and other therapies as appropriate.","The rationale for measuring this indicator is to ensure that eligible patients are receiving appropriate secondary prevention therapy to reduce the risk of future cardiovascular events.
+
+DAPT refers to the use of aspirin and a P2Y12 inhibitor, such as clopidogrel or ticagrelor, to reduce the risk of recurrent cardiovascular events after an ACS event. According to the Australian Clinical Care Standards for ACS, all patients with ACS who are not at high bleeding risk should receive DAPT, unless there are contraindications such as allergy, intolerance, or high bleeding risk.
+
+Measuring the proportion of patients without a clear and documented contraindication for aspirin and/or a P2Y12 inhibitor, discharged on DAPT, allows hospitals and healthcare systems to monitor the implementation of the ACS clinical care standard and identify any barriers to the implementation of this therapy. This indicator can also be used to compare performance across different hospitals or healthcare systems and to evaluate the effectiveness of quality improvement initiatives aimed at increasing the proportion of eligible patients receiving DAPT.
+
+It is important to note that while the proportion of patients without a clear and documented contraindication discharged on DAPT is an important measure of quality of care, it should be interpreted in the context of other measures of ACS care, such as timely revascularization, appropriate use of antithrombotic therapy, and provision of cardiac rehabilitation.",Total number of patients with a diagnosis of ACS who are prescribed aspirin or other dual antiplatelet therapy on hospital discharge,Total number of patients with a final diagnosis of ACS who are discharged from hospital,Crude rate:( numerator / denominator) x 100,"ACS patients with documented contraindications documented for aspirin or other antiplatelet drugs.  Reasons may include advanced care directives, being on a palliative care pathway and other clinical decisions and patient family carer preferences.  
+Additional exclusion are patients already on aspirin prior to discharge.",NaCs,"*doap (Other antiplatelet prescribed at discharge)
+*dasp (Aspirin prescribed at discharge)
+*acs (Acute coronary syndrome)","*Principal diagnosis (HMDS)
+*Additional Diagnoses (HMDS)","*Acute coronary syndrome
+*dstp [Statin prescribed at discharge]
+*doap [Other antiplatelet prescribed at discharge]
+*dasp [Aspirin prescribed at discharge (0=no)]
+*acs [Acute coronary syndrome (1=Yes)]","Indication - is this sufficient to account for ACS diagnosis?  If so, what indications to include besides Acute Coronary Syndrome?",NA,Dual antiplatelet therapy  = ? what combinations does this include / definition.,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,"1. Amarenco P, Bogousslavsky J, Callahan III A, et al. High-dose atorvastatin after stroke or transient ischemic attack. New England Journal of Medicine. 2006;355(6):549–559.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,"2. National Heart Foundation of Australia & Cardiac Society of Australia and New Zealand: Australian Clinical Guidelines for the Management of Acute Coronary Syndromes 2016. Heart, Lung and Circulation, 25(2016) pp895-951.",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,"=IF(COUNTIF('NCR Indicators'!K:'NCR Indicators'!C2K,""*""&[@[field_id]]&""*"")>=1,""Yes"",""No"")"

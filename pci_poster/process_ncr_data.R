@@ -60,6 +60,7 @@ generate_dummy_data <- function() {
     acs = sample(c(0, 1), n_rows, replace=TRUE, prob=c(0.3, 0.7)),
     acst = sample(c("1", "2", "3"), n_rows, replace=TRUE), # 1=UA, 2=NSTEMI, 3=STEMI
     pci = sample(c(0, 1), n_rows, replace=TRUE, prob=c(0.1, 0.9)),
+    pel = sample(c("1", "2", "3"), n_rows, replace=TRUE, prob=c(0.3, 0.6, 0.1)),
     inp = sample(c("0", "1", NA), n_rows, replace=TRUE, prob=c(0.7, 0.2, 0.1)),
     iht = sample(c(0, 1), n_rows, replace=TRUE, prob=c(0.9, 0.1)),
     # Outcomes
@@ -116,7 +117,7 @@ combine_datetime <- function(date_val, time_val) {
   
   # Attempt combination
   # Paste date and time strings
-  dt_text <- paste(as.character(date_val), as.character(time_val))
+  dt_text <- paste(as.character(date_val), hms::as_hms(time_val))
   # Parse using lubridate (flexible format)
   out <- lubridate::ymd_hms(dt_text, quiet = TRUE)
   
@@ -173,7 +174,7 @@ pci_data <- pci_data %>%
            as.character(acs) == "1" & symptom_to_door <= 0 ~ "1",
            TRUE ~ NA_character_
         ),
-        inp = if_else(!is.na(inp), as.character(inp), inp_derived)
+        inp = inp_derived
     )
 
 # -----------------------------------------------------------------------------
@@ -376,6 +377,37 @@ apply_indicator_logic <- function(data) {
             NCR11_eligible == 0 ~ "Excluded",
             NCR11_outcome == 1 ~ "Pass", # On DAPT = Good
             TRUE ~ "Fail"
+        ),
+
+        # --- Q2100: Proportion of Radial Access ---
+        Q2100_eligible = if_else(as.character(pci) == "1" & !is.na(pel), 1, 0, missing=0),
+        Q2100_outcome  = if_else(Q2100_eligible == 1 & as.character(pel) == "2", 1, 0, missing=0),
+        
+        Q2100_exclusion = if_else(Q2100_eligible == 0, "Missing Info / Non-PCI", NA_character_),
+        Q2100_status    = case_when(
+            Q2100_eligible == 0 ~ "Excluded",
+            Q2100_outcome == 1 ~ "Pass", 
+            TRUE ~ "Fail"
+        ),
+
+        # --- Q2101: Proportion of STEMI Cases ---
+        Q2101_eligible = if_else(as.character(pci) == "1" & 
+                                 as.character(acs) == "1" &
+                                 age >= 18 & age <= 100 & 
+                                 !is.na(acst), 1, 0, missing=0),
+        Q2101_outcome  = if_else(Q2101_eligible == 1 & as.character(acst) == "3", 1, 0, missing=0),
+        
+        Q2101_exclusion = case_when(
+             Q2101_eligible == 1 ~ NA_character_,
+             as.character(pci) != "1" ~ "Non-PCI",
+             as.character(acs) != "1" | is.na(acst) ~ "Non-ACS or Missing Classification",
+             age < 18 | age > 100 ~ "Age Excluded",
+             TRUE ~ "Unknown Exclusion"
+        ),
+        Q2101_status    = case_when(
+            Q2101_eligible == 0 ~ "Excluded",
+            Q2101_outcome == 1 ~ "Pass", 
+            TRUE ~ "Fail"
         )
     )
 }
@@ -395,7 +427,7 @@ message(paste("Processed data saved to", output_processed))
 # -----------------------------------------------------------------------------
 message("Summarizing for Poster...")
 
-indicators <- paste0("NCR", 1:11)
+indicators <- c(paste0("NCR", 1:11), "Q2100", "Q2101")
 summary_list <- list()
 
 for (i_id in indicators) {
@@ -455,6 +487,14 @@ final_summary <- bind_rows(summary_list)
 # Map known HIDs to Names if necessary, or assume HID is the Name
 # The previous scripts used full names. If pci_data has codes, we might need a mapping.
 # For now, we assume raw data has names or we utilize it as is.
+final_summary <- final_summary |>
+  mutate(
+    hospital_name = case_when(
+      hospital_name == 1 ~ "Royal Perth Hospital",
+      hospital_name == 2 ~ "Fiona Stanley Hospital",
+      hospital_name == 3 ~ "Sir Charles Gairdner Hospital",
+    )
+  )
 
 output_summary <- here("_files", "cardiac_indicators_summary.xlsx")
 write_xlsx(final_summary, output_summary)
