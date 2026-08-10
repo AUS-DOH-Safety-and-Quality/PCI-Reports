@@ -3,6 +3,14 @@
 *_files/
 *cardiac_poster/_files/
 *.docx
+
+_files/
+_outputs/
+.Rproj.user/
+/.quarto/
+**/*.quarto_ipynb
+
+.Rhistory
 pci_data.csv
 
 # R session files

@@ -1,0 +1,803 @@
+---
+format:
+  docx:
+    reference-doc: style_template.docx
+    toc: false
+    number-sections: false
+    fig-format: svg
+params:
+  target_po: "Target Clinician"
+  period_start: "2023-01-01"
+  period_end: "2025-12-31"
+  period_frequency: "monthly"
+knitr:
+  opts_chunk:
+    dev: "svglite"
+execute:
+  echo: false
+---
+```{r, include=FALSE}
+library(patchwork) # to stitch together ggplot2 charts side-by-side
+
+gtsummary::theme_gtsummary_printer(print_engine = "flextable")
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  fig.show = "hold"#,
+  # out.height = "340px",
+  # out.width = "370px"
+)
+```
+
+```{r Data download, include=FALSE}
+if (!file.exists("../pci_data.csv")) {
+  stop("NCR dataset not found! Please check that you have a single CSV file named \"pci_data.csv\" in the current directory!",
+       call. = FALSE)
+}
+
+#Load in the helper functions/data required
+source("../utilities/utilities.R")
+
+#Read in data from PowerBI
+pci_data_raw <- readr::read_csv("../pci_data.csv")
+# pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
+```
+
+```{r Report context setup, include=FALSE}
+target_po <- params$target_po
+period_start <- params$period_start
+period_end <- params$period_end
+```
+
+```{r Data transformation, include=FALSE}
+pci_data <- prepare_pci_data(pci_data_raw) |>
+  # Format the Procedure Operator Name
+  dplyr::mutate(
+    po_name = dplyr::if_else(
+      stringr::str_detect(po, ","),
+      paste0(
+        stringr::str_split_i(trimws(po), ", ", 2),
+        " ",
+        stringr::str_split_i(trimws(po), ", ", 1)
+      ),
+      trimws(po)
+    )|> 
+      stringr::str_to_title() |>
+      stringr::str_remove("Dr ")
+  ) |>
+  # Create Count column for Number of PCIs
+  dplyr::mutate(
+    count_pci = 1
+  ) |>
+  # Add comparison_group based on selected targeted clinician
+  dplyr::mutate(
+    comparison_group = factor(
+      dplyr::if_else(po == target_po, "Target Clinician", "Other Clinicians"),
+      levels = c("Target Clinician", "Other Clinicians")
+    )
+  ) |>
+  # Multiple los columns for mean and median
+  dplyr::mutate(
+    los_mean = los,
+    los_median = los
+  ) |>
+  # Filter for period start and period end for this report
+  dplyr::filter(
+    dop >= params$period_start & dop <= params$period_end
+  )
+
+if (params$period_frequency == "quarterly") {
+  pci_data <- pci_data |>
+  # Change period_end to be quarterly instead
+  dplyr::mutate(
+    period_end = lubridate::quarter(period_end, type = "date_last")
+  )
+}
+```
+
+<!-- Title Page -->
+
+::: {custom-style="Title"}
+![](../reference_files/images/crowa_logo_800.png)
+:::
+
+::: {custom-style="Title"}
+
+&nbsp;
+
+&nbsp;
+
+Percutaneous Intervention (PCI) Clinician Report
+
+&nbsp;
+
+Clinician: Dr `r params$target_po`<br> 
+  
+&nbsp;
+
+`r format.Date(Sys.Date(), "%B %Y")`
+
+&nbsp;
+
+&nbsp;
+
+:::
+
+::: {custom-style="ReportingDate"}
+
+```{r reporting_period_monthly_report_word, echo=FALSE}
+start_date <- min(pci_data$period_start, na.rm = TRUE)
+end_date <- max(pci_data$period_end, na.rm = TRUE)
+formatted_start_date <- format.Date(start_date, "%d %B %Y")
+formatted_end_date <- format.Date(end_date, "%d %B %Y")
+reporting_period <- paste("For reporting period", formatted_start_date,
+                          "to", formatted_end_date)
+```
+
+<span style="display: block; text-align: left;">`r reporting_period`</span>
+
+:::
+
+\newpage
+
+# Number of PCIs for Target Clinician
+
+```{r num_pcis_all_stemi, message=FALSE, warning=FALSE}
+#| fig-subcap: 
+#|   - "."
+#|   - "."
+#| out-height: 340px
+#| out-width: 370px
+#| layout-ncol: 2
+
+# Note there needs to be a subcaption in the above for the charts to render full size
+controlcharts_spc(
+  data = pci_data |> 
+    dplyr::filter(po == params$target_po),
+  numerator = count_pci,
+  denominator = 1,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "i",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "Number of PCIs",
+  ll_truncate = 0,
+  title = "Number of PCIs (All)"
+)
+controlcharts_spc(
+  data = pci_data |> 
+    dplyr::filter(po == params$target_po) |> 
+    dplyr::filter(acs_cat == "STEMI"),
+  numerator = count_pci,
+  denominator = 1,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "i",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "Number of PCIs",
+  ll_truncate = 0,
+  title = "Number of STEMI PCIs"
+)
+controlcharts_spc(
+  data = pci_data |> 
+    dplyr::filter(po == params$target_po) |> 
+    dplyr::filter(acs_cat == "NSTEMI"),
+  numerator = count_pci,
+  denominator = 1,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "i",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "Number of PCIs",
+  ll_truncate = 0,
+  title = "Number of NSTEMI PCIs"
+)
+controlcharts_spc(
+  data = pci_data |> 
+    dplyr::filter(po == params$target_po) |> 
+    dplyr::filter(acs_cat == "Non-ACS"),
+  numerator = count_pci,
+  denominator = 1,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "i",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "Number of PCIs",
+  ll_truncate = 0,
+  title = "Number of Non-ACS PCIs"
+)
+```
+
+\newpage
+
+# Patient Demographics
+
+## Patient Characteristics by Clinical Presentation
+
+```{r demographics_by_acs_table, message=FALSE, warning=FALSE}
+demographic_tbl_summary <- function(data) {
+  data |>
+    gtsummary::tbl_summary(
+      include = c(age, severe_obesity, ppci, pcabg, db, pvd, los_mean, los_median, los_cat),
+      by = "comparison_group",
+      label = list(
+        age ~ "Age",
+        severe_obesity ~ "Severe Obesity (BMI ≥ 35 kg/m²)",
+        ppci ~ "Previous PCI",
+        pcabg ~ "Previous CABG",
+        db ~ "Diabetic",
+        pvd ~ "Peripheral Vascular Disease",
+        los_mean ~ "Average Length of Stay (Mean)",
+        los_median ~ "Average Length of Stay (Median)",
+        los_cat ~ "Length of Stay"
+      ),
+      statistic = list(
+        c(age, los_mean) ~ "{mean}",
+        c(los_median) ~ "{median}",
+        c(severe_obesity, ppci, pcabg, db, pvd, los_cat) ~ "{n} ({p}%)"
+      ),
+      digits = list(
+        c(age) ~ 1,
+        c(los_mean) ~ 1,
+        c(los_median) ~ 0
+      ),
+      missing = "no"
+    )
+}
+
+tbl_stratified_and_overall <- function(data, func_tbl_summary, label_name = "Characteristic") {
+  # Create a stratified table by ACS category
+  tbl_stratified <- data |>
+    dplyr::mutate(
+      acs_cat_factor = factor(acs_cat, levels = c("STEMI", "NSTEMI", "Non-ACS"), ordered = TRUE)
+    ) |>
+    gtsummary::tbl_strata(
+      strata = "acs_cat_factor",
+      .tbl_fun = 
+        ~ .x |>
+        func_tbl_summary()
+    )
+  
+  # Create an overall table for all PCIs
+  tbl_overall <- data |>
+    func_tbl_summary() |> 
+    gtsummary::modify_spanning_header(gtsummary::all_stat_cols() ~ "**All PCIs**")
+  
+  # Merge the stratified and overall tables
+  tbl_final <- list(tbl_stratified, tbl_overall) |>
+    gtsummary::tbl_merge(tab_spanner = FALSE) |>
+    # Change label name for first column
+    gtsummary::modify_header(label ~ paste0("**", label_name, "**")) |>
+    # Force the header to split into two lines with the N = {n} on the second line
+    gtsummary::modify_header(gtsummary::all_stat_cols() ~ "**{level}**          N = {n}") |>
+    # Convert to gt object
+    gtsummary::as_gt() |>
+    # Put a border on the left of the stat columns and italicise the stat columns
+    gt::tab_style(
+      style = gt::cell_borders(sides = "left", color = "black"),
+      locations = list(
+        gt::cells_column_labels(columns = stat_1_2),
+        gt::cells_body(columns = stat_1_2),
+        gt::cells_column_spanners(spanners = "**All PCIs**")
+      )
+    ) |>
+    gt::tab_style(
+      style = gt::cell_text(style = "italic"),
+      locations = list(
+        gt::cells_body(columns = c(stat_1_2, stat_2_2))
+      )
+    )
+  
+  return(tbl_final)
+}
+
+tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)), demographic_tbl_summary)
+
+```
+
+```{r demographic_by_acs_plots, message=FALSE, warning=FALSE}
+#| fig-format: svg
+#| fig-width: 10.4
+#| fig-height: 2
+#| out-width: "100%"
+
+stat_ggplot2 <- function(data, stat, title, x_axis_short_label) {
+  # Calculate Required Statistics for ggplot visual
+  stat_data <- rbind(
+    data |>
+      dplyr::group_by(comparison_group, acs_cat) |>
+      dplyr::summarise(
+        stat = {{stat}}
+      ),
+    data |>
+      dplyr::group_by(comparison_group) |>
+      dplyr::summarise(
+        stat = {{stat}}
+      ) |>
+      dplyr::mutate(
+        acs_cat = "All"
+      )
+  ) |>
+    tidyr::pivot_wider(
+      names_from = comparison_group,
+      values_from = stat
+    ) |>
+    dplyr::rename(
+      stat_target = `Target Clinician`,
+      stat_other = `Other Clinicians`
+    ) |>
+    dplyr::mutate(
+      acs_cat = factor(acs_cat, levels = c("Non-ACS", "NSTEMI", "STEMI", "All"))
+    )
+  
+  # Initialise ggplot chart
+  min_point <- min(c(stat_data$stat_target, stat_data$stat_other), na.rm = TRUE)
+  max_point <- max(c(stat_data$stat_target, stat_data$stat_other), na.rm = TRUE)
+  ggplot2_output <- ggplot2::ggplot(stat_data) +
+    # Add horizontal bars for Target Clinician
+    ggplot2::geom_bar(
+      ggplot2::aes(
+        y = acs_cat,
+        x = stat_target
+      ),
+      stat = "identity",
+      fill = "#1f77b4"
+    ) +
+    # Add points for Other Clinician average
+    ggplot2::geom_point(
+      ggplot2::aes(
+        y = acs_cat,
+        x = stat_other,
+        color = "Other Clinicians"
+      ),
+      size = 4,
+      color = "#7B1500"
+    ) +
+    # Add y axis label
+    ggplot2::ylab("PCI Indication") +
+    # Add x axis label
+    ggplot2::xlab(x_axis_short_label) +
+    # Set x-axis limits
+    ggplot2::coord_cartesian(
+      xlim = c(min_point * 0.9, max_point * 1.1)
+    ) +
+    # Add title
+    ggplot2::ggtitle(title) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, vjust = 0.5, size = 16,
+                                         face = "bold", family = "sans",
+                                         margin = ggplot2::margin(b = 0)),
+      # panel.grid.major = ggplot2::element_blank(),
+      # panel.grid.minor = ggplot2::element_blank(),
+      axis.text = ggplot2::element_text(size = 10, color = "#000000"),
+      axis.title = ggplot2::element_text(size = 10, color = "#000000")
+    ) +
+    ggplot2::theme(legend.position = "bottom")
+    
+  return(ggplot2_output)
+}
+
+# Age
+p_age <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = mean(age),
+  title = "Average Age (Mean) by Indication",
+  x_axis_short_label = "Average Age (Mean)"
+)
+
+# Previous PCI
+p_ppci <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = sum(ppci)/sum(count_pci) * 100,
+  title = "Previous PCI (%) by Indication",
+  x_axis_short_label = "Previous PCI (%)"
+)
+
+# Previous CABG
+p_pcabg <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = sum(pcabg)/sum(count_pci) * 100,
+  title = "Previous CABG (%) by Indication",
+  x_axis_short_label = "Previous CABG (%)"
+)
+
+# Diabetic
+p_db <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = sum(db)/sum(count_pci) * 100,
+  title = "Diabetic (%) by Indication",
+  x_axis_short_label = "Diabetic (%)"
+)
+
+# PVD
+p_pvd <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = sum(pvd)/sum(count_pci) * 100,
+  title = "PVD (%) by Indication",
+  x_axis_short_label = "PVD (%)"
+)
+
+# Average Length of Stay (Mean)
+p_los <- stat_ggplot2(
+  data = pci_data |> 
+    dplyr::filter(!is.na(age) & !is.na(inds_cat) & !is.na(acs_cat)),
+  stat = mean(los_mean, na.rm = TRUE),
+  title = "Average LoS (Mean) by Indication",
+  x_axis_short_label = "Average LoS (Mean)"
+)
+
+# Render plots using patchwork
+p_age | p_los
+p_ppci | p_pcabg
+p_db | p_pvd
+
+```
+
+::: {custom-style="Normal (Centered)"}
+![](../reference_files/images/ggplot2_bar_point_legend.png)
+:::
+
+# Procedural Characteristics
+
+This section presents procedural characteristics stratified by key patient and hospital factors.
+
+## Procedural Characteristics by Clinical Presentation
+
+```{r procedural by acs, message=FALSE, warning=FALSE}
+procedural_tbl_summary <- function(data) {
+  data |>
+    gtsummary::tbl_summary(
+      include = c(access_route),
+      by = "comparison_group",
+      label = list(
+        access_route ~ "Arterial Access Route"
+      ),
+      statistic = list(
+        c(access_route) ~ "{n} ({p}%)"
+      ),
+      missing = "no"
+    )
+}
+
+tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat)), procedural_tbl_summary)
+```
+
+&nbsp;
+
+```{r radialaccess_fpl_spc, message=FALSE, warning=FALSE}
+#| fig-subcap: 
+#|   - "Funnel Plot above includes all PCIs for All Clinicians"
+#|   - "SPC Chart above is for the selected clinician only"
+#| out-height: 340px
+#| out-width: 370px
+#| layout-ncol: 2
+
+# Note there needs to be a subcaption in the above for the charts to render full size
+controlcharts_funnel(
+  data = pci_data |> dplyr::filter(!is.na(acs_cat)),
+  numerator = radial_access,
+  denominator = count_pci,
+  group = po,
+  group_name = po_name,
+  height = 340,
+  width = 370,
+  labels = params$target_po,
+  chart_type = "PR",
+  improvement_direction = "neutral",
+  ylimit_label = "Radial Access %",
+  title = "Radial Access % for All PCIs"
+)
+controlcharts_spc(
+  data = pci_data |> dplyr::filter(!is.na(acs_cat)) |> dplyr::filter(po == params$target_po),
+  numerator = radial_access,
+  denominator = count_pci,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "p",
+  improvement_direction = "neutral",
+  xlimit_label = "Month",
+  ylimit_label = "Radial Access %",
+  title = "Radial Access % for Selected Clinician"
+)
+```
+
+\newpage
+
+# Outcomes
+
+## 30-Day Stroke
+
+Proportion of patients that undergo a PCI procedure that had a new stroke during the 30-day follow-up period.
+
+```{r nstr by acs, message=FALSE, warning=FALSE}
+nstr_tbl_summary <- function(data) {
+  data |>
+    gtsummary::tbl_summary(
+      include = c(nstr),
+      by = "comparison_group",
+      label = list(
+        nstr ~ "30-Day Stroke After PCI"
+      ),
+      statistic = list(
+        c(nstr) ~ "{n} ({p}%)"
+      ),
+      digits = list(
+        c(nstr) ~ c(0, 1)
+      ),
+      missing = "no",
+    )
+}
+
+tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & !is.na(nstr)) , nstr_tbl_summary, "Outcome")
+
+```
+
+&nbsp;
+
+```{r nstr_fpl_spc, message=FALSE, warning=FALSE}
+#| fig-subcap: 
+#|   - "Funnel Plot above includes all PCIs for All Clinicians"
+#|   - "SPC Chart above is for the selected clinician only"
+#| out-height: 340px
+#| out-width: 370px
+#| layout-ncol: 2
+
+# Note there needs to be a subcaption in the above for the charts to render full size
+controlcharts_funnel(
+  data = pci_data,
+  numerator = ifelse(nstr == 1, 1, 0),
+  denominator = ifelse(!is.na(nstr), 1, 0),
+  group = po,
+  group_name = po_name,
+  height = 340,
+  width = 370,
+  labels = params$target_po,
+  chart_type = "PR",
+  improvement_direction = "decrease",
+  ylimit_label = "30-Day Stroke after PCI",
+  ylimit_sig_figs = 1,
+  title = "30-Day Stroke after PCI"
+)
+controlcharts_spc(
+  data = pci_data |> dplyr::filter(po == params$target_po),
+  numerator = ifelse(nstr == 1, 1, 0),
+  denominator = ifelse(!is.na(nstr), 1, 0),
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "p",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "30-Day Stroke after PCI",
+  title = "30-Day Stroke for Selected Clinician"
+)
+```
+
+\newpage
+
+## 30-day Cardiac Rehospitalisation
+
+Proportion of patients that undergo a PCI procedure that had cardiac hospitalisation within 30 days.
+
+```{r crh30 by acs, message=FALSE, warning=FALSE}
+crh30_tbl_summary <- function(data) {
+  data |>
+    gtsummary::tbl_summary(
+      include = c(crh30),
+      by = "comparison_group",
+      label = list(
+        crh30 ~ "30-Day Stroke After PCI"
+      ),
+      statistic = list(
+        c(crh30) ~ "{n} ({p}%)"
+      ),
+      digits = list(
+        c(crh30) ~ c(0, 1)
+      ),
+      missing = "no",
+    )
+}
+
+tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & !is.na(crh30)), crh30_tbl_summary, "Outcome")
+
+```
+
+&nbsp;
+
+```{r crh30_fpl_spc, message=FALSE, warning=FALSE}
+#| fig-subcap: 
+#|   - "Funnel Plot above includes all PCIs for All Clinicians"
+#|   - "SPC Chart above is for the selected clinician only"
+#| out-height: 340px
+#| out-width: 370px
+#| layout-ncol: 2
+
+# Note there needs to be a subcaption in the above for the charts to render full size
+controlcharts_funnel(
+  data = pci_data,
+  numerator = ifelse(crh30 == 1, 1, 0),
+  denominator = ifelse(!is.na(crh30), 1, 0),
+  group = po,
+  group_name = po_name,
+  height = 340,
+  width = 370,
+  labels = params$target_po,
+  chart_type = "PR",
+  improvement_direction = "decrease",
+  ylimit_label = "30-Day Cardiac Rehospitalisation after PCI",
+  title = "30-Day Cardiac Rehospitalisation after PCI"
+)
+controlcharts_spc(
+  data = pci_data |> dplyr::filter(po == params$target_po),
+  numerator = ifelse(crh30 == 1, 1, 0),
+  denominator = ifelse(!is.na(crh30), 1, 0),
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "p",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "30-Day Cardiac Rehospitalisation after PCI",
+  title = "30-Day Cardiac Readmit for Selected Clinician"
+)
+```
+
+\newpage
+
+## 30-Day Mortality After PCI
+
+Proportion of patients that undergo a PCI procedure that died in-hospital or within 30 days of discharge.  
+
+```{r ncr8 by acs, message=FALSE, warning=FALSE}
+ncr8_tbl_summary <- function(data) {
+  data |>
+    gtsummary::tbl_summary(
+      include = c(NCR8_num),
+      by = "comparison_group",
+      label = list(
+        NCR8_num ~ "30-Day Mortality After PCI"
+      ),
+      statistic = list(
+        c(NCR8_num) ~ "{n} ({p}%)"
+      ),
+      digits = list(
+        c(NCR8_num) ~ c(0, 1)
+      ),
+      missing = "no",
+    )
+}
+
+tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & NCR8_den == 1) , ncr8_tbl_summary, "Outcome")
+
+```
+
+&nbsp;
+
+```{r ncr8_fpl_spc, message=FALSE, warning=FALSE}
+#| fig-subcap: 
+#|   - "Funnel Plot above includes all PCIs for All Clinicians"
+#|   - "SPC Chart above is for the selected clinician only"
+#| out-height: 340px
+#| out-width: 370px
+#| layout-ncol: 2
+
+# Note there needs to be a subcaption in the above for the charts to render full size
+controlcharts_funnel(
+  data = pci_data,
+  numerator = NCR8_num,
+  denominator = NCR8_den,
+  group = po,
+  group_name = po_name,
+  height = 340,
+  width = 370,
+  labels = params$target_po,
+  chart_type = "PR",
+  improvement_direction = "decrease",
+  ylimit_label = "30-Day Mortality after PCI",
+  title = "30-Day Mortality after PCI"
+)
+controlcharts_spc(
+  data = pci_data |> dplyr::filter(po == params$target_po),
+  numerator = NCR8_num,
+  denominator = NCR8_den,
+  month = period_end,
+  height = 340,
+  width = 370,
+  chart_type = "p",
+  improvement_direction = "decrease",
+  xlimit_label = "Month",
+  ylimit_label = "30-Day Mortality after PCI",
+  title = "30-Day Mortality for Selected Clinician"
+)
+```
+
+\newpage
+
+# Appendix
+
+## Definitions
+
+### 30-Day Stroke
+Description: Proportion of patients that undergo a PCI procedure that had a new stroke during the 30-day follow-up period.
+
+Denominator: Number of patients that undergo a PCI procedure.
+
+Numerator: Number of patients that undergo a PCI procedure and were admitted into hospital for Stroke within 30 days of discharge from hospital. The stroke admission can be either to the emergency department or to an inpatient bed.
+
+### 30-Day Cardiac Rehospitalisation
+Description: Proportion of patients that undergo a PCI procedure that had cardiac hospitalisation within 30 days.
+
+Denominator: Number of patients that undergo a PCI procedure.
+
+Numerator: Number of patients that undergo a PCI procedure and had a cardiac rehospitalisation within 30 days of discharge, where a cardiac rehospitalisation is defined as an in-patient admission that includes, but is not limited to any of the following circumstances: heart failure; acute coronary syndrome (e.g. STEMI, NSTEMI; recurrent or unstable angina); arrhythmia; elective (non emergency) PCI or CABG etc.
+
+
+### 30-Day Mortality After PCI
+Description: Proportion of patients that undergo a PCI procedure that died in-hospital or within 30 days of discharge.  
+
+Denominator: Number of patients that undergo a PCI procedure.
+
+Numerator: Number of procedures that undergo a PCI procedure with a discharge status of death or death within 30 days of discharge.
+
+
+\newpage
+
+## Interpreting Patterns in SPC Charts and Funnel Plots
+
+The following patterns are highlighted in this report.
+
+### Funnel Plot Outlier
+
+An identified point that exceeds 3 sigma limits from the mean.
+
+```{r showing Funnel Outlier sample, echo = FALSE}
+funnel_example_plotly(fpl_example_data)
+```
+
+### Astronomical Point
+
+An identified point that exceeds 3 sigma limits from the mean.
+
+```{r showing astro sample, echo = FALSE}
+spc_example_plotly(spc_example_data_astro)
+```
+
+### Trend
+
+Five or more consecutively increasing or decreasing points.
+
+```{r showing trend sample, echo = FALSE}
+spc_example_plotly(spc_example_data_trend)
+```
+
+### Two in Three
+
+Two out of Three consecutive points exceeding 2 sigma limits from the mean.
+
+```{r showing two in three sample, echo = FALSE}
+spc_example_plotly(spc_example_data_twothree)
+```
+
+### Shift
+
+Seven or more consecutive points above or below the mean.
+
+```{r showing shift sample, echo = FALSE}
+spc_example_plotly(spc_example_data_shift)
+```

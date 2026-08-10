@@ -1,0 +1,5 @@
+project:
+  type: default
+  render:
+    - pci_clinician_report/pci_clinician_report.qmd
+  output-dir: _output
