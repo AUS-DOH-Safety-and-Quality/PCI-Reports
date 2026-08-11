@@ -602,7 +602,7 @@ crh30_tbl_summary <- function(data) {
       include = c(crh30),
       by = "comparison_group",
       label = list(
-        crh30 ~ "30-Day Stroke After PCI"
+        crh30 ~ "30-Day Cardiac Rehospitalisation After PCI"
       ),
       statistic = list(
         c(crh30) ~ "{n} ({p}%)"
