@@ -21,3 +21,4 @@ pci_data.csv
 # R session files
 .RData
 .Rhistory
+.positai
