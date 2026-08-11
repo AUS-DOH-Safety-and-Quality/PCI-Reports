@@ -117,7 +117,7 @@ combine_datetime <- function(date_val, time_val) {
   
   # Attempt combination
   # Paste date and time strings
-  dt_text <- paste(as.character(date_val), as.character(time_val))
+  dt_text <- paste(as.character(date_val), hms::as_hms(time_val))
   # Parse using lubridate (flexible format)
   out <- lubridate::ymd_hms(dt_text, quiet = TRUE)
   
@@ -174,7 +174,7 @@ pci_data <- pci_data %>%
            as.character(acs) == "1" & symptom_to_door <= 0 ~ "1",
            TRUE ~ NA_character_
         ),
-        inp = if_else(!is.na(inp), as.character(inp), inp_derived)
+        inp = inp_derived
     )
 
 # -----------------------------------------------------------------------------
@@ -487,6 +487,14 @@ final_summary <- bind_rows(summary_list)
 # Map known HIDs to Names if necessary, or assume HID is the Name
 # The previous scripts used full names. If pci_data has codes, we might need a mapping.
 # For now, we assume raw data has names or we utilize it as is.
+final_summary <- final_summary |>
+  mutate(
+    hospital_name = case_when(
+      hospital_name == 1 ~ "Royal Perth Hospital",
+      hospital_name == 2 ~ "Fiona Stanley Hospital",
+      hospital_name == 3 ~ "Sir Charles Gairdner Hospital",
+    )
+  )
 
 output_summary <- here("_files", "cardiac_indicators_summary.xlsx")
 write_xlsx(final_summary, output_summary)
