@@ -1,22 +1,20 @@
 ---
-format:
-  docx:
-    reference-doc: style_template.docx
+output:
+  word_document:
+    reference_docx: style_template.docx
     toc: false
-    number-sections: false
-    fig-format: svg
+    toc_depth: '4'
+    number_sections: false
+    fig_caption: true
+    fig_width: 10
+    fig_height: 6
 params:
   target_po: "Target Clinician"
   period_start: "2023-01-01"
   period_end: "2025-12-31"
   period_frequency: "monthly"
-knitr:
-  opts_chunk:
-    dev: "svglite"
-execute:
-  echo: false
 ---
-```{r, include=FALSE}
+```{r setup, include=FALSE}
 library(patchwork) # to stitch together ggplot2 charts side-by-side
 
 gtsummary::theme_gtsummary_printer(print_engine = "flextable")
@@ -24,9 +22,11 @@ gtsummary::theme_gtsummary_printer(print_engine = "flextable")
 knitr::opts_chunk$set(
   echo = FALSE,
   warning = FALSE,
-  fig.show = "hold"#,
-  # out.height = "340px",
-  # out.width = "370px"
+  dev = "svglite",
+  fig.ext = "svg",
+  fig.show = "hold",
+  out.height = "340px",
+  out.width = "370px"
 )
 ```
 
@@ -144,13 +144,6 @@ reporting_period <- paste("For reporting period", formatted_start_date,
 # Number of PCIs for Target Clinician
 
 ```{r num_pcis_all_stemi, message=FALSE, warning=FALSE}
-#| fig-subcap: 
-#|   - "."
-#|   - "."
-#| out-height: 340px
-#| out-width: 370px
-#| layout-ncol: 2
-
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_spc(
   data = pci_data |> 
@@ -304,12 +297,7 @@ tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(age) & !is.na(inds_c
 
 ```
 
-```{r demographic_by_acs_plots, message=FALSE, warning=FALSE}
-#| fig-format: svg
-#| fig-width: 10.4
-#| fig-height: 2
-#| out-width: "100%"
-
+```{r demographic_by_acs_plots, fig.width=10.4, fig.height=2, out.width="100%", message=FALSE, warning=FALSE}
 stat_ggplot2 <- function(data, stat, title, x_axis_short_label) {
   # Calculate Required Statistics for ggplot visual
   stat_data <- rbind(
@@ -480,12 +468,6 @@ tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat)), procedura
 &nbsp;
 
 ```{r radialaccess_fpl_spc, message=FALSE, warning=FALSE}
-#| fig-subcap: 
-#|   - "Funnel Plot above includes all PCIs for All Clinicians"
-#|   - "SPC Chart above is for the selected clinician only"
-#| out-height: 340px
-#| out-width: 370px
-#| layout-ncol: 2
 
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_funnel(
@@ -551,12 +533,6 @@ tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & !is.na(ns
 &nbsp;
 
 ```{r nstr_fpl_spc, message=FALSE, warning=FALSE}
-#| fig-subcap: 
-#|   - "Funnel Plot above includes all PCIs for All Clinicians"
-#|   - "SPC Chart above is for the selected clinician only"
-#| out-height: 340px
-#| out-width: 370px
-#| layout-ncol: 2
 
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_funnel(
@@ -621,12 +597,6 @@ tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & !is.na(cr
 &nbsp;
 
 ```{r crh30_fpl_spc, message=FALSE, warning=FALSE}
-#| fig-subcap: 
-#|   - "Funnel Plot above includes all PCIs for All Clinicians"
-#|   - "SPC Chart above is for the selected clinician only"
-#| out-height: 340px
-#| out-width: 370px
-#| layout-ncol: 2
 
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_funnel(
@@ -690,12 +660,6 @@ tbl_stratified_and_overall(pci_data |> dplyr::filter(!is.na(acs_cat) & NCR8_den 
 &nbsp;
 
 ```{r ncr8_fpl_spc, message=FALSE, warning=FALSE}
-#| fig-subcap: 
-#|   - "Funnel Plot above includes all PCIs for All Clinicians"
-#|   - "SPC Chart above is for the selected clinician only"
-#| out-height: 340px
-#| out-width: 370px
-#| layout-ncol: 2
 
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_funnel(
