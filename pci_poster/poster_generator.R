@@ -84,8 +84,8 @@ if (file.exists(indicators_file)) {
   ind_desc_df <- read_csv(indicators_file, show_col_types = FALSE)
   names(ind_desc_df) <- tolower(names(ind_desc_df))
 
-  # Create a lookup vector: Indicator ID -> Description (using short description)
-  desc_lookup <- setNames(ind_desc_df$descriptionshort, ind_desc_df$indicator_id)
+  # Create a lookup vector: Indicator ID -> PosterLabel
+  desc_lookup <- setNames(ind_desc_df$posterlabel, ind_desc_df$indicator_id)
 } else {
   warning("Indicators reference file not found. Using fallback descriptions.")
   desc_lookup <- c()
@@ -100,7 +100,7 @@ poster_summary_data <- ncr_data %>%
   group_by(hospital_name) %>%
   mutate(
     # Identify the latest date -> 3 month window (Current Month + Previous 2)
-    hosp_latest = max(month_end_date, na.rm = TRUE),
+    hosp_latest = max(month_end_date, na.rm = TRUE) %m-% months(2),
     hosp_start  = hosp_latest %m-% months(2)
   ) %>%
   # Filter data to the 3-month window
@@ -175,21 +175,12 @@ poster_summary_data <- poster_summary_data %>%
       TRUE ~ scales::percent(safe_pct, accuracy = 1)
     ),
 
-    # Append patient noun if available, else default
-    patient_noun = if ("patient_noun" %in% names(ind_desc_df)) {
-      noun_lookup <- setNames(ind_desc_df$patient_noun, ind_desc_df$ncr_indicator_number)
-      noun <- noun_lookup[indicator_id]
-      ifelse(is.na(noun), "patients", noun)
-    } else {
-      "patients"
-    },
-
     # Construct the full narrative string: "X out of Y [noun]..."
     descriptive_text = case_when(
       metric_type == "count" ~ format(total_num, big.mark = ",", scientific = FALSE),
       is.na(total_den) | total_den == 0 ~ "Data unavailable",
       metric_type == "median" ~ paste0(round(total_num), "m (Median) ", raw_desc),
-      TRUE ~ paste0(total_num, " out of ", total_den, " ", patient_noun, " ", raw_desc)
+      TRUE ~ paste0(total_num, " out of ", total_den, " ", raw_desc)
     )
   ) %>%
   ungroup()
@@ -264,7 +255,7 @@ for (hosp in hospitals) {
 
       # Special Logic for VOL_PCI: Also populate the secondary 'ph_pci' placeholder with narrative
       if (ind == "VOL_PCI" && "ph_pci" %in% valid_labels) {
-        long_text <- paste0(ind_row$descriptive_text, " procedures were undertaken")
+        long_text <- paste0(ind_row$descriptive_text, " ", ind_row$raw_desc)
         current_poster <- ph_with(current_poster, value = long_text, location = ph_location_label(ph_label = "ph_pci"))
       }
 

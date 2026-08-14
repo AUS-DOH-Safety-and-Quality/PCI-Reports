@@ -1,7 +1,7 @@
 ################################################################################
 ## Project: Cardiac Registry of Western Australia (CRoWA) analysis & reporting
 ## Script: process_ncr_data.R
-## Department: WA Health, Healthcare Quality Intelligence Unit (HQIU) 
+## Department: WA Health, Healthcare Quality Intelligence Unit (HQIU)
 ## Warning: Standard Header
 ##
 ## Purpose: Processes raw 'pci_data.csv' to apply NCR Indicator logic.
@@ -34,11 +34,11 @@ generate_dummy_data <- function() {
   hospitals <- c("Royal Perth Hospital", "Fiona Stanley Hospital", "Sir Charles Gairdner Hospital")
   start_date <- as.Date("2024-01-01")
   end_date   <- as.Date("2024-12-31")
-  
+
   rand_date <- function(n) {
     start_date + days(sample(0:(as.numeric(end_date - start_date)), n, replace = TRUE))
   }
-  
+
   tibble(
     hid = sample(hospitals, n_rows, replace = TRUE),
     dop = rand_date(n_rows),
@@ -70,7 +70,7 @@ generate_dummy_data <- function() {
     # Follow up
     stat30 = sample(c("0", "1"), n_rows, replace=TRUE),
     crh30  = sample(c("0", "1"), n_rows, replace=TRUE),
-    pc30   = sample(c("0", "1"), n_rows, replace=TRUE), 
+    pc30   = sample(c("0", "1"), n_rows, replace=TRUE),
     # Revasc
     ihpci  = sample(c("0", "1"), n_rows, replace=TRUE),
     ihpcip = sample(c("0", "1"), n_rows, replace=TRUE),
@@ -111,16 +111,16 @@ message("Applying data transformations...")
 combine_datetime <- function(date_val, time_val) {
   # If time is already a Date/POSIXt object, assume it allows robust handling or is already combined
   if (is.POSIXt(time_val)) return(time_val)
-  
+
   # If time is NA, return NA
   # If date is NA, return NA
-  
+
   # Attempt combination
   # Paste date and time strings
   dt_text <- paste(as.character(date_val), hms::as_hms(time_val))
   # Parse using lubridate (flexible format)
   out <- lubridate::ymd_hms(dt_text, quiet = TRUE)
-  
+
   # Try without seconds if failed? Standardize to yMD HMS usually works for standard DB dumps.
   # If parsing failed (NA) but inputs weren't NA, might be just HM
   if (all(is.na(out)) && !all(is.na(dt_text))) {
@@ -135,38 +135,38 @@ pci_data <- pci_data %>%
         dop = as.Date(dop),
         period_start = floor_date(dop, unit = "month"),
         period_end   = ceiling_date(period_start, unit = "month") - days(1),
-        
+
         # --- Robust Date-Time Combinations ---
         # We explicitly combine Date and Time columns to single POSIXct objects
         # This handles midnight crossings correctly when calculating differences.
-        
+
         # 1. Symptom Onset (dso + tso)
         dt_symptom = combine_datetime(dso, tso),
-        
+
         # 2. Arrival / Door (doa + toa)
         dt_arrival = combine_datetime(doa, toa),
-        
+
         # 3. First ECG (decgd + tecgd)
         dt_ecg     = combine_datetime(decgd, tecgd),
-        
+
         # 4. Device / Balloon (dop + tbd, or dbd + tbd if available)
         # Using 'dop' as the date for 'tbd' as default, but ideally we'd use 'dbd'.
         # If 'dbd' exists in data, we should use it. For now, assuming dop.
         # Expert check: "tbd <= top ~ dop + days(1)" logic previously implied tbd is just time.
-        dt_device  = combine_datetime(dop, tbd), 
-        
-        
+        dt_device  = combine_datetime(dop, tbd),
+
+
         # --- Time Intervals (Minutes) ---
-        
+
         # ecgdb: ECG to Device Time (Minutes)
         ecgdb = as.numeric(difftime(dt_device, dt_ecg, units = "mins")),
-        
+
         # dbdt: Door to Device Time (Minutes)
         dbdt = as.numeric(difftime(dt_device, dt_arrival, units = "mins")),
-        
+
         # symptom_to_door: Symptom Onset to Door (Minutes)
         symptom_to_door = as.numeric(difftime(dt_arrival, dt_symptom, units = "mins")),
-        
+
         # inp: Inpatient Status - Prefer raw definition if available
         # If raw 'inp' exists and is not NA, use it. Otherwise derive fallback.
         inp_derived = case_when(
@@ -192,15 +192,15 @@ apply_indicator_logic <- function(data) {
     mutate(
         # --- NCR1: Door-to-ECG to PCI (<90m is guideline, but metric is Median Time) ---
         # Spec Den: pci==1 & acst==3 (STEMI) & inp==0 & iht==0 & ecgdb>0 & symptom_to_door<720
-        NCR1_eligible = if_else(as.character(pci) == "1" & 
+        NCR1_eligible = if_else(as.character(pci) == "1" &
                                 as.character(acst) == "3" &
-                                as.character(inp) == "0" & 
-                                as.character(iht) == "0" & 
-                                ecgdb > 0 & 
+                                as.character(inp) == "0" &
+                                as.character(iht) == "0" &
+                                ecgdb > 0 &
                                 symptom_to_door < 720, 1, 0, missing = 0),
-                                
+
         NCR1_outcome  = if_else(NCR1_eligible == 1, ecgdb, NA_real_), # Outcome is the TIME
-        
+
         NCR1_exclusion = case_when(
             NCR1_eligible == 1 ~ NA_character_,
             as.character(pci) != "1" ~ "Not PCI",
@@ -211,20 +211,18 @@ apply_indicator_logic <- function(data) {
             symptom_to_door >= 720 ~ "Symptom > 12h",
             TRUE ~ "Unknown Exclusion"
         ),
-        
+
         NCR1_status = if_else(NCR1_eligible == 1, "Included", "Excluded"),
 
         # --- NCR2: Door to PCI ---
-        # Spec Den: pci==1 & acst==3 (STEMI) & inp==0 & iht==0 & dbdt>0 & symptom_to_door<720
-        NCR2_eligible = if_else(as.character(pci) == "1" & 
-                                as.character(acst) == "3" &
-                                as.character(inp) == "0" & 
-                                as.character(iht) == "0" & 
-                                dbdt > 0 & 
-                                symptom_to_door < 720, 1, 0, missing = 0),
-                                
+        NCR2_eligible = if_else(pci == 1 &
+                                  dt_symptom < dt_arrival &
+                                  iht == 0 &
+                                  dbdt > 0 &
+                                  symptom_to_door < 721, 1, 0, missing = 0),
+
         NCR2_outcome  = if_else(NCR2_eligible == 1, dbdt, NA_real_),
-        
+
         NCR2_exclusion = case_when(
             NCR2_eligible == 1 ~ NA_character_,
             as.character(pci) != "1" ~ "Not PCI",
@@ -241,7 +239,7 @@ apply_indicator_logic <- function(data) {
         # Spec Den: ihstr == 0 | ihstr == 1 (basically everyone with valid data)
         NCR3_eligible = if_else(!is.na(ihstr) & as.character(ihstr) %in% c("0","1"), 1, 0),
         NCR3_outcome  = if_else(NCR3_eligible == 1 & as.character(ihstr) == "1", 1, 0, missing = 0),
-        
+
         NCR3_exclusion = if_else(NCR3_eligible == 0, "Missing/Invalid Data", NA_character_),
         NCR3_status    = case_when(
             NCR3_eligible == 0 ~ "Excluded",
@@ -254,7 +252,7 @@ apply_indicator_logic <- function(data) {
         NCR4_eligible = if_else(str_detect(as.character(ihbl), "[012345678]"), 1, 0, missing = 0),
         # Spec Num: ihbl in [3,4,5,7,8] (Major Bleeding categories)
         NCR4_outcome  = if_else(NCR4_eligible == 1 & str_detect(as.character(ihbl), "[34578]"), 1, 0, missing=0),
-        
+
         NCR4_exclusion = if_else(NCR4_eligible == 0, "Missing/Invalid Data", NA_character_),
         NCR4_status    = case_when(
             NCR4_eligible == 0 ~ "Excluded",
@@ -266,7 +264,7 @@ apply_indicator_logic <- function(data) {
         # Spec Den: dis in [1-6]
         NCR5_eligible = if_else(str_detect(as.character(dis), "[123456]"), 1, 0, missing = 0),
         NCR5_outcome  = if_else(NCR5_eligible == 1 & as.character(dis) == "6", 1, 0, missing=0), # 6 = Deceased
-        
+
         NCR5_exclusion = if_else(NCR5_eligible == 0, "Missing/Invalid Data", NA_character_),
         NCR5_status    = case_when(
             NCR5_eligible == 0 ~ "Excluded",
@@ -276,13 +274,13 @@ apply_indicator_logic <- function(data) {
 
         # --- NCR6: 30-Day Readmission ---
         NCR6_eligible = if_else(
-               str_detect(as.character(dis), "[12345]") & 
-               as.character(stat30) %in% c("1","0") & 
+               str_detect(as.character(dis), "[12345]") &
+               as.character(stat30) %in% c("1","0") &
                as.character(crh30) %in% c("1","0"), 1, 0, missing=0),
-        NCR6_outcome  = if_else(NCR6_eligible == 1 & 
-                                as.character(crh30) == "1" & 
+        NCR6_outcome  = if_else(NCR6_eligible == 1 &
+                                as.character(crh30) == "1" &
                                 as.character(pc30) == "0", 1, 0, missing=0),
-        
+
         NCR6_exclusion = case_when(
             NCR6_eligible == 1 ~ NA_character_,
             !str_detect(as.character(dis), "[12345]") ~ "Deceased/Invalid Discharge",
@@ -326,14 +324,14 @@ apply_indicator_logic <- function(data) {
 
         # --- NCR9: Lipid Lowering (Good Metric) ---
         # Placeholder for contraindication logic
-        contra_lipid = FALSE, 
-        
-        NCR9_eligible = if_else(str_detect(as.character(dis), "[12345]") & 
+        contra_lipid = FALSE,
+
+        NCR9_eligible = if_else(str_detect(as.character(dis), "[12345]") &
                                 !contra_lipid &
                                 (as.character(dstp) %in% c("0","1") | as.character(doll) %in% c("0","1")), 1, 0, missing=0),
-        
+
         NCR9_outcome  = if_else(NCR9_eligible == 1 & (as.character(dstp)=="1" | as.character(doll)=="1"), 1, 0, missing=0),
-        
+
         NCR9_exclusion = case_when(
              NCR9_eligible == 1 ~ NA_character_,
              contra_lipid ~ "Contraindicated",
@@ -347,10 +345,9 @@ apply_indicator_logic <- function(data) {
         ),
 
         # --- NCR10: Cardiac Rehab (Good Metric) ---
-        NCR10_eligible = if_else(str_detect(as.character(dis), "[12345]") & 
-                                 as.character(crehab) %in% c("-1","1","0"), 1, 0, missing=0),
-        NCR10_outcome  = if_else(NCR10_eligible == 1 & as.character(crehab) == "1", 1, 0, missing=0),
-        
+        NCR10_eligible = if_else(dis != 6, 1, 0, missing=0),
+        NCR10_outcome  = if_else(NCR10_eligible == 1 & crehab == 1, 1, 0, missing=0),
+
         NCR10_exclusion = if_else(NCR10_eligible==0, "Deceased or Invalid Rehab Data", NA_character_),
         NCR10_status    = case_when(
             NCR10_eligible == 0 ~ "Excluded",
@@ -359,18 +356,14 @@ apply_indicator_logic <- function(data) {
         ),
 
         # --- NCR11: DAPT (Good Metric) ---
-        # Placeholder for contraindication logic
-        contra_dapt = FALSE,
-        
-        NCR11_eligible = if_else(str_detect(as.character(dis), "[12345]") & 
-                                 !contra_dapt &
-                                 (as.character(dasp) %in% c("0","1") | as.character(doap) %in% c("0","1")), 1, 0, missing=0),
-        NCR11_outcome  = if_else(NCR11_eligible == 1 & (as.character(dasp)=="1" & as.character(doap)=="1"), 1, 0, missing=0),
-        
+        NCR11_eligible = if_else(dis != 6 &
+                                   (dasp %in% c(0,1) | doap %in% c(0, 1)), 1, 0, missing=0),
+        NCR11_outcome  = if_else(NCR11_eligible == 1 & (dasp == 1 & doap == 1), 1, 0, missing=0),
+
         NCR11_exclusion = case_when(
              NCR11_eligible == 1 ~ NA_character_,
-             contra_dapt ~ "Contraindicated",
-             !str_detect(as.character(dis), "[12345]") ~ "Deceased/Invalid Discharge",
+             (dasp == 2 | doap == 2) ~ "Contraindicated",
+             dis != 6 ~ "Deceased/Invalid Discharge",
              TRUE ~ "Missing Data"
         ),
         NCR11_status    = case_when(
@@ -380,23 +373,20 @@ apply_indicator_logic <- function(data) {
         ),
 
         # --- Q2100: Proportion of Radial Access ---
-        Q2100_eligible = if_else(as.character(pci) == "1" & !is.na(pel), 1, 0, missing=0),
-        Q2100_outcome  = if_else(Q2100_eligible == 1 & as.character(pel) == "2", 1, 0, missing=0),
-        
+        Q2100_eligible = 1,
+        Q2100_outcome  = if_else(Q2100_eligible == 1 & pel == 2, 1, 0, missing=0),
+
         Q2100_exclusion = if_else(Q2100_eligible == 0, "Missing Info / Non-PCI", NA_character_),
         Q2100_status    = case_when(
             Q2100_eligible == 0 ~ "Excluded",
-            Q2100_outcome == 1 ~ "Pass", 
+            Q2100_outcome == 1 ~ "Pass",
             TRUE ~ "Fail"
         ),
 
         # --- Q2101: Proportion of STEMI Cases ---
-        Q2101_eligible = if_else(as.character(pci) == "1" & 
-                                 as.character(acs) == "1" &
-                                 age >= 18 & age <= 100 & 
-                                 !is.na(acst), 1, 0, missing=0),
-        Q2101_outcome  = if_else(Q2101_eligible == 1 & as.character(acst) == "3", 1, 0, missing=0),
-        
+        Q2101_eligible = 1,
+        Q2101_outcome  = if_else(Q2101_eligible == 1 & acst == 3, 1, 0, missing=0),
+
         Q2101_exclusion = case_when(
              Q2101_eligible == 1 ~ NA_character_,
              as.character(pci) != "1" ~ "Non-PCI",
@@ -406,7 +396,7 @@ apply_indicator_logic <- function(data) {
         ),
         Q2101_status    = case_when(
             Q2101_eligible == 0 ~ "Excluded",
-            Q2101_outcome == 1 ~ "Pass", 
+            Q2101_outcome == 1 ~ "Pass",
             TRUE ~ "Fail"
         )
     )
@@ -431,10 +421,10 @@ indicators <- c(paste0("NCR", 1:11), "Q2100", "Q2101")
 summary_list <- list()
 
 for (i_id in indicators) {
-    
+
     col_elig <- sym(paste0(i_id, "_eligible"))
     col_out  <- sym(paste0(i_id, "_outcome"))
-    
+
     # Check if this is a median metric (NCR1, NCR2)
     current_summary <- pci_data_processed %>%
         filter(!!col_elig == 1) %>% # Filter to eligible only
@@ -442,7 +432,7 @@ for (i_id in indicators) {
         summarise(
             # For Median metrics (outcome is numeric time), Num = Median
             # For Count metrics (outcome is 0/1), Num = Sum(1s)
-            
+
             # Logic: If max outcome > 1, assume it's a time metric (safe assumption for min/sec logic)
             # OR explicitly check ID
             num = if(i_id %in% c("NCR1", "NCR2")) {
@@ -450,7 +440,7 @@ for (i_id in indicators) {
             } else {
                 sum(!!col_out, na.rm = TRUE)
             },
-            
+
             den = n(), # Denom is count of eligible rows
             .groups = "drop"
         ) %>%
@@ -460,7 +450,7 @@ for (i_id in indicators) {
             month_end_date = period_end
         ) %>%
         select(hospital_name, month_end_date, indicator_id, num, den)
-        
+
     summary_list[[i_id]] <- current_summary
 }
 

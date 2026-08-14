@@ -1,4 +1,4 @@
-﻿Indicator_ID,IndicatorGroup,Name,LiveInSQuIS,DescriptionShort,Description,Rationale,Numerator,Denominator,Multiplier,Status,Active,Tranche,Lead,BetterIs,IDM_ID,DataProvider,DataProviderLead,DataProviderEmail,DataProviderEmailCC,How to access event level data,QSGTheme,SPCChartType,FunnelChartType,QSGSortOrder
+﻿Indicator_ID,IndicatorGroup,Name,LiveInSQuIS,DescriptionShort,Description,Rationale,Numerator,Denominator,Multiplier,Status,Active,Tranche,Lead,BetterIs,IDM_ID,DataProvider,DataProviderLead,DataProviderEmail,DataProviderEmailCC,How to access event level data,QSGTheme,SPCChartType,FunnelChartType,QSGSortOrder,PosterLabel
 Q2100,,PCI Access ,FALSE,PCI Radial,"An indicator of whether the radial artery was used as the arterial access site during a Percutaneous Coronary Intervention (PCI) procedure, in accordance with the National Cardiac Registry (NCR) guidelines.","The NCR tracks arterial access sites to benchmark clinical practice, as radial access is increasingly recognised as best practice for PCI due to its association with reduced bleeding complications compared to femoral access. This flag should be recorded for all admitted patient care episodes where a PCI is performed. If multiple access sites are attempted, code as 1 (Yes) if the radial artery was successfully used to complete the procedure.","Number of PCI procedures where Percutaneous Entry Location is Radial.  Percutaneous Entry Location (NCR data item; field name pel) — definition: “The percutaneous entry location used to provide arterial vascular access for the procedure.”  2 = Radial
 
 f crossover occurred, select the percutaneous entry location that successfully facilitated the index PCI procedure (and therefore the numerator determination follows that chosen “successful” entry location).  Numerator exclusions : nil beyond demoninator exclusions. ","Total number of PCI procedures in the reporting period.
@@ -9,7 +9,7 @@ Percutaneous Entry Location (pel) is specified as Obligation: Always, with valid
 
 All PCI procedures meeting the above PCI definition, regardless of indication (STEMI/NSTEACS/non-ACS), and regardless of access route.
 
-Exclusions: Non-PCI catheter lab cases (diagnostic-only angiography) not meeting PCI definition.",1,Standard,Yes,9,"Johnson, Andrew",Higher,,safetyandquality@health.wa.gov.au,,safetyandquality@health.wa.gov.au,,Event level data can be requested for your own hospital or Health Service Provider (HSP) site can be requested via safetyandquality@health.wa.gov.au ,Clinical Care Standards,p,PR,
+Exclusions: Non-PCI catheter lab cases (diagnostic-only angiography) not meeting PCI definition.",1,Standard,Yes,9,"Johnson, Andrew",Higher,,safetyandquality@health.wa.gov.au,,safetyandquality@health.wa.gov.au,,Event level data can be requested for your own hospital or Health Service Provider (HSP) site can be requested via safetyandquality@health.wa.gov.au ,Clinical Care Standards,p,PR,,patients had Radial Access
 Q2101,,PCISTEMI,FALSE,PCI STEMI %,Percentage of PCI episodes presenting with ST‑Elevation Myocardial Infarction (STEMI),"The proportion of PCI episodes presenting with STEMI provides essential case‑mix context for interpreting PCI activity, outcomes, and timeliness indicators. STEMI cases represent higher acuity, time‑critical presentations and should be reported separately to avoid inappropriate comparison with non‑STEMI or elective PCI cohorts.
 This indicator supports transparent interpretation of downstream quality indicators (e.g. door‑to‑device time, mortality) and aligns with NCR cohort definitions.",Number of PCI procedures where Type of Acute Coronary Syndrome (ACS) is recorded as STEMI.,"Total number of eligible PCI episodes reported to the registry within the reporting period.
 
@@ -22,10 +22,10 @@ Patients are aged between 18 and 100.
 Exclusions:
 PCI episodes with missing or unknown ACS classification
 Elective PCI procedures where no ACS presentation is recorded
-PCI episodes performed for non‑ACS indications",1,Standard,Yes,9,"Johnson, Andrew",Not Determined,,Healthcare Quality Intelligence Unit (HQIU) ,,safetyandquality@health.wa.gov.au ,,,Clinical Care Standards,p,PR,
-NCR2,,,,Door to PCI,,,,,,,,,,,,,,,,,,,,
-NCR4,,,,Bleeding,,,,,,,,,,,,,,,,,,,,
-NCR8,,,,30-day Mortality,,,,,,,,,,,,,,,,,,,,
-NCR10,,,,Referrals to Cardiac Rehab,,,,,,,,,,,,,,,,,,,,
-NCR11,,,,Dual Anti-Platelet Therapy,,,,,,,,,,,,,,,,,,,,
-VOL_PCI,,,,PCI Volume,,,,,,,,,,,,,,,,,,,,
+PCI episodes performed for non‑ACS indications",1,Standard,Yes,9,"Johnson, Andrew",Not Determined,,Healthcare Quality Intelligence Unit (HQIU) ,,safetyandquality@health.wa.gov.au ,,,Clinical Care Standards,p,PR,,PCI performed for STEMI
+NCR2,,,,Door to PCI,,,,,,,,,,,,,,,,,,,,,Door to PCI time
+NCR4,,,,Bleeding,,,,,,,,,,,,,,,,,,,,,Bleeding
+NCR8,,,,30-day Mortality,,,,,,,,,,,,,,,,,,,,,30-day Mortality
+NCR10,,,,Referrals to Cardiac Rehab,,,,,,,,,,,,,,,,,,,,,had evidence of referral to Cardiac Rehab
+NCR11,,,,Dual Anti-Platelet Therapy,,,,,,,,,,,,,,,,,,,,,patients were discharged on Dual Anti-Platelet Therapy
+VOL_PCI,,,,PCI Volume,,,,,,,,,,,,,,,,,,,,,PCI performed
