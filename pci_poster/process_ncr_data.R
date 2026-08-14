@@ -471,6 +471,23 @@ vol_summary <- pci_data_processed %>%
 
 summary_list[["VOL_PCI"]] <- vol_summary
 
+# PCI Database as Proportion of Total
+pci_database_summary <- pci_data_processed %>%
+  group_by(hid, period_end) %>%
+  summarise(
+    num = sum(dplyr::if_else(!is.na(pci_database_id), 1, 0)), # Total Procedures
+    den = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    indicator_id = "PCI_DATABASE",
+    hospital_name = hid,
+    month_end_date = period_end
+  ) %>%
+  select(hospital_name, month_end_date, indicator_id, num, den)
+
+summary_list[["PCI_DATABASE"]] <- pci_database_summary
+
 final_summary <- bind_rows(summary_list)
 
 # Fix Hospital Names (if hid is codes)

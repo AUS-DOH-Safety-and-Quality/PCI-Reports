@@ -644,7 +644,7 @@ prepare_pci_data <- function(pci_data) {
                                                                      "Unknown")),
       acs_cat = dplyr::case_when(
         acst == 3 ~ "STEMI",
-        acst %in% c(1,2) ~ "NSTEMI",
+        acst %in% c(1,2) ~ "NSTEACS",
         acs == 0 ~ "Non-ACS"
       ),
       bmi = wkg/(htm/100)^2,
@@ -707,12 +707,17 @@ prepare_pci_data <- function(pci_data) {
   pci_data <- pci_data |>
     dplyr::mutate(
       access_route = dplyr::case_when(
-        pel == 1 ~ "Brachial",
+        # pel == 1 ~ "Brachial", # Brachial is unused
         pel == 2 ~ "Radial",
         pel == 3 ~ "Femoral",
         TRUE ~ "Unknown"
       ),
-      access_route = factor(access_route, levels = c("Radial", "Femoral", "Brachial", "Unknown")),
+      access_route = factor(access_route, levels = c(
+        "Radial",
+        "Femoral",
+        # "Brachial",
+        "Unknown"
+        )),
       # Radial access flag for analysis
       radial_access = dplyr::if_else(pel == 2, 1, 0, missing = 0)
     )
@@ -897,12 +902,14 @@ controlcharts_spc <- function(
     title = NULL,
     chart_type = "p",
     improvement_direction = "decrease",
-    height = 200,
-    width = 250,
+    height = 340,
+    width = 370,
     xlimit_label = NULL,
     ylimit_label = NULL,
     ylimit_sig_figs = 0,
-    ll_truncate = NULL
+    ll_truncate = NULL,
+    ylimit_tick_count = 5,
+    upper_padding = 30
 ) {
   # Pre-aggregate data for SPC chart
   data_summary <- data |>
@@ -959,7 +966,8 @@ controlcharts_spc <- function(
 
   # Assign pattern labels to the identified patterns
   spc_chart_init_data$pattern_labels <-
-    apply(spc_chart_init_data[, c('last_astpoint', 'last_trend',
+    apply(spc_chart_init_data[, c('numerator', 'denominator',
+                                  'last_astpoint', 'last_trend',
                                   'last_shift', 'last_two_in_three')],
           1,
           function(x) {
@@ -968,6 +976,7 @@ controlcharts_spc <- function(
             if (!is.na(x["last_trend"])) patterns <- c(patterns, "\u24e3")
             if (!is.na(x["last_two_in_three"])) patterns <- c(patterns, "\u2154") #nolint
             if (!is.na(x["last_shift"])) patterns <- c(patterns, "\u24e2")
+            if (!is.na(x["last_astpoint"])) patterns <- c(patterns, paste0("(", x["numerator"], "/", trimws(x["denominator"]), ")"))
             if (length(patterns) > 0) {
               paste0(patterns, collapse = "")
             } else {
@@ -996,7 +1005,7 @@ controlcharts_spc <- function(
     height = height,
     width = width,
     canvas_settings = list(
-      upper_padding = 30,
+      upper_padding = upper_padding,
       lower_padding = 0,
       left_padding = 10,
       right_padding = 10
@@ -1041,7 +1050,7 @@ controlcharts_spc <- function(
       ylimit_l = NULL,
       ylimit_u = NULL,
       ylimit_ticks = TRUE,
-      ylimit_tick_count = 5,
+      ylimit_tick_count = ylimit_tick_count,
       ylimit_tick_font = "'Arial', sans-serif",
       ylimit_tick_size = 12,
       ylimit_tick_colour = "#000000",
@@ -1088,12 +1097,13 @@ controlcharts_funnel <- function(
   labels = NULL,
   chart_type = "PR",
   improvement_direction = "increase",
-  height = 200,
-  width = 250,
-  shape = 'Circle',
+  height = 340,
+  width = 370,
   xlimit_label = NULL,
   ylimit_label = NULL,
-  ylimit_sig_figs = 0
+  ylimit_sig_figs = 0,
+  ylimit_tick_count = 5,
+  upper_padding = 30
 ) {
   # Pre-aggregate data for SPC chart
   fp_data <- data |>
@@ -1104,15 +1114,16 @@ controlcharts_funnel <- function(
       den = sum({{denominator}}, na.rm = TRUE)
     ) |>
     # Replace column names to use common names
-    purrr::set_names(c("group", "group_name", "num", "den")) |>
+    purrr::set_names(c("group", "group_name", "num", "den"))
+  fp_data <- fp_data |>
     dplyr::mutate(
       # Assign labels
-      label = ifelse(group %in% labels, as.character(group_name), ""),
+      label = ifelse(group %in% labels, stringr::str_split_i(group_name, " ", -1), ""),
       # Assign label position
       label_position = ifelse(
         group %in% labels,
         ifelse(
-          num/den <= sum(num) / sum(den),
+          num/den <= (sum(fp_data$num) / sum(fp_data$den)),
           'bottom',
           'top'
         ),
@@ -1129,10 +1140,14 @@ controlcharts_funnel <- function(
       # Assign label angle offset
       label_angle_offset = ifelse(
         group %in% labels,
-        45 * ifelse(label_position == 'top', 1, -1) *
+        45 * ifelse(label_position == 'top', -1, 1) *
           ifelse(den <= max(den)/2, 1,-1),
         NA
       )
+    ) |>
+    dplyr::mutate(
+      shape = ifelse(group %in% labels, "Triangle", "Circle"),
+      size = ifelse(group %in% labels, 2.5, 2.5)
     )
 
   # Add funnel chart
@@ -1146,7 +1161,7 @@ controlcharts_funnel <- function(
     height = height,
     width = width,
     canvas_settings = list(
-      upper_padding = 30,
+      upper_padding = upper_padding,
       lower_padding = 0,
       left_padding = 0,
       right_padding = 10
@@ -1163,8 +1178,8 @@ controlcharts_funnel <- function(
       three_sigma = TRUE
     ),
     scatter_settings = list(
-      shape = shape,
-      size = 2.5
+      shape = fp_data$shape,
+      size = fp_data$size
     ),
     x_axis_settings = list(
       xlimit_ticks = TRUE,
@@ -1183,7 +1198,7 @@ controlcharts_funnel <- function(
       ylimit_l = NULL,
       ylimit_u = NULL,
       ylimit_ticks = TRUE,
-      ylimit_tick_count = 5,
+      ylimit_tick_count = ylimit_tick_count,
       ylimit_tick_font = "'Arial', sans-serif",
       ylimit_tick_size = 12,
       ylimit_tick_colour = "#000000",
@@ -1201,9 +1216,9 @@ controlcharts_funnel <- function(
       label_font = "'Arial', sans-serif",
       label_size = 12,
       label_colour = "#000000",
-      label_line_max_length = 50,
+      label_line_max_length = 40,
       label_marker_show = TRUE,
-      label_marker_offset = 5,
+      label_marker_offset = 0,
       label_marker_size = 3,
       label_marker_colour = "#000000",
       label_marker_outline_colour = "#000000"

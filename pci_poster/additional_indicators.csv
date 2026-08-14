@@ -9,7 +9,7 @@ Percutaneous Entry Location (pel) is specified as Obligation: Always, with valid
 
 All PCI procedures meeting the above PCI definition, regardless of indication (STEMI/NSTEACS/non-ACS), and regardless of access route.
 
-Exclusions: Non-PCI catheter lab cases (diagnostic-only angiography) not meeting PCI definition.",1,Standard,Yes,9,"Johnson, Andrew",Higher,,safetyandquality@health.wa.gov.au,,safetyandquality@health.wa.gov.au,,Event level data can be requested for your own hospital or Health Service Provider (HSP) site can be requested via safetyandquality@health.wa.gov.au ,Clinical Care Standards,p,PR,,patients had Radial Access
+Exclusions: Non-PCI catheter lab cases (diagnostic-only angiography) not meeting PCI definition.",1,Standard,Yes,9,"Johnson, Andrew",Higher,,safetyandquality@health.wa.gov.au,,safetyandquality@health.wa.gov.au,,Event level data can be requested for your own hospital or Health Service Provider (HSP) site can be requested via safetyandquality@health.wa.gov.au ,Clinical Care Standards,p,PR,,{s} PCI were performed via Radial Access
 Q2101,,PCISTEMI,FALSE,PCI STEMI %,Percentage of PCI episodes presenting with ST‑Elevation Myocardial Infarction (STEMI),"The proportion of PCI episodes presenting with STEMI provides essential case‑mix context for interpreting PCI activity, outcomes, and timeliness indicators. STEMI cases represent higher acuity, time‑critical presentations and should be reported separately to avoid inappropriate comparison with non‑STEMI or elective PCI cohorts.
 This indicator supports transparent interpretation of downstream quality indicators (e.g. door‑to‑device time, mortality) and aligns with NCR cohort definitions.",Number of PCI procedures where Type of Acute Coronary Syndrome (ACS) is recorded as STEMI.,"Total number of eligible PCI episodes reported to the registry within the reporting period.
 
@@ -22,10 +22,11 @@ Patients are aged between 18 and 100.
 Exclusions:
 PCI episodes with missing or unknown ACS classification
 Elective PCI procedures where no ACS presentation is recorded
-PCI episodes performed for non‑ACS indications",1,Standard,Yes,9,"Johnson, Andrew",Not Determined,,Healthcare Quality Intelligence Unit (HQIU) ,,safetyandquality@health.wa.gov.au ,,,Clinical Care Standards,p,PR,,PCI performed for STEMI
-NCR2,,,,Door to PCI,,,,,,,,,,,,,,,,,,,,,Door to PCI time
+PCI episodes performed for non‑ACS indications",1,Standard,Yes,9,"Johnson, Andrew",Not Determined,,Healthcare Quality Intelligence Unit (HQIU) ,,safetyandquality@health.wa.gov.au ,,,Clinical Care Standards,p,PR,,{s} PCI were emergencies for STEMI
+NCR2,,,,Door to PCI,,,,,,,,,,,,,,,,,,,,,Median Door to Device time was {s} min
 NCR4,,,,Bleeding,,,,,,,,,,,,,,,,,,,,,Bleeding
 NCR8,,,,30-day Mortality,,,,,,,,,,,,,,,,,,,,,30-day Mortality
-NCR10,,,,Referrals to Cardiac Rehab,,,,,,,,,,,,,,,,,,,,,had evidence of referral to Cardiac Rehab
-NCR11,,,,Dual Anti-Platelet Therapy,,,,,,,,,,,,,,,,,,,,,patients were discharged on Dual Anti-Platelet Therapy
-VOL_PCI,,,,PCI Volume,,,,,,,,,,,,,,,,,,,,,PCI performed
+NCR10,,,,Referrals to Cardiac Rehab,,,,,,,,,,,,,,,,,,,,,Evidence of referral to Cardiac Rehab was available in {s} patients
+NCR11,,,,Dual Anti-Platelet Therapy,,,,,,,,,,,,,,,,,,,,,{s} patients were discharged on DAPT
+VOL_PCI,,,,PCI Volume,,,,,,,,,,,,,,,,,,,,,{s} PCI performed.
+PCI_DATABASE,,,,PCI Database,,,,,,,,,,,,,,,,,,,,,{s} were entered into the PCI Database.

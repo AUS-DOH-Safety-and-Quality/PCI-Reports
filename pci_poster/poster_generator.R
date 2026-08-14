@@ -100,7 +100,7 @@ poster_summary_data <- ncr_data %>%
   group_by(hospital_name) %>%
   mutate(
     # Identify the latest date -> 3 month window (Current Month + Previous 2)
-    hosp_latest = max(month_end_date, na.rm = TRUE) %m-% months(2),
+    hosp_latest = as.Date('2026-06-30'),
     hosp_start  = hosp_latest %m-% months(2)
   ) %>%
   # Filter data to the 3-month window
@@ -138,7 +138,7 @@ indicator_mapping <- c(
   "NCR8"    = "ph_mort30r", # Map Mortality (30 days)
   "NCR10"   = "ph_crehab", # Map Referrals to cardiac rehab
   "NCR11"   = "ph_disch_meds_dapt", # Map Dual Anti-Platelet Therapy (DAPT)
-  "VOL_PCI" = "ph_pci_count", # Map Volume
+  "VOL_PCI" = "ph_pci", # Map Volume
   "Q2101"   = "ph_stemi", # Map STEMI
   "Q2100"   = "ph_radial" # Map Radial
 )
@@ -177,10 +177,11 @@ poster_summary_data <- poster_summary_data %>%
 
     # Construct the full narrative string: "X out of Y [noun]..."
     descriptive_text = case_when(
-      metric_type == "count" ~ format(total_num, big.mark = ",", scientific = FALSE),
+      indicator_id == "PCI_DATABASE" ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(as.character(round(total_num, 0)), " (", pct_label_whole, ")")),
+      metric_type == "count" ~ stringr::str_replace(raw_desc, "\\{s\\}", format(total_num, big.mark = ",", scientific = FALSE)),
       is.na(total_den) | total_den == 0 ~ "Data unavailable",
-      metric_type == "median" ~ paste0(round(total_num), "m (Median) ", raw_desc),
-      TRUE ~ paste0(total_num, " out of ", total_den, " ", raw_desc)
+      metric_type == "median" ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(round(total_num))),
+      TRUE ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(total_num, " of ", total_den))
     )
   ) %>%
   ungroup()
@@ -255,7 +256,7 @@ for (hosp in hospitals) {
 
       # Special Logic for VOL_PCI: Also populate the secondary 'ph_pci' placeholder with narrative
       if (ind == "VOL_PCI" && "ph_pci" %in% valid_labels) {
-        long_text <- paste0(ind_row$descriptive_text, " ", ind_row$raw_desc)
+        long_text <- paste0(ind_row$descriptive_text, "        ", filter(h_data, indicator_id == "PCI_DATABASE")$descriptive_text)
         current_poster <- ph_with(current_poster, value = long_text, location = ph_location_label(ph_label = "ph_pci"))
       }
 
@@ -263,6 +264,11 @@ for (hosp in hospitals) {
       ppt_pct_ph <- paste0(ppt_ph, "_pct")
       if (ind != "VOL_PCI") {
         current_poster <- safe_ph_with(current_poster, ind_row$pct_label_whole, ppt_pct_ph)
+      }
+      # Insert count (shape name usually has _count)
+      ppt_count_ph <- paste0(ppt_ph, "_count")
+      if (ind == "VOL_PCI") {
+        current_poster <- safe_ph_with(current_poster, ind_row$total_num, ppt_count_ph)
       }
     }
   }
