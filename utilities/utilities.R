@@ -644,7 +644,7 @@ prepare_pci_data <- function(pci_data) {
                                                                      "Unknown")),
       acs_cat = dplyr::case_when(
         acst == 3 ~ "STEMI",
-        acst %in% c(1,2) ~ "NSTEACS",
+        acst %in% c(1,2) ~ "NSTEMI",
         acs == 0 ~ "Non-ACS"
       ),
       bmi = wkg/(htm/100)^2,
