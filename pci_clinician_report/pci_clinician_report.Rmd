@@ -459,6 +459,9 @@ stat_ggplot2 <- function(data, stat, title, x_axis_short_label, show_legend = FA
     ggplot2::theme(
       legend.position = ifelse(show_legend, "bottom", "none"), 
       legend.text = ggplot2::element_text(size = 14)
+    ) +
+    ggplot2::guides(
+      fill = ggplot2::guide_legend(order = 1)
     )
   
   return(ggplot2_output)
@@ -685,7 +688,7 @@ controlcharts_spc(
   improvement_direction = "neutral",
   xlimit_label = "Month",
   ylimit_label = "Radial Access %",
-  title = "Radial Access % for Your Data"
+  title = "Radial Access % All PCI (Your Data)"
 )
 ```
 
@@ -755,7 +758,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "In-Hospital Stroke",
-  title = "In-Hospital Stroke (All PCI) - Selected",
+  title = "In-Hospital Stroke (All PCI) - Your Data",
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -820,7 +823,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "30-Day Stroke Post Discharge",
-  title = "30-Day Stroke (All PCI) - Selected",
+  title = "30-Day Stroke (All PCI) - Your Data",
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -884,7 +887,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "30d Cardiac Rehospitalisation Post Discharge",
-  title = "30d Cardiac Rehosp (All PCI) - Selected"
+  title = "30d Cardiac Rehosp (All PCI) - Your Data"
 )
 ```
 
@@ -948,7 +951,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "30-Day Mortality (All PCI)",
-  title = "30-Day Mortality (All PCI) - Selected"
+  title = "30-Day Mortality (All PCI) - Your Data"
 )
 ```
 
@@ -1028,7 +1031,7 @@ The tables and bar charts in this report are stratified by the patient's clinica
 
 The data is presented using tables, bar plots, statistical process control (SPC) charts for individual clinician data, and funnel plots where each point represents an individual clinician over the reporting period, with the Your Data annotated in the funnel plot (e.g. Q5 below).
 
-All clinicians are displayed in a funnel plot (left) and for the selected individual clinician by an SPC chart (right).
+All clinicians are displayed in a funnel plot (left) and for Your Data by an SPC chart (right).
 
 ```{r example_funnel_spc, message=FALSE, warning=FALSE}
 # Example funnel plot using simulated data
