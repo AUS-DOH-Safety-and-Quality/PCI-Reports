@@ -128,26 +128,26 @@ pci_data <- pci_data |>
   dplyr::mutate(
     po = dplyr::if_else(
       po == target_po,
-      "Anonymous Clinician",
+      "Anonymous",
       po
     ),
     po_name = dplyr::if_else(
-      po == "Anonymous Clinician",
-      "Anonymous Clinician",
+      po == "Anonymous",
+      "Anonymous",
       po_name
     ),
     po_last_name = dplyr::if_else(
-      po == "Anonymous Clinician",
+      po == "Anonymous",
       "Anonymous",
       po_last_name
     )
   )
-target_po <- "Anonymous Clinician"
+target_po <- "Anonymous"
 ```
 
 ```{r pci_data_for_stratified_tables, include = FALSE}
 # Create pci data for use in stratified tables, by updating selecting clinician and All PCI Operators separately
-pci_data_for_stratified_tables <- bind_rows(
+pci_data_for_stratified_tables <- dplyr::bind_rows(
   pci_data |>
     dplyr::filter(comparison_group == "Your Data"),
   pci_data |>
@@ -181,7 +181,7 @@ Clinician: *Dr `r target_po`*<br>
   
 &nbsp;
 
-`r format.Date(Sys.Date(), "%B %Y")`
+&nbsp;
 
 &nbsp;
 
@@ -192,14 +192,31 @@ Clinician: *Dr `r target_po`*<br>
 ::: {custom-style="ReportingDate"}
 
 ```{r reporting_period_monthly_report_word, echo=FALSE}
-start_date <- min(pci_data$period_start, na.rm = TRUE)
-end_date <- max(pci_data$period_end, na.rm = TRUE)
-formatted_start_date <- format.Date(start_date, "%d %B %Y")
-formatted_end_date <- format.Date(end_date, "%d %B %Y")
-short_start_date <- format.Date(start_date, "%b %y")
-short_end_date <- format.Date(end_date, "%b %y")
-reporting_period <- paste("For reporting period", formatted_start_date,
-                          "to", formatted_end_date)
+# Start and End Date for Current Reporting Period
+current_start_date <- max(pci_data$period_start, na.rm = TRUE)
+current_end_date <- max(pci_data$period_end, na.rm = TRUE)
+formatted_current_start_date <- format.Date(current_start_date, "%d %B %Y")
+formatted_current_end_date <- format.Date(current_end_date, "%d %B %Y")
+short_current_start_date <- format.Date(current_start_date, "%b %y")
+short_current_end_date <- format.Date(current_end_date, "%b %y")
+current_reporting_period <- paste(
+  "For current reporting period", formatted_current_start_date,
+  "to", formatted_current_end_date)
+
+# Start and End Date for the full timeframe in the report
+report_start_date <- min(pci_data$period_start, na.rm = TRUE)
+report_end_date <- max(pci_data$period_end, na.rm = TRUE)
+formatted_report_start_date <- format.Date(report_start_date, "%d %B %Y")
+formatted_report_end_date <- format.Date(report_end_date, "%d %B %Y")
+short_report_start_date <- format.Date(report_start_date, "%b %y")
+short_report_end_date <- format.Date(report_end_date, "%b %y")
+
+# Change text for frequency
+reported_period_frequency <- dplyr::case_when(
+  params$period_frequency == 'quarterly' ~ 'Quarter',
+  params$period_frequency == 'monthly' ~ 'Month',
+  .default = 'Unknown Period Frequency'
+)
 ```
 
 <span style="display: block; text-align: left;">`r reporting_period`</span>
@@ -210,15 +227,15 @@ reporting_period <- paste("For reporting period", formatted_start_date,
 
 # Introduction
 
-This report details metrics and indicators for PCI procedures that you (presented as “Your Data” in this report) have performed within centres that are currently participating in NCR data collection. This report is confidential and is only available to you and your Head of Department.
+This report details metrics and indicators for PCI procedures that you have performed (presented as “Your Data” in this report) within centres that are currently participating in data collection for the National Cardiac Registry (NCR). This report is confidential and is only available to you and your Head of Department.
 
-The report displays your PCI metrics with a comparison to all other PCI operators in Western Australia for whom data are available. PCI are allocated to the first consultant listed for the procedure. Indicator definitions and a detailed explanation on the charts used in this report can be found in the Appendix.
+The report displays your PCI metrics with a comparison to all other PCI operators in Western Australia for whom data are available. PCI are allocated to the first consultant listed within the procedure record. Indicator definitions and a detailed explanation on the charts used in this report can be found in the Appendix.
 
-The data for this report is collected from the PCI Database of Western Australia which is part of the Cardiac Registry of Western Australia (CRoWA). The Database was established to collect data from clinicians at the time of PCI and following hospital discharge. The PCI module of the CRoWA builds upon the Database, improving the mapping of PCI quality indicators and data collection by gathering missing data from existing electronic sources such as Cardiobase and other hospital administrative data.
+The data for this report is collected from the PCI Database of WA which is part of the Cardiac Registry of Western Australia (CRoWA). The Database was established to collect data from clinicians at the time of PCI and following hospital discharge. The PCI module of CRoWA builds upon the Database, improving the mapping of PCI quality indicators and data collection by gathering missing data from existing electronic sources.
 
-Additional useful resources: [National Cardiac Registry 2025 Annual Report](https://nationalcardiacregistry.org.au/2025-annual-status-report/), [PCI Database of WA REDCap](https://datalibrary-rc.health.wa.gov.au), PCI Database of WA Data Definitions [TBC], [Cardiovascular Dashboard](https://app.powerbi.com/groups/me/apps/69877d7f-3ac7-449c-939d-18aa3e549a1a), Link to Historical Clinician Reports [TBC].
+Additional useful resources: [National Cardiac Registry 2025 Annual Report](https://nationalcardiacregistry.org.au/2025-annual-status-report/), [PCI Database of WA REDCap](https://datalibrary-rc.health.wa.gov.au), PCI Database of WA Data Definitions [TBC], [Cardiovascular Dashboard](https://app.powerbi.com/groups/me/apps/69877d7f-3ac7-449c-939d-18aa3e549a1a), Link to your PCI Reports [TBC].
 
-# Summary (Latest Reporting Period)
+# `r paste0("Summary (Current Reporting Period; ", short_current_start_date, " to ", short_current_end_date, ")")`
 
 Below is a summary of your activity, during this reporting period, compared with all PCI operators within WA for whom data are available.
 
@@ -229,11 +246,11 @@ last_period_end <- max(pci_data$period_end)
 
 # Create a lookup for the eventual names of the metrics
 lookup_colnames <- c(
-  "Number of PCI (n)" = "label_pci",
-  "Number of STEMIs (n (%))" = "label_stemi",
-  "Radial Access (n (%))" = "label_radial",
-  "Mean Length of Stay (days)" = "label_mean_los",
-  "Median Length of Stay (days)" = "label_median_los"
+  "Number of PCI, n" = "label_pci",
+  "Number of STEMIs, n (%)" = "label_stemi",
+  "Radial Access, n (%)" = "label_radial",
+  "Mean Length of Stay" = "label_mean_los",
+  "Median Length of Stay" = "label_median_los"
 )
 
 summary_latest <- pci_data_for_stratified_tables |> 
@@ -273,8 +290,8 @@ summary_latest <- pci_data_for_stratified_tables |>
 
 # Format flextable output
 header_span_name <- dplyr::case_when(
-  params$period_frequency == 'monthly' ~ paste0("Reporting Period, ", format.Date(last_period_end, "%b %Y")),
-  params$period_frequency == 'quarterly' ~ paste0("Reporting Period, ", format.Date(last_period_start, "%b %Y"), " to ", format.Date(last_period_end, "%b %Y")),
+  params$period_frequency == 'monthly' ~ paste0(format.Date(last_period_end, "%b %Y")),
+  params$period_frequency == 'quarterly' ~ paste0(format.Date(last_period_start, "%b %Y"), " to ", format.Date(last_period_end, "%b %Y")),
   .default = "Missing Period Frequency"
 )
 
@@ -290,7 +307,7 @@ summary_latest |>
   flextable::set_header_labels("Metric" = "")
 ```
 
-# Your Data by Quarter (`r short_start_date` to `r short_end_date`)
+# Your Data by Quarter (`r short_report_start_date` to `r short_report_end_date`)
 
 ```{r num_PCI_all_stemi, out.height = "210px", out.width = "370px", message=FALSE, warning=FALSE}
 # Note there needs to be a subcaption in the above for the charts to render full size
@@ -330,7 +347,7 @@ controlcharts_spc(
 controlcharts_spc(
   data = pci_data |> 
     dplyr::filter(po == target_po) |> 
-    dplyr::filter(acs_cat == "NSTEMI"),
+    dplyr::filter(acs_cat == "ACS"),
   numerator = count_pci,
   denominator = 1,
   month = period_end,
@@ -341,13 +358,13 @@ controlcharts_spc(
   xlimit_label = "Month",
   ylimit_label = "Number of PCI",
   ll_truncate = 0,
-  title = "Number of PCI for NSTEMI",
+  title = "Number of PCI for ACS",
   upper_padding = 0
 )
 controlcharts_spc(
   data = pci_data |> 
     dplyr::filter(po == target_po) |> 
-    dplyr::filter(acs_cat == "Non-ACS"),
+    dplyr::filter(acs_cat == "Elective/Other"),
   numerator = count_pci,
   denominator = 1,
   month = period_end,
@@ -358,12 +375,12 @@ controlcharts_spc(
   xlimit_label = "Month",
   ylimit_label = "Number of PCI",
   ll_truncate = 0,
-  title = "Number of PCI for Non-ACS",
+  title = "Number of PCI for Elective/Other",
   upper_padding = 0
 )
 ```
 
-# Patient Demographics (`r short_start_date` to `r short_end_date`)
+# Patient Demographics (`r short_report_start_date` to `r short_report_end_date`)
 
 ## Patient Characteristics by Clinical Presentation
 
@@ -394,12 +411,17 @@ stat_ggplot2 <- function(data, stat, title, x_axis_short_label, show_legend = FA
       stat_all = `All PCI Operators`
     ) |>
     dplyr::mutate(
-      acs_cat = factor(acs_cat, levels = c("Non-ACS", "NSTEMI", "STEMI", "All"))
+      acs_cat = factor(acs_cat, levels = c("Elective/Other", "ACS", "STEMI", "All"))
     )
   
-  # Initialise ggplot chart
+  # Calculate ggplot2 x-axis range
   min_point <- min(c(stat_data$stat_target, stat_data$stat_other), na.rm = TRUE)
   max_point <- max(c(stat_data$stat_target, stat_data$stat_other), na.rm = TRUE)
+  range <- max_point - min_point
+  min_range <- min_point - range * 0.15
+  max_range <- max_point + range * 0.15
+  
+  # Initialise ggplot chart
   ggplot2_output <- ggplot2::ggplot(stat_data) +
     # Add horizontal bars for Your Data
     ggplot2::geom_bar(
@@ -426,7 +448,7 @@ stat_ggplot2 <- function(data, stat, title, x_axis_short_label, show_legend = FA
     ggplot2::xlab(x_axis_short_label) +
     # Set x-axis limits
     ggplot2::coord_cartesian(
-      xlim = c(min_point * 0.9, max_point * 1.1)
+      xlim = c(min_range, max_range)
     ) +
     # Add title
     ggplot2::ggtitle(title) +
@@ -582,7 +604,7 @@ tbl_stratified_and_overall <- function(data, func_tbl_summary, label_name = "Cha
   # Create a stratified table by ACS category
   tbl_stratified <- data |>
     dplyr::mutate(
-      acs_cat_factor = factor(acs_cat, levels = c("STEMI", "NSTEMI", "Non-ACS"), ordered = TRUE)
+      acs_cat_factor = factor(acs_cat, levels = c("STEMI", "ACS", "Elective/Other"), ordered = TRUE)
     ) |>
     gtsummary::tbl_strata(
       strata = "acs_cat_factor",
@@ -656,9 +678,9 @@ tbl_stratified_and_overall(
 
 \newpage
 
-# Procedural Characteristics (`r short_start_date` to `r short_end_date`)
+# Procedural Characteristics (`r short_report_start_date` to `r short_report_end_date`)
 
-## Procedural Characteristics by Clinical Presentation
+## Radial Access Rate
 
 ```{r radialaccess_fpl_spc, message=FALSE, warning=FALSE}
 
@@ -675,7 +697,7 @@ controlcharts_funnel(
   chart_type = "PR",
   improvement_direction = "neutral",
   ylimit_label = "Radial Access %",
-  title = "Radial Access % for All PCI"
+  title = "Radial Access (Overall, All PCI)"
 )
 controlcharts_spc(
   data = pci_data |> dplyr::filter(!is.na(acs_cat)) |> dplyr::filter(po == target_po),
@@ -688,9 +710,11 @@ controlcharts_spc(
   improvement_direction = "neutral",
   xlimit_label = "Month",
   ylimit_label = "Radial Access %",
-  title = "Radial Access % All PCI (Your Data)"
+  title = paste0("Radial Access (Your Data per ", reported_period_frequency, ")")
 )
 ```
+
+## Access Site by Presentation
 
 &nbsp;
 
@@ -721,11 +745,11 @@ tbl_stratified_and_overall(
 
 \newpage
 
-# Outcomes (`r short_start_date` to `r short_end_date`)
+# Outcomes (`r short_report_start_date` to `r short_report_end_date`)
 
-## NCR QI3: In-Hospital Stroke
+## In-Hospital Stroke
 
-Proportion of patients that undergo a PCI procedure that experienced a stroke while an inpatient during or after the cardiac catheter lab visit.
+Proportion of patients that undergo a PCI procedure that experienced a stroke while an inpatient during or after PCI.
 
 ```{r ihstr_fpl_spc, out.height = "230px", out.width = "370px", message=FALSE, warning=FALSE}
 
@@ -743,7 +767,7 @@ controlcharts_funnel(
   improvement_direction = "decrease",
   ylimit_label = "In-Hospital Stroke",
   ylimit_sig_figs = 1,
-  title = "In-Hospital Stroke (All PCI)",
+  title = "In-Hospital Stroke (Overall, All PCI)",
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -758,7 +782,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "In-Hospital Stroke",
-  title = "In-Hospital Stroke (All PCI) - Your Data",
+  title = paste0("In-Hospital Stroke (Your Data per ", reported_period_frequency, ")"),
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -808,7 +832,7 @@ controlcharts_funnel(
   improvement_direction = "decrease",
   ylimit_label = "30-Day Stroke Post Discharge",
   ylimit_sig_figs = 0,
-  title = "30-Day Stroke Post Discharge (All PCI)",
+  title = "30-Day Stroke (Overall, All PCI)",
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -823,7 +847,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Month",
   ylimit_label = "30-Day Stroke Post Discharge",
-  title = "30-Day Stroke (All PCI) - Your Data",
+  title = paste0("30-Day Stroke (Your Data per ", reported_period_frequency, ")"),
   ylimit_tick_count = 3,
   upper_padding = 15
 )
@@ -855,9 +879,9 @@ tbl_stratified_and_overall(pci_data_for_stratified_tables |> dplyr::filter(!is.n
 
 \newpage
 
-## NCR QI6: 30-day Cardiac Rehospitalisation Post Discharge
+## 30-day Cardiac Rehospitalisation
 
-Proportion of patients that undergo a PCI procedure that had cardiac hospitalisation within 30 days after discharge from hospital.
+Proportion of patients that undergo a PCI procedure that had cardiac rehospitalisation within 30 days after discharge from hospital.
 
 ```{r crh30_fpl_spc, message=FALSE, warning=FALSE}
 
@@ -874,7 +898,7 @@ controlcharts_funnel(
   chart_type = "PR",
   improvement_direction = "decrease",
   ylimit_label = "30d Cardiac Rehospitalisation",
-  title = "30d Cardiac Rehospitalisation (All PCI)"
+  title = "30d Cardiac Rehospitalisation (Overall, All PCI)"
 )
 controlcharts_spc(
   data = pci_data |> dplyr::filter(po == target_po),
@@ -886,8 +910,8 @@ controlcharts_spc(
   chart_type = "p",
   improvement_direction = "decrease",
   xlimit_label = "Month",
-  ylimit_label = "30d Cardiac Rehospitalisation Post Discharge",
-  title = "30d Cardiac Rehosp (All PCI) - Your Data"
+  ylimit_label = "30d Cardiac Rehospitalisation",
+  title = paste0("30d Cardiac Rehosp (Your Data per ", reported_period_frequency, ")")
 )
 ```
 
@@ -917,11 +941,11 @@ tbl_stratified_and_overall(pci_data_for_stratified_tables |> dplyr::filter(!is.n
 
 \newpage
 
-## NCR QI8: 30-Day Mortality After PCI
+## 30-Day Mortality After PCI
 
 Proportion of patients that undergo a PCI procedure that died in-hospital or within 30 days of discharge. 
 
-**Importantly, this indicator presents crude mortality rates only that have **[**not been adjusted**]{.underline} **for risk.** Risk adjusted mortality rates are currently a work in progress at the National Cardiac Registry, which will be included within this report once available.
+**Importantly, this indicator presents crude mortality rates only that have **[**not been adjusted**]{.underline} **for risk.** Risk adjusted mortality rates are currently a work in progress at the National Cardiac Registry, and shall be included within this report once available.
 
 ```{r ncr8_fpl_spc, message=FALSE, warning=FALSE}
 
@@ -937,8 +961,8 @@ controlcharts_funnel(
   labels = target_po,
   chart_type = "PR",
   improvement_direction = "decrease",
-  ylimit_label = "30-Day Mortality (All PCI)",
-  title = "30-Day Mortality (All PCI)"
+  ylimit_label = "30-Day Mortality",
+  title = "30-Day Mortality (Overall, All PCI)"
 )
 controlcharts_spc(
   data = pci_data |> dplyr::filter(po == target_po),
@@ -950,8 +974,8 @@ controlcharts_spc(
   chart_type = "p",
   improvement_direction = "decrease",
   xlimit_label = "Month",
-  ylimit_label = "30-Day Mortality (All PCI)",
-  title = "30-Day Mortality (All PCI) - Your Data"
+  ylimit_label = "30-Day Mortality",
+  title = paste0("30-Day Mortality (Your Data per ", reported_period_frequency, ")")
 )
 ```
 
@@ -979,8 +1003,9 @@ ncr8_tbl_summary <- function(data) {
 tbl_stratified_and_overall(pci_data_for_stratified_tables |> dplyr::filter(!is.na(acs_cat) & NCR8_den == 1) , ncr8_tbl_summary, "Outcome")
 ```
 
-\*In keeping with National Cardiac Registry's definition, the '30-day mortality' indicator represents ***combined*** in-hospital death **and** death occurring up to  30-days post discharge.
-
+::: {custom-style="Normal (Size 10)"}
+\*In keeping with National Cardiac Registry's definition, the '30-day mortality' indicator represents ***combined*** in-hospital death and death occurring up to 30-days post discharge.
+:::
 \newpage
 
 # Appendix
@@ -992,8 +1017,10 @@ tbl_stratified_and_overall(pci_data_for_stratified_tables |> dplyr::filter(!is.n
 The tables and bar charts in this report are stratified by the patient's clinical presentation in the 7 day period leading up to and including the index PCI. These categories are:
 
 - ST-elevation myocardial infarction (STEMI),
-- Non-ST-elevation myocardial infarction (NSTEMI), and 
-- Non-acute coronary syndromes (Non-ACS).
+- Acute Coronary Syndromes (ACS), and 
+- Elective/Other.
+
+The ACS group is equivalent to the NCR non-ST-elevation acute coronary syndrome (NSTEACS) group, and Elective/Other is equivalent to the NCR Non-ACS group as reported in the NCR Annual Report.
 
 ### NCR QI3: In-Hospital Stroke
 **Description:** Proportion of patients that undergo a PCI procedure that experienced a stroke while an inpatient during or after the cardiac catheter lab visit.
@@ -1009,12 +1036,12 @@ The tables and bar charts in this report are stratified by the patient's clinica
 
 **Numerator:** Number of patients that undergo a PCI procedure and were admitted into hospital for Stroke within 30 days of discharge from hospital. The stroke admission can be either to the emergency department or to an inpatient bed.
 
-### NCR QI6: 30-Day Cardiac Rehospitalisation Post Discharge
-**Description:** Proportion of patients that undergo a PCI procedure that had cardiac hospitalisation within 30 days after discharge from hospital.
+### NCR QI6: 30-Day Cardiac Rehospitalisation
+**Description:** Proportion of patients that undergo a PCI procedure that had cardiac rehospitalisation within 30 days after discharge from hospital.
 
 **Denominator:** Number of patients that undergo a PCI procedure and were discharged from hospital alive.
 
-**Numerator:** Number of patients that undergo a PCI procedure and had a cardiac rehospitalisation within 30 days of discharge, where a cardiac rehospitalisation is defined as an in-patient admission that includes, but is not limited to any of the following circumstances: heart failure; acute coronary syndrome (e.g. STEMI, NSTEMI; recurrent or unstable angina); arrhythmia; elective (non emergency) PCI or CABG etc.
+**Numerator:** Number of patients that undergo a PCI procedure and had a cardiac rehospitalisation within 30 days of discharge, where a cardiac rehospitalisation is defined as an in-patient admission that includes, but is not limited to any of the following circumstances: heart failure; acute coronary syndrome (e.g. STEMI, ACS; recurrent or unstable angina); arrhythmia; elective (non emergency) PCI or CABG etc.
 
 
 ### NCR QI8: 30-Day Mortality After PCI
@@ -1087,7 +1114,7 @@ controlcharts_spc(
   improvement_direction = "decrease",
   xlimit_label = "Months",
   ylimit_label = NULL,
-  title = "Example SPC Chart - Your Data",
+  title = "Example SPC Chart Your Data",
   upper_padding = 15
 )
 ```

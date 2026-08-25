@@ -644,8 +644,8 @@ prepare_pci_data <- function(pci_data) {
                                                                      "Unknown")),
       acs_cat = dplyr::case_when(
         acst == 3 ~ "STEMI",
-        acst %in% c(1,2) ~ "NSTEMI",
-        acs == 0 ~ "Non-ACS"
+        acst %in% c(1,2) ~ "ACS",
+        acs == 0 ~ "Elective/Other"
       ),
       bmi = wkg/(htm/100)^2,
       severe_obesity = dplyr::if_else(bmi >= 35, 1, 0),
