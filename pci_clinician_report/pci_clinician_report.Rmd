@@ -67,21 +67,11 @@ pci_data <- pci_data_raw |>
 ```{r Data transformation, include=FALSE}
 pci_data <- prepare_pci_data(pci_data) |>
   # Format the Procedure Operator Name
-  dplyr::mutate(
-    po_name = dplyr::if_else(
-      stringr::str_detect(po, ","),
-      paste0(
-        stringr::str_split_i(trimws(po), ", ", 2),
-        " ",
-        stringr::str_split_i(trimws(po), ", ", 1)
-      ),
-      trimws(po)
-    )|> 
-      stringr::str_to_title() |>
-      stringr::str_remove("Dr ")
-  ) |>
-  dplyr::mutate(
-    po_last_name = stringr::str_split_i(po_name, " ", -1)
+  dplyr::left_join(
+    wa_pci_operators |> 
+      dplyr::select(CardiobaseIdentifier, PCIOperatorName) |> 
+      dplyr::rename(po = CardiobaseIdentifier, po_name = PCIOperatorName),
+    by = "po"
   ) |>
   # Create Count column for Number of PCI
   dplyr::mutate(
@@ -90,7 +80,7 @@ pci_data <- prepare_pci_data(pci_data) |>
   # Add comparison_group based on selected targeted clinician
   dplyr::mutate(
     comparison_group = factor(
-      dplyr::if_else(po == target_po, "Your Data", "Other Clinicians"),
+      dplyr::if_else(po_name == target_po, "Your Data", "Other Clinicians"),
       levels = c("Your Data", "Other Clinicians")
     )
   ) |>
@@ -105,10 +95,10 @@ pci_data <- prepare_pci_data(pci_data) |>
   )
 
 # Filter for listed PCI operator last names if available
-if (exists("pci_dataset_operators_last_name")) {
+if (exists("wa_pci_operators")) {
   pci_data <- pci_data |>
     dplyr::filter(
-      po_last_name %in% pci_dataset_operators_last_name
+      po %in% wa_pci_operators$CardiobaseIdentifier
     )
 }
 if (params$period_frequency == "quarterly") {
@@ -124,25 +114,20 @@ if (params$period_frequency == "quarterly") {
 
 ```{r temp_anonymise_clinician, include = FALSE}
 # Temporary code to anonymise the clinician for the report
-pci_data <- pci_data |>
-  dplyr::mutate(
-    po = dplyr::if_else(
-      po == target_po,
-      "Anonymous",
-      po
-    ),
-    po_name = dplyr::if_else(
-      po == "Anonymous",
-      "Anonymous",
-      po_name
-    ),
-    po_last_name = dplyr::if_else(
-      po == "Anonymous",
-      "Anonymous",
-      po_last_name
-    )
-  )
-target_po <- "Anonymous"
+# pci_data <- pci_data |>
+#   dplyr::mutate(
+#     po = dplyr::if_else(
+#       po_name == target_po,
+#       "Anonymous",
+#       po
+#     ),
+#     po_name = dplyr::if_else(
+#       po == "Anonymous",
+#       "Anonymous",
+#       po_name
+#     )
+#   )
+# target_po <- "Anonymous"
 ```
 
 ```{r pci_data_for_stratified_tables, include = FALSE}
@@ -219,7 +204,7 @@ reported_period_frequency <- dplyr::case_when(
 )
 ```
 
-<span style="display: block; text-align: left;">`r reporting_period`</span>
+<span style="display: block; text-align: left;">`r current_reporting_period`</span>
 
 :::
 
@@ -313,7 +298,7 @@ summary_latest |>
 # Note there needs to be a subcaption in the above for the charts to render full size
 controlcharts_spc(
   data = pci_data |> 
-    dplyr::filter(po == target_po),
+    dplyr::filter(po_name == target_po),
   numerator = count_pci,
   denominator = 1,
   month = period_end,
@@ -329,7 +314,7 @@ controlcharts_spc(
 )
 controlcharts_spc(
   data = pci_data |> 
-    dplyr::filter(po == target_po) |> 
+    dplyr::filter(po_name == target_po) |> 
     dplyr::filter(acs_cat == "STEMI"),
   numerator = count_pci,
   denominator = 1,
@@ -346,7 +331,7 @@ controlcharts_spc(
 )
 controlcharts_spc(
   data = pci_data |> 
-    dplyr::filter(po == target_po) |> 
+    dplyr::filter(po_name == target_po) |> 
     dplyr::filter(acs_cat == "ACS"),
   numerator = count_pci,
   denominator = 1,
@@ -363,7 +348,7 @@ controlcharts_spc(
 )
 controlcharts_spc(
   data = pci_data |> 
-    dplyr::filter(po == target_po) |> 
+    dplyr::filter(po_name == target_po) |> 
     dplyr::filter(acs_cat == "Elective/Other"),
   numerator = count_pci,
   denominator = 1,
@@ -700,7 +685,7 @@ controlcharts_funnel(
   title = "Radial Access (Overall, All PCI)"
 )
 controlcharts_spc(
-  data = pci_data |> dplyr::filter(!is.na(acs_cat)) |> dplyr::filter(po == target_po),
+  data = pci_data |> dplyr::filter(!is.na(acs_cat)) |> dplyr::filter(po_name == target_po),
   numerator = radial_access,
   denominator = count_pci,
   month = period_end,
@@ -772,7 +757,7 @@ controlcharts_funnel(
   upper_padding = 15
 )
 controlcharts_spc(
-  data = pci_data |> dplyr::filter(po == target_po),
+  data = pci_data |> dplyr::filter(po_name == target_po),
   numerator = ifelse(ihstr == 1, 1, 0),
   denominator = ifelse(!is.na(ihstr), 1, 0),
   month = period_end,
@@ -837,7 +822,7 @@ controlcharts_funnel(
   upper_padding = 15
 )
 controlcharts_spc(
-  data = pci_data |> dplyr::filter(po == target_po),
+  data = pci_data |> dplyr::filter(po_name == target_po),
   numerator = ifelse(nstr == 1, 1, 0),
   denominator = ifelse(!is.na(nstr), 1, 0),
   month = period_end,
@@ -901,7 +886,7 @@ controlcharts_funnel(
   title = "30d Cardiac Rehospitalisation (Overall, All PCI)"
 )
 controlcharts_spc(
-  data = pci_data |> dplyr::filter(po == target_po),
+  data = pci_data |> dplyr::filter(po_name == target_po),
   numerator = ifelse(crh30 == 1, 1, 0),
   denominator = ifelse(!is.na(crh30), 1, 0),
   month = period_end,
@@ -965,7 +950,7 @@ controlcharts_funnel(
   title = "30-Day Mortality (Overall, All PCI)"
 )
 controlcharts_spc(
-  data = pci_data |> dplyr::filter(po == target_po),
+  data = pci_data |> dplyr::filter(po_name == target_po),
   numerator = NCR8_num,
   denominator = NCR8_den,
   month = period_end,
