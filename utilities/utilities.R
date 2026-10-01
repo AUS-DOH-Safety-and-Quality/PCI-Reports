@@ -669,11 +669,11 @@ prepare_pci_data <- function(pci_data) {
         tbd > top ~ dop,
         tbd = NA ~ NA),
       #Calculate column required for ECG to PCI time
-      ecgdb = difftime(tbd, tecgd, units = "mins") + difftime(dbd, decgd, units = "mins"),
+      ecgdb = difftime(tbd |> as.numeric(), tecgd |> as.numeric(), units = "mins") + difftime(dbd |> as.numeric(), decgd |> as.numeric(), units = "mins"),
       #Calculate column required for Door to PCI time
-      dbdt = difftime(tbd, toa, units = "mins") + difftime(dbd, doa, units = "mins"),
+      dbdt = difftime(tbd |> as.numeric(), toa |> as.numeric(), units = "mins") + difftime(dbd |> as.numeric(), doa |> as.numeric(), units = "mins"),
       #Calculate column required for Symptoms to Door time
-      symptom_to_door = difftime(toa, tso, units = "mins") + difftime(doa, dso, units = "mins"),
+      symptom_to_door = difftime(toa |> as.numeric(), tso |> as.numeric(), units = "mins") + difftime(doa |> as.numeric(), dso |> as.numeric(), units = "mins"),
       #Calculate if patient was an inpatient at time of ACS
       inp = dplyr::case_when(
         acs == "1" & symptom_to_door > 0 ~ "0",
@@ -765,11 +765,11 @@ prepare_pci_data <- function(pci_data) {
   pci_data <- pci_data |>
     dplyr::mutate(
       # First medical contact to device time
-      fmc_to_device = difftime(tbd, tfmc, units = "mins") +
-                      difftime(dbd, dfmc, units = "mins"),
+      fmc_to_device = difftime(tbd |> as.numeric(), tfmc |> as.numeric(), units = "mins") +
+                      difftime(dbd |> as.numeric(), dfmc |> as.numeric(), units = "mins"),
       # Symptom onset to reperfusion time
-      symptom_to_reperfusion = difftime(tbd, tso, units = "mins") +
-                               difftime(dbd, dso, units = "mins"),
+      symptom_to_reperfusion = difftime(tbd |> as.numeric(), tso |> as.numeric(), units = "mins") +
+                               difftime(dbd |> as.numeric(), dso |> as.numeric(), units = "mins"),
       # Out-of-hours procedure (weekends or outside 8am-6pm)
       out_of_hours = dplyr::if_else(
         lubridate::wday(dop) %in% c(1, 7) |  # Saturday=7, Sunday=1
@@ -976,7 +976,14 @@ controlcharts_spc <- function(
             if (!is.na(x["last_trend"])) patterns <- c(patterns, "\u24e3")
             if (!is.na(x["last_two_in_three"])) patterns <- c(patterns, "\u2154") #nolint
             if (!is.na(x["last_shift"])) patterns <- c(patterns, "\u24e2")
-            if (!is.na(x["last_astpoint"])) patterns <- c(patterns, paste0("(", x["numerator"], "/", trimws(x["denominator"]), ")"))
+            if (!is.na(x["last_astpoint"])) {
+              if (length(unique(data_summary$denominator)) == 1) {
+                patterns <- c(patterns, paste0("(", x["numerator"], ")"))
+
+              } else {
+                patterns <- c(patterns, paste0("(", x["numerator"], "/", trimws(x["denominator"]), ")"))
+              }
+            }
             if (length(patterns) > 0) {
               paste0(patterns, collapse = "")
             } else {
@@ -1008,7 +1015,7 @@ controlcharts_spc <- function(
       upper_padding = upper_padding,
       lower_padding = 0,
       left_padding = 10,
-      right_padding = 10
+      right_padding = 30
     ),
     spc_settings = list(
       chart_type = chart_type,
@@ -1164,7 +1171,7 @@ controlcharts_funnel <- function(
       upper_padding = upper_padding,
       lower_padding = 0,
       left_padding = 0,
-      right_padding = 10
+      right_padding = 30
     ),
     funnel_settings = list(
       chart_type = chart_type,
@@ -1226,3 +1233,13 @@ controlcharts_funnel <- function(
   )
 }
 
+no_numerator_available_plot <- function(title, text = "No data available") {
+  ggplot2::ggplot() +
+    ggplot2::theme_void() +
+    ggplot2::ggtitle(title) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, vjust = 0.5, size = 12, face = "bold", family = "sans"),
+      plot.margin = ggplot2::margin(t = 0.3, r = 0, b = 0, l = 0, unit = "cm")
+    ) +
+    ggplot2::annotate("text", x = 0.5, y = 0.3, label = text, size = 4, hjust = 0.5, vjust = 0.3)
+}

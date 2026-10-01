@@ -3,6 +3,8 @@
 ## Purpose: Main script to generate PCI reports
 ################################################################################
 
+library(lubridate)
+
 # Run the script to generate fixed primary operator field
 source('utilities/po_temp_fix.R')
 
@@ -12,22 +14,42 @@ source('utilities/po_temp_fix.R')
 source('utilities/wa_pci_operators.R')
 
 # Generate PCI Clinician Report ------------------------------------------------
+## Read pci_data_raw from dataflow instead
+tk_pbi <- qiverse.azure::get_az_tk('pbi_df')
+tk_sp <- qiverse.azure::get_az_tk('sp')
+pci_data_raw <- qiverse.powerbi::download_dataflow_table(
+  workspace_name = "PCI Data Set",
+  dataflow_name = "4_ncr_merged",
+  table_name = "ncr_combined",
+  access_token = tk_pbi$credentials$access_token
+)
 
-period_end <- "2025-12-31"
-period_start <- "2023-01-01"
+period_end <- "2026-06-30"
+period_start <- "2023-07-01"
 period_frequency <- "quarterly"
 
-unique_wa_pci_operators <- unique(wa_pci_operators |> dplyr::select(PCIOperatorName, PCIOperatorHE))
+unique_wa_pci_operators <- unique(wa_pci_operators |> dplyr::select(PCIOperatorName, PCIOperatorHE, Site))
 
 ## Loop through all operators in list
+# i = 10 # low number issue, force zeros in spc?
 for (i in 1:nrow(unique_wa_pci_operators)) {
+  # Generate parameters for the operator
   input_po_name <- unique_wa_pci_operators[i]$PCIOperatorName
   he_number <- sub("@.*", "", unique_wa_pci_operators[i]$PCIOperatorHE)
+
+  file_name <- paste0(
+    year(period_end), "Q", quarter(period_end),
+    "_",
+    he_number,
+    "_",
+    "pci_clinician_report.docx"
+  )
+
+  # Render the report
   rmarkdown::render(
     "pci_clinician_report/pci_clinician_report.Rmd",
     output_format = "word_document",
-    output_file = paste0("../_output/", format.Date(period_end, "%Y%m%d"), "_",
-                         he_number, "_", "pci_clinician_report.docx"),
+    output_file = paste0("../_output/", file_name),
     params = list(
       target_po = input_po_name,
       period_start = period_start,
@@ -35,5 +57,19 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
       period_frequency = period_frequency
     )
   )
-}
 
+  # Loop through for each hospital that the PCI operator is listed at
+  for (hospital_name in strsplit(unique_wa_pci_operators[i]$Site, ',') |> unlist()) {
+    # Upload to Sharepoint Site
+    upload_sharepoint_file(
+      src = paste0("_output/", file_name),
+      site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
+      dest_fldr_url = paste0(
+        "https://wahealthdept.sharepoint.com/:f:/r/sites/cardiovascular/individual_reports/",
+        hospital_name, "/",
+        he_number
+      ),
+      token = tk_sp
+    )
+  }
+}
