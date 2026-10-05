@@ -40,7 +40,13 @@ lookup_scgh <- download_dataflow_table(
   as.data.table()
 
 # Transform Existing pci_data ####
-pci_data_dt <- fread("pci_data.csv")
+pci_data_dt <- qiverse.powerbi::download_dataflow_table(
+  workspace_name = "PCI Data Set",
+  dataflow_name = "4_ncr_merged",
+  table_name = "ncr_combined",
+  access_token = tk_pbi$credentials$access_token
+) |>
+  as.data.table()
 
 ## For SMHS (RPH and FSH) ####
 check_operators_smhs <- merge(

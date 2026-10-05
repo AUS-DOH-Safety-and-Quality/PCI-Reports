@@ -58,18 +58,14 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
     )
   )
 
-  # Loop through for each hospital that the PCI operator is listed at
-  for (hospital_name in strsplit(unique_wa_pci_operators[i]$Site, ',') |> unlist()) {
-    # Upload to Sharepoint Site
-    upload_sharepoint_file(
-      src = paste0("_output/", file_name),
-      site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
-      dest_fldr_url = paste0(
-        "https://wahealthdept.sharepoint.com/:f:/r/sites/cardiovascular/individual_reports/",
-        hospital_name, "/",
-        he_number
-      ),
-      token = tk_sp
-    )
-  }
+  # Upload to Sharepoint Site
+  upload_sharepoint_file(
+    src = paste0("_output/", file_name),
+    site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
+    dest_fldr_url = paste0(
+      "https://wahealthdept.sharepoint.com/:f:/r/sites/cardiovascular/individual_reports/",
+      he_number
+    ),
+    token = tk_sp
+  )
 }
