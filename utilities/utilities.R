@@ -1243,3 +1243,50 @@ no_numerator_available_plot <- function(title, text = "No data available") {
     ) +
     ggplot2::annotate("text", x = 0.5, y = 0.3, label = text, size = 4, hjust = 0.5, vjust = 0.3)
 }
+
+# Convert Word to PDF ----------------------------------------------------------
+# Helper function to convert docx to pdf, dodging bugs in doconv library
+doconv_to_pdf_fixed <- function(
+    input,
+    output = gsub("\\.[[:alnum:]]+$", ".pdf", input)
+) {
+
+  # Extract file name
+  file_name <- gsub(".*[\\/]", "", input)
+
+  # Create temporary directory
+  new_temp_dir <- tempdir()
+
+  # Copy docx to temporary directory
+  file.copy(from = input, to = new_temp_dir, overwrite = TRUE)
+
+  # Rename to temp.docx, as the doconv function cannot handle names with spaces
+  file.rename(
+    from = file.path(new_temp_dir, file_name),
+    to = file.path(new_temp_dir, "temp.docx")
+  )
+
+  # Convert the file to pdf
+  doconv::to_pdf(
+    input = file.path(new_temp_dir, "temp.docx")
+  )
+
+  # Rename the pdf file to the original file name and copy to output directory
+  file.rename(
+    from = file.path(new_temp_dir, "temp.pdf"),
+    to = file.path(new_temp_dir, gsub("\\.[[:alnum:]]+$", ".pdf", file_name))
+  )
+  file.copy(
+    from = file.path(new_temp_dir, gsub("\\.[[:alnum:]]+$", ".pdf", file_name)),
+    to = output, overwrite = TRUE
+  )
+
+  # Clean up and remove temporary files
+  file.remove(file.path(new_temp_dir, "temp.docx"))
+  file.remove(
+    file.path(new_temp_dir, gsub("\\.[[:alnum:]]+$", ".pdf", file_name))
+  )
+
+  # Suppress any return values
+  invisible()
+}

@@ -44,7 +44,7 @@ pci_data_dt <- qiverse.powerbi::download_dataflow_table(
   workspace_name = "PCI Data Set",
   dataflow_name = "4_ncr_merged",
   table_name = "ncr_combined",
-  access_token = tk_pbi$credentials$access_token
+  access_token = tk$credentials$access_token
 ) |>
   as.data.table()
 

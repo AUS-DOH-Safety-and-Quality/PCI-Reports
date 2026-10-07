@@ -2,9 +2,10 @@
 *.html
 *.docx
 *.pptx
+*.pdf
 
 _files/
-_outputs/
+_output/
 .Rproj.user/
 /.quarto/
 **/*.quarto_ipynb

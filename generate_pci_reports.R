@@ -4,6 +4,7 @@
 ################################################################################
 
 library(lubridate)
+library(doconv)
 
 # Run the script to generate fixed primary operator field
 source('utilities/po_temp_fix.R')
@@ -64,7 +65,21 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
     site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
     dest_fldr_url = paste0(
       "https://wahealthdept.sharepoint.com/:f:/r/sites/cardiovascular/individual_reports/",
-      he_number
+      he_number, " - ", input_po_name
+    ),
+    token = tk_sp
+  )
+
+  # Convert docx to pdf
+  doconv_to_pdf_fixed(paste0("_output/", file_name))
+
+  # Upload to Sharepoint Site
+  upload_sharepoint_file(
+    src = gsub(".docx", ".pdf", paste0("_output/", file_name)),
+    site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
+    dest_fldr_url = paste0(
+      "https://wahealthdept.sharepoint.com/:f:/r/sites/cardiovascular/individual_reports/",
+      he_number, " - ", input_po_name
     ),
     token = tk_sp
   )
