@@ -33,17 +33,8 @@ knitr::opts_chunk$set(
 ```
 
 ```{r Data download, include=FALSE}
-# if (!file.exists("../pci_data.csv")) {
-#   stop("NCR dataset not found! Please check that you have a single CSV file named \"pci_data.csv\" in the current directory!",
-#        call. = FALSE)
-# }
-
 #Load in the helper functions/data required
 source("../utilities/utilities.R")
-
-#Read in data from PowerBI
-pci_data_raw_old <- readr::read_csv("../pci_data.csv")
-# pci_data <- readr::read_csv("./pci_data.csv", col_types = colTypes)
 ```
 
 ```{r Report context setup, include=FALSE}
@@ -58,28 +49,22 @@ if (period_frequency == "monthly") {
 }
 ```
 
-```{r replace_po_column, include=FALSE}
-pci_data <- pci_data_raw |>
-  dplyr::select(-po) |>
-  merge(
-    po_fixed |> 
-      dplyr::select(ANGIOPLASTY_ID, po_fixed) |>
-      dplyr::rename(po = po_fixed),
-    by = "ANGIOPLASTY_ID",
-    all.x = TRUE,
-    sort = FALSE
-  )
-```
-
-
 ```{r Data transformation, include=FALSE}
-pci_data <- prepare_pci_data(pci_data) |>
+pci_data <- prepare_pci_data(pci_data_raw) |>
   # Format the Procedure Operator Name
   dplyr::left_join(
     wa_pci_operators |> 
       dplyr::select(CardiobaseIdentifier, PCIOperatorName) |> 
       dplyr::rename(po = CardiobaseIdentifier, po_name = PCIOperatorName),
     by = "po"
+  ) |>
+  # Filter for listed PCI operator cardiobase identifier
+  dplyr::filter(
+    po %in% wa_pci_operators$CardiobaseIdentifier
+  ) |>
+  # Change to common name instead of Cardiobase name (as they differ)
+  dplyr::mutate(
+    po = po_name
   ) |>
   # Create Count column for Number of PCI
   dplyr::mutate(
@@ -102,13 +87,6 @@ pci_data <- prepare_pci_data(pci_data) |>
     dop >= params$period_start & dop <= params$period_end
   )
 
-# Filter for listed PCI operator cardiobase identifier
-if (exists("wa_pci_operators")) {
-  pci_data <- pci_data |>
-    dplyr::filter(
-      po %in% wa_pci_operators$CardiobaseIdentifier
-    )
-}
 if (params$period_frequency == "quarterly") {
   pci_data <- pci_data |>
     # Change period_end to be quarterly instead
@@ -117,30 +95,6 @@ if (params$period_frequency == "quarterly") {
       period_end = lubridate::quarter(period_end, type = "date_last")
     )
 }
-# Change to common name
-pci_data <- pci_data |>
-  dplyr::mutate(
-    po = po_name
-  )
-```
-
-
-```{r temp_anonymise_clinician, include = FALSE}
-# Temporary code to anonymise the clinician for the report
-# pci_data <- pci_data |>
-#   dplyr::mutate(
-#     po = dplyr::if_else(
-#       po_name == target_po,
-#       "Anonymous",
-#       po
-#     ),
-#     po_name = dplyr::if_else(
-#       po == "Anonymous",
-#       "Anonymous",
-#       po_name
-#     )
-#   )
-# target_po <- "Anonymous"
 ```
 
 ```{r pci_data_for_stratified_tables, include = FALSE}

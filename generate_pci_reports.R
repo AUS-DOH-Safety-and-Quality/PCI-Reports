@@ -5,19 +5,22 @@
 
 library(lubridate)
 library(doconv)
+library(qiverse.azure)
+library(qiverse.powerbi)
 
-# Run the script to generate fixed primary operator field
-source('utilities/po_temp_fix.R')
-
-# Run the script for WA PCI operator list
-## This script is not to be added to the repo, it will be stored elsewhere to be
-## read into the R environment in the future. Temporarily used here.
-source('utilities/wa_pci_operators.R')
-
-# Generate PCI Clinician Report ------------------------------------------------
-## Read pci_data_raw from dataflow instead
+# Set up Azure Access Tokens
 tk_pbi <- qiverse.azure::get_az_tk('pbi_df')
 tk_sp <- qiverse.azure::get_az_tk('sp')
+
+# Read in WA PCI Operator List
+wa_pci_operators <- qiverse.powerbi::download_dataflow_table(
+  workspace_name = 'PCI Data Set',
+  dataflow_name = 'ref_pci_operators',
+  table_name = 'wa_pci_operators',
+  access_token = tk$credentials$access_token
+)
+
+# Read pci_data_raw from dataflow
 pci_data_raw <- qiverse.powerbi::download_dataflow_table(
   workspace_name = "PCI Data Set",
   dataflow_name = "4_ncr_merged",
@@ -25,6 +28,8 @@ pci_data_raw <- qiverse.powerbi::download_dataflow_table(
   access_token = tk_pbi$credentials$access_token
 )
 
+# Generate PCI Clinician Report ------------------------------------------------
+## Set parameters
 period_end <- "2026-06-30"
 period_start <- "2023-07-01"
 period_frequency <- "quarterly"
@@ -32,11 +37,10 @@ period_frequency <- "quarterly"
 unique_wa_pci_operators <- unique(wa_pci_operators |> dplyr::select(PCIOperatorName, PCIOperatorHE, Site))
 
 ## Loop through all operators in list
-# i = 10 # low number issue, force zeros in spc?
 for (i in 1:nrow(unique_wa_pci_operators)) {
   # Generate parameters for the operator
-  input_po_name <- unique_wa_pci_operators[i]$PCIOperatorName
-  he_number <- sub("@.*", "", unique_wa_pci_operators[i]$PCIOperatorHE)
+  input_po_name <- unique_wa_pci_operators[i,]$PCIOperatorName
+  he_number <- sub("@.*", "", unique_wa_pci_operators[i,]$PCIOperatorHE)
 
   file_name <- paste0(
     year(period_end), "Q", quarter(period_end),
