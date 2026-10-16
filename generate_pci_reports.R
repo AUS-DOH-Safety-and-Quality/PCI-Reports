@@ -17,7 +17,7 @@ wa_pci_operators <- qiverse.powerbi::download_dataflow_table(
   workspace_name = 'PCI Data Set',
   dataflow_name = 'ref_pci_operators',
   table_name = 'wa_pci_operators',
-  access_token = tk$credentials$access_token
+  access_token = tk_pbi$credentials$access_token
 )
 
 # Read pci_data_raw from dataflow
@@ -27,6 +27,10 @@ pci_data_raw <- qiverse.powerbi::download_dataflow_table(
   table_name = "ncr_combined",
   access_token = tk_pbi$credentials$access_token
 )
+
+# Utilities --------------------------------------------------------------------
+source("utilities/utilities.R")
+pci_data_clean <- prepare_pci_data(pci_data_raw)
 
 # Generate PCI Clinician Report ------------------------------------------------
 ## Set parameters
@@ -54,7 +58,8 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
   rmarkdown::render(
     "pci_clinician_report/pci_clinician_report.Rmd",
     output_format = "word_document",
-    output_file = paste0("../_output/", file_name),
+    output_file = file_name,
+    output_dir = "_output",
     params = list(
       target_po = input_po_name,
       period_start = period_start,

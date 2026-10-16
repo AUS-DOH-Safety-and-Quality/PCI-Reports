@@ -12,7 +12,7 @@ params:
   target_po: "Your Data"
   period_start: "2023-01-01"
   period_end: "2025-12-31"
-  period_frequency: "monthly"
+  period_frequency: "quarterly"
 ---
 ```{r setup, include=FALSE}
 library(patchwork) # to stitch together ggplot2 charts side-by-side
@@ -32,15 +32,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r Data download, include=FALSE}
-#Load in the helper functions/data required
-source("../utilities/utilities.R")
-```
-
 ```{r Report context setup, include=FALSE}
 target_po <- params$target_po
 period_start <- params$period_start
 period_end <- params$period_end
+period_frequency <- params$period_frequency
 
 if (period_frequency == "monthly") {
   valid_periods <- (seq(lubridate::ymd(period_start), lubridate::ymd(period_end)+1, by = "months")-1)[-1]
@@ -50,7 +46,7 @@ if (period_frequency == "monthly") {
 ```
 
 ```{r Data transformation, include=FALSE}
-pci_data <- prepare_pci_data(pci_data_raw) |>
+pci_data <- pci_data_clean |>
   # Format the Procedure Operator Name
   dplyr::left_join(
     wa_pci_operators |> 
