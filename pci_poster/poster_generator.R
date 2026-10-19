@@ -2,56 +2,31 @@
 ## Project: Cardiac Registry of Western Australia (CRoWA) reporting
 ## Script: poster_generator.R
 ## Department: WA Health, Healthcare Quality Intelligence Unit (HQIU)
-## Warning: Standard Header
 ##
 ## Purpose: Creates National Cardiac Registry (NCR) Posters for hospitals
 ##          incorporating user-specified data and NCR-style visuals.
-##
-## Author: Richard Gillett, Head of Healthcare Quality Intelligence Unit (HQIU)
-## Date: January 2026
-################################################################################
-##
-## Overview:
-## 1. Sets up directory paths and loads configuration.
-## 2. Reads cardiac registry data (Excel) and indicator definitions (CSV).
-## 3. Processes data to calculate totals, denominators, and percentages.
-## 4. Maps NCR indicators to PowerPoint template placeholders.
-##    (Note: Uses ANZELA placeholders as fallback if custom template is missing)
-## 5. Iterates through each hospital to generate a specific PowerPoint poster.
-## 6. Handles logic for inserting hospital logos vs. generated maps.
 ################################################################################
 
 # -----------------------------------------------------------------------------
-# 1. Setup and Library Loading
+# 1. Inputs
+# -----------------------------------------------------------------------------
+
+# input_period_end <- '2026-06-30'
+# input_period_start <- '2026-04-01'
+
+# -----------------------------------------------------------------------------
+# 2. Setup and Library Loading
 # -----------------------------------------------------------------------------
 # Load necessary packages for data manipulation and PowerPoint generation
 library(dplyr) # For data manipulation
 library(officer) # For PowerPoint creation
-library(svDialogs) # For system dialogs (not strictly used in batch mode but kept for compat)
-library(scales) # For percentage formatting
-library(readxl) # For reading Excel data
-library(here) # For relative path management
-library(lubridate) # For date handling
-library(readr) # For reading CSV files
-
-# Define base directory logic
-# Checks if running from project root or checks for template existence
-# Robust check: Look for the template file itself
-if (file.exists("poster_template.pptx")) {
-  base_dir <- "."
-} else if (file.exists(file.path("pci_poster", "poster_template.pptx"))) {
-  base_dir <- "pci_poster"
-} else {
-  # Fallback: check if we are in a weird relative state or fail
-  stop("Could not find 'poster_template.pptx'. Please set working directory to the project root or 'pci_poster'.")
-}
 
 # Define Paths
-template_path <- file.path(base_dir, "poster_template.pptx")
-output_poster_dir <- file.path(base_dir, "_files", "posters")
-logo_folder <- file.path(base_dir, "hospital_logos")
-map_folder <- file.path(base_dir, "hospital_specific_maps")
-ref_dir <- file.path(base_dir, "reference_files")
+template_path <- file.path("pci_poster", "poster_template.pptx")
+output_poster_dir <- file.path("_output", "posters")
+logo_folder <- file.path("reference_files", "hospital_logos")
+map_folder <- file.path("reference_files", "hospital_specific_maps")
+ref_dir <- file.path("reference_files")
 
 # Create output directory if it doesn't exist
 if (!dir.exists(output_poster_dir)) {
@@ -59,147 +34,71 @@ if (!dir.exists(output_poster_dir)) {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Data Loading & Indicator Configuration
-# -----------------------------------------------------------------------------
-data_file <- here("_files", "cardiac_indicators_summary.xlsx")
-sample_data_file <- file.path(base_dir, "examples", "sample_cardiac_indicators.xlsx")
-indicators_file <- file.path(base_dir, "additional_indicators.csv")
-
-# Check for data file - fallback to sample data if real data not found
-if (!file.exists(data_file)) {
-  if (file.exists(sample_data_file)) {
-    message("No real data found. Using sample data from examples/ folder.")
-    data_file <- sample_data_file
-  } else {
-    stop("Data file not found. Run setup_dummy_data.R to generate sample data, or provide cardiac_indicators_summary.xlsx in _files/")
-  }
-}
-
-# Read the main data
-ncr_data <- readxl::read_excel(data_file)
-
-# Read Indicator Descriptions
-# Used to populate the narrative text on the poster
-if (file.exists(indicators_file)) {
-  ind_desc_df <- read_csv(indicators_file, show_col_types = FALSE)
-  names(ind_desc_df) <- tolower(names(ind_desc_df))
-
-  # Create a lookup vector: Indicator ID -> PosterLabel
-  desc_lookup <- setNames(ind_desc_df$posterlabel, ind_desc_df$indicator_id)
-} else {
-  warning("Indicators reference file not found. Using fallback descriptions.")
-  desc_lookup <- c()
-}
-
-# -----------------------------------------------------------------------------
 # 3. Data Processing
 # -----------------------------------------------------------------------------
-# Calculate summaries for the reporting period (Last 12 months)
-poster_summary_data <- ncr_data %>%
-  mutate(month_end_date = lubridate::as_date(month_end_date)) %>%
-  group_by(hospital_name) %>%
-  mutate(
-    # Identify the latest date -> 3 month window (Current Month + Previous 2)
-    hosp_latest = as.Date('2026-06-30'),
-    hosp_start  = hosp_latest %m-% months(2)
-  ) %>%
-  # Filter data to the 3-month window
-  filter(month_end_date >= hosp_start & month_end_date <= hosp_latest) %>%
-  group_by(hospital_name, indicator_id, hosp_start, hosp_latest) %>%
-  summarise(
-    total_num = if (first(indicator_id) %in% c("NCR1", "NCR2")) {
-      median(num, na.rm = TRUE)
-    } else {
-      sum(num, na.rm = TRUE)
-    },
-    total_den = sum(den, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    # Calculate percentage
-    pct = ifelse(!is.na(total_den) & total_den > 0, total_num / total_den, 0),
-    pct_label = scales::percent(pct, accuracy = 0.1),
-    pct_label_whole = scales::percent(pct, accuracy = 1),
+poster_summary_data <- summarise_pci_indicators(
+  data = pci_data_clean |>
+    dplyr::filter(
+      dop >= input_period_start,
+      dop <= input_period_end
+    ) |>
+    dplyr::mutate(
+      period_start = as.Date(input_period_start, format = "%Y-%m-%d"),
+      period_end = as.Date(input_period_end, format = "%Y-%m-%d")
+    ),
+  ind_metadata = ind_desc_df
+)
 
-    # Generate text for "Volume" type indicators (Cases vs %)
-    poster_text = case_when(
-      indicator_id == "VOL_PCI" ~ paste0(total_num, " Cases"),
-      is.na(total_den) | total_den == 0 ~ "No Data",
-      TRUE ~ paste0(total_num, "/", total_den, " (", pct_label, ")")
+# Merge in indicator metadata
+poster_summary_data  <- poster_summary_data |>
+  merge(
+    ind_desc_df |> select(indicator_id, indicator_type, poster_label),
+    by = "indicator_id"
+  )
+# Add value and descriptive text to be input into poster
+poster_summary_data <- poster_summary_data |>
+  dplyr::mutate(
+    value = case_when(
+      indicator_type %in% c("median", "count") ~ formatC(num, format = "f", big.mark = ",", digits = 0),
+      indicator_type == "proportion" ~ paste0(formatC(num/den*100, format = "f", digits = 0), "%"),
+      .default = "N/A"
     )
   )
-
-# Maps NCR Indicator IDs to the PowerPoint Shape Names (Placeholders).
-# Note: Current mapping target is the standard NCR template slots.
-
-indicator_mapping <- c(
-  "NCR2"    = "ph_door_to_reperfusion", # Map Door-to-PCI
-  "NCR4"    = "ph_ihbl", # Map Bleeding
-  "NCR8"    = "ph_mort30r", # Map Mortality (30 days)
-  "NCR10"   = "ph_crehab", # Map Referrals to cardiac rehab
-  "NCR11"   = "ph_disch_meds_dapt", # Map Dual Anti-Platelet Therapy (DAPT)
-  "VOL_PCI" = "ph_pci", # Map Volume
-  "Q2101"   = "ph_stemi", # Map STEMI
-  "Q2100"   = "ph_radial" # Map Radial
-)
-
-# Metric Types (Default is Percentage)
-metric_types <- c(
-  "NCR1"    = "median",
-  "NCR2"    = "median",
-  "VOL_PCI" = "count"
-)
-
-# Append descriptive text to the data frame for easy insertion
-poster_summary_data <- poster_summary_data %>%
-  rowwise() %>%
-  mutate(
-    raw_desc = desc_lookup[indicator_id],
-    raw_desc = ifelse(is.na(raw_desc), "Indicator Description Missing", raw_desc),
-
-    # Identify Type
-    metric_type = ifelse(indicator_id %in% names(metric_types), metric_types[indicator_id], "percent"),
-
-    # Safe Pct Calc
-    safe_pct = ifelse(!is.na(total_den) & total_den > 0, total_num / total_den, 0),
-
-    # Calculate Label based on Type
-    val_label = case_when(
-      metric_type == "median" ~ paste0(round(total_num), "m"),
-      metric_type == "count" ~ paste0(total_num, " Cases"),
-      metric_type == "percent" ~ scales::percent(safe_pct, accuracy = 0.1),
-      TRUE ~ ""
-    ),
-    pct_label_whole = case_when(
-      metric_type == "median" ~ paste0(round(total_num), "m"),
-      TRUE ~ scales::percent(safe_pct, accuracy = 1)
-    ),
-
-    # Construct the full narrative string: "X out of Y [noun]..."
-    descriptive_text = case_when(
-      indicator_id == "PCI_DATABASE" ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(as.character(round(total_num, 0)), " (", pct_label_whole, ")")),
-      metric_type == "count" ~ stringr::str_replace(raw_desc, "\\{s\\}", format(total_num, big.mark = ",", scientific = FALSE)),
-      is.na(total_den) | total_den == 0 ~ "Data unavailable",
-      metric_type == "median" ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(round(total_num))),
-      TRUE ~ stringr::str_replace(raw_desc, "\\{s\\}", paste0(total_num, " of ", total_den))
+poster_summary_data <- poster_summary_data |>
+  dplyr::mutate(
+    desc = case_when(
+      # Custom treatment for VOL_PCI to include desc from PCI_DATABASE
+      indicator_id == "VOL_PCI" ~ paste0(
+        stringr::str_replace(poster_label, "\\{s\\}", value),
+        "        ",
+        stringr::str_replace(
+          poster_summary_data |> filter(indicator_id == "PCI_DATABASE") |> pull(poster_label),
+          "\\{s\\}",
+          paste0(
+            poster_summary_data |> filter(indicator_id == "PCI_DATABASE") |> mutate(text = paste0(num, " (", value, ")")) |> pull(text)
+          )
+        )
+      ),
+      indicator_type %in% c("median", "count") ~ stringr::str_replace(poster_label, "\\{s\\}", value),
+      is.na(den) | den == 0 ~ "Data unavailable",
+      indicator_type == "proportion" ~ stringr::str_replace(poster_label, "\\{s\\}", paste0(num, " of ", den)),
+      .default = "Data unavailable"
     )
-  ) %>%
-  ungroup()
-
+  )
 
 # -----------------------------------------------------------------------------
 # 5. Poster Generation Loop
 # -----------------------------------------------------------------------------
 # Load the template once
-poster_template <- read_pptx(template_path)
+poster_template <- officer::read_pptx(template_path)
 
 # Clear any existing slides locally to ensure clean state
 while (length(poster_template) > 0L) {
-  poster_template <- remove_slide(poster_template)
+  poster_template <- officer::remove_slide(poster_template)
 }
 
 # Analyze layout to validate placeholder availability
-layout_info <- layout_properties(poster_template, layout = "Title Slide", master = "Office Theme")
+layout_info <- officer::layout_properties(poster_template, layout = "Title Slide", master = "Office Theme")
 valid_labels <- layout_info$ph_label
 
 hospitals <- unique(poster_summary_data$hospital_name)
@@ -212,7 +111,7 @@ safe_ph_with <- function(doc, value, label) {
   }
   tryCatch(
     {
-      ph_with(doc, value = value, location = ph_location_label(ph_label = label))
+      officer::ph_with(doc, value = value, location = ph_location_label(ph_label = label))
     },
     error = function(e) {
       message(paste("Failed to set placeholder:", label, "-", e$message))
@@ -223,53 +122,40 @@ safe_ph_with <- function(doc, value, label) {
 
 for (hosp in hospitals) {
   # --- A. Initialize Slide (reload template fresh each time to avoid accumulation) ---
-  current_poster <- read_pptx(template_path)
+  current_poster <- officer::read_pptx(template_path)
   while (length(current_poster) > 0L) {
-    current_poster <- remove_slide(current_poster, index = 1)
+    current_poster <- officer::remove_slide(current_poster, index = 1)
   }
-  current_poster <- add_slide(current_poster, layout = "Title Slide", master = "Office Theme")
+  current_poster <- officer::add_slide(current_poster, layout = "Title Slide", master = "Office Theme")
 
   # --- B. Filters for Current Hospital ---
-  h_data <- poster_summary_data %>% filter(hospital_name == hosp)
+  h_data <- poster_summary_data |> dplyr::filter(hospital_name == hosp)
   row1 <- h_data[1, ]
 
   # --- C. Header Date Range Information, shows the reporting period ---
-  date_txt <- paste0(format(row1$hosp_start, "%b %y"), " to ", format(row1$hosp_latest, "%b %y"))
+  date_txt <- paste0(format(row1$period_start, "%b %y"), " to ", format(row1$period_end, "%b %y"))
   title_txt <- paste0(hosp, " (", date_txt, ")")
 
 
   if ("ph_hosp_date_range" %in% valid_labels) {
-    current_poster <- ph_with(current_poster, value = title_txt, location = ph_location_label(ph_label = "ph_hosp_date_range"))
+    current_poster <- officer::ph_with(current_poster, value = title_txt, location = ph_location_label(ph_label = "ph_hosp_date_range"))
   }
 
   # --- D. Insert Indicators ---
   for (ind in unique(h_data$indicator_id)) {
-    ppt_ph <- indicator_mapping[ind]
+    ppt_ph_value <- paste0("ph_", ind, "_value")
+    ppt_ph_desc <- paste0("ph_", ind, "_desc")
 
-    if (!is.na(ppt_ph)) {
-      ind_row <- h_data %>% filter(indicator_id == ind)
+    ind_row <- h_data |> dplyr::filter(indicator_id == ind)
 
-      # Insert Narrative Text (or Number for VOL_PCI)
-      if (ppt_ph %in% valid_labels) {
-        current_poster <- ph_with(current_poster, value = ind_row$descriptive_text, location = ph_location_label(ph_label = ppt_ph))
-      }
+    # Insert Value Text
+    if (ppt_ph_value %in% valid_labels) {
+      current_poster <- officer::ph_with(current_poster, value = ind_row$value, location = officer::ph_location_label(ph_label = ppt_ph_value))
+    }
 
-      # Special Logic for VOL_PCI: Also populate the secondary 'ph_pci' placeholder with narrative
-      if (ind == "VOL_PCI" && "ph_pci" %in% valid_labels) {
-        long_text <- paste0(ind_row$descriptive_text, "        ", filter(h_data, indicator_id == "PCI_DATABASE")$descriptive_text)
-        current_poster <- ph_with(current_poster, value = long_text, location = ph_location_label(ph_label = "ph_pci"))
-      }
-
-      # Insert Big Number % (Shape name usually has _pct suffix)
-      ppt_pct_ph <- paste0(ppt_ph, "_pct")
-      if (ind != "VOL_PCI") {
-        current_poster <- safe_ph_with(current_poster, ind_row$pct_label_whole, ppt_pct_ph)
-      }
-      # Insert count (shape name usually has _count)
-      ppt_count_ph <- paste0(ppt_ph, "_count")
-      if (ind == "VOL_PCI") {
-        current_poster <- safe_ph_with(current_poster, ind_row$total_num, ppt_count_ph)
-      }
+    # Insert Description Text
+    if (ppt_ph_desc %in% valid_labels) {
+      current_poster <- officer::ph_with(current_poster, value = ind_row$desc, location = officer::ph_location_label(ph_label = ppt_ph_desc))
     }
   }
 
@@ -300,7 +186,12 @@ for (hosp in hospitals) {
 
   # --- G. Save Output ---
   # HQIU Style: Lowercase filenames
-  out_name <- tolower(paste0(gsub(" ", "_", hosp), "_pci_poster.pptx"))
+  out_name <- tolower(paste0(
+    as.Date(input_period_end, format = "%Y-%m-%d") |> format.Date(format = "%Y%m"),
+    "_",
+    gsub(" ", "_", hosp),
+    "_pci_poster.pptx"
+  ))
   out_file <- file.path(output_poster_dir, out_name)
 
   print(current_poster, target = out_file)

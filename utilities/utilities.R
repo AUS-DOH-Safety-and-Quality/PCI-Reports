@@ -6,9 +6,10 @@
 # Prepare PCI Data #############################################################
 prepare_pci_data <- function(pci_data) {
 
-  # Filter out records that are missing hid
+  # Filter out records that are missing hid and missing dop
   pci_data <- pci_data |>
-    dplyr::filter(!is.na(hid))
+    dplyr::filter(!is.na(hid)) |>
+    dplyr::filter(!is.na(dop))
 
   # Set the period start and end dates
   pci_data <- pci_data |>
@@ -192,7 +193,8 @@ prepare_pci_data <- function(pci_data) {
                   inp == "0" &
                   iht == "0" &
                   ecgdb > 0 &
-                  symptom_to_door < 720, 1, 0))
+                  symptom_to_door < 720, 1, 0),
+                  NCR1_num = dplyr::if_else(NCR1_den == 1, ecgdb, NA))
 
   #Time from door to PCI mediated reperfusion
   pci_data <- pci_data |>
@@ -200,11 +202,13 @@ prepare_pci_data <- function(pci_data) {
                   inp == "0" &
                   iht == "0" &
                   dbdt > 0 &
-                  symptom_to_door < 720, 1, 0))
+                  symptom_to_door < 720, 1, 0),
+                  NCR2_num = dplyr::if_else(NCR2_den == 1, dbdt, NA))
 
   #Peri-PCI stroke
   pci_data <- pci_data |>
-  dplyr::mutate(NCR3_den = dplyr::if_else(ihstr == 0 | ihstr == 1, 1,0))
+    dplyr::mutate(NCR3_den = dplyr::if_else(ihstr == 0 | ihstr == 1, 1,0),
+                  NCR3_num = dplyr::if_else(NCR3_den == 1 & ihstr == 1, 1, 0, missing = 0))
 
   #In-hospital major bleeding
   pci_data <- pci_data |>
@@ -268,6 +272,26 @@ prepare_pci_data <- function(pci_data) {
                   NCR11_num = dplyr::if_else(NCR9_den == 1 &
                                              (dasp == "1" & doap == "1"), 1, 0, missing = 0))
 
+  #Proportion of patients with radial access
+  pci_data <- pci_data |>
+    dplyr::mutate(Q2100_den = 1,
+                  Q2100_num = dplyr::if_else(Q2100_den == 1 & pel == 2, 1, 0, missing = 0))
+
+  #Proportion of STEMI cases
+  pci_data <- pci_data |>
+    dplyr::mutate(Q2101_den = 1,
+                  Q2101_num = dplyr::if_else(Q2101_den == 1 & acst == 3, 1, 0, missing = 0))
+
+  #Volume of PCI
+  pci_data <- pci_data |>
+    dplyr::mutate(VOL_PCI_den = 1,
+                  VOL_PCI_num = 1)
+
+  #Entered into PCI Database
+  pci_data <- pci_data |>
+    dplyr::mutate(PCI_DATABASE_den = 1,
+                  PCI_DATABASE_num = dplyr::if_else(PCI_DATABASE_den == 1 & !is.na(pci_database_id), 1, 0, missing = 0))
+
   #Composite Outcomes
   pci_data <- pci_data |>
     dplyr::mutate(
@@ -284,6 +308,59 @@ prepare_pci_data <- function(pci_data) {
     )
 
   pci_data
+}
+
+# Process Indicators into summarised format ####################################
+summarise_pci_indicators <- function(data, ind_metadata) {
+  summary_list <- list()
+
+  for (i in 1:nrow(ind_metadata)) {
+    # Pull indicator id from indicator metadata
+    col_indicator_id <- ind_metadata |>
+      dplyr::slice(i) |>
+      dplyr::pull(indicator_id)
+
+    # Pull indicator type from indicator metadata
+    col_indicator_type <- ind_metadata |>
+      dplyr::slice(i) |>
+      dplyr::pull(indicator_type)
+
+    # Create aggregate data
+    summary_list[[col_indicator_id]] <- data |>
+      dplyr::group_by(hid, period_start, period_end) |>
+      dplyr::summarise(
+        num = case_when(
+          col_indicator_type == "median" ~ median(as.numeric(!!sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
+          col_indicator_type == "proportion" ~ sum(as.numeric(!!sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
+          col_indicator_id == "VOL_PCI" ~ n(),
+          .default = NA
+        ),
+        den = case_when(
+          col_indicator_type == "median" ~ 1,
+          col_indicator_type == "proportion" ~ sum(!!sym(paste0(col_indicator_id, "_den")), na.rm = TRUE),
+          col_indicator_id == "VOL_PCI" ~ 1,
+          .default = NA
+        ),
+        .groups = "drop_last"
+      ) |>
+      dplyr::mutate(
+        indicator_id = col_indicator_id,
+        # Map hospital names manually for now
+        hospital_name = case_when(
+          hid == 1 ~ "Royal Perth Hospital",
+          hid == 2 ~ "Fiona Stanley Hospital",
+          hid == 3 ~ "Sir Charles Gairdner Hospital",
+          .default = as.character(hid)
+        )
+      ) |>
+      dplyr::ungroup() |>
+      dplyr::select(indicator_id, hospital_name, period_start, period_end, num, den)
+  }
+
+  # Join table back together
+  final_summary <- bind_rows(summary_list)
+
+  return(final_summary)
 }
 
 # Controlcharts helper functions to have consistent formatting #################

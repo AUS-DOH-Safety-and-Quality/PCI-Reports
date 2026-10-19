@@ -3,7 +3,7 @@
 ## Purpose: Main script to generate PCI reports
 ################################################################################
 
-library(lubridate)
+# 1. Load Libraries and Data ------------------------------------------------------
 library(doconv)
 library(qiverse.azure)
 library(qiverse.powerbi)
@@ -28,15 +28,22 @@ pci_data_raw <- qiverse.powerbi::download_dataflow_table(
   access_token = tk_pbi$credentials$access_token
 )
 
-# Utilities --------------------------------------------------------------------
+# Indicator metadata
+indicators_file <- file.path("reference_files", "indicators.csv")
+ind_desc_df <- read.csv(indicators_file)
+
+## Utilities
 source("utilities/utilities.R")
 pci_data_clean <- prepare_pci_data(pci_data_raw)
+pci_indicators_summary <- summarise_pci_indicators(pci_data_clean, ind_desc_df)
+write.csv(pci_data_clean, "_output/pci_data_clean.csv", row.names = FALSE)
+write.csv(pci_indicators_summary, "_output/pci_indicators_summary.csv", row.names = FALSE)
 
-# Generate PCI Clinician Report ------------------------------------------------
+# 2. Generate PCI Clinician Report ------------------------------------------------
 ## Set parameters
-period_end <- "2026-06-30"
-period_start <- "2023-07-01"
-period_frequency <- "quarterly"
+input_period_start <- "2023-07-01"
+input_period_end <- "2026-06-30"
+input_period_frequency <- "quarterly"
 
 unique_wa_pci_operators <- unique(wa_pci_operators |> dplyr::select(PCIOperatorName, PCIOperatorHE, Site))
 
@@ -47,7 +54,7 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
   he_number <- sub("@.*", "", unique_wa_pci_operators[i,]$PCIOperatorHE)
 
   file_name <- paste0(
-    year(period_end), "Q", quarter(period_end),
+    year(input_period_end), "Q", quarter(input_period_end),
     "_",
     he_number,
     "_",
@@ -62,14 +69,17 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
     output_dir = "_output",
     params = list(
       target_po = input_po_name,
-      period_start = period_start,
-      period_end = period_end,
-      period_frequency = period_frequency
+      period_start = input_period_start,
+      period_end = input_period_end,
+      period_frequency = input_period_frequency
     )
   )
 
+  # Open, update and save the report in word to create PNG fallback using native Microsoft Word SVG rendering
+  doconv::docx_update(paste0("_output/", file_name))
+
   # Upload to Sharepoint Site
-  upload_sharepoint_file(
+  qiverse.sharepoint::upload_sharepoint_file(
     src = paste0("_output/", file_name),
     site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
     dest_fldr_url = paste0(
@@ -83,7 +93,7 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
   doconv_to_pdf_fixed(paste0("_output/", file_name))
 
   # Upload to Sharepoint Site
-  upload_sharepoint_file(
+  qiverse.sharepoint::upload_sharepoint_file(
     src = gsub(".docx", ".pdf", paste0("_output/", file_name)),
     site_url = "https://wahealthdept.sharepoint.com/sites/cardiovascular/",
     dest_fldr_url = paste0(
@@ -93,3 +103,9 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
     token = tk_sp
   )
 }
+
+# 3. Generate PCI Hospital Posters ----------------------------------------------------
+input_period_start <- "2026-04-01"
+input_period_end <- "2026-06-30"
+
+source("pci_poster/poster_generator.R")
