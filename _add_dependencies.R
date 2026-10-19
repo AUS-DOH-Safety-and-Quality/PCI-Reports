@@ -4,3 +4,5 @@
 # The flextable is used for formatting tables when outputting to Word
 library(flextable)
 library(svglite)
+library(rnaturalearthhires)
+library(rnaturalearthdata)
