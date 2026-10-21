@@ -18,8 +18,8 @@
 # 2. Setup and Library Loading
 # -----------------------------------------------------------------------------
 # Load necessary packages for data manipulation and PowerPoint generation
-library(dplyr) # For data manipulation
-library(officer) # For PowerPoint creation
+# library(dplyr) # For data manipulation
+# library(officer) # For PowerPoint creation
 
 # Define Paths
 template_path <- file.path("pci_poster", "poster_template.pptx")
@@ -52,13 +52,13 @@ poster_summary_data <- summarise_pci_indicators(
 # Merge in indicator metadata
 poster_summary_data  <- poster_summary_data |>
   merge(
-    ind_desc_df |> select(indicator_id, indicator_type, poster_label),
+    ind_desc_df |> dplyr::select(indicator_id, indicator_type, poster_label),
     by = "indicator_id"
   )
 # Add value and descriptive text to be input into poster
 poster_summary_data <- poster_summary_data |>
   dplyr::mutate(
-    value = case_when(
+    value = dplyr::case_when(
       indicator_type %in% c("median", "count") ~ formatC(num, format = "f", big.mark = ",", digits = 0),
       indicator_type == "proportion" ~ paste0(formatC(num/den*100, format = "f", digits = 0), "%"),
       .default = "N/A"
@@ -66,16 +66,16 @@ poster_summary_data <- poster_summary_data |>
   )
 poster_summary_data <- poster_summary_data |>
   dplyr::mutate(
-    desc = case_when(
+    desc = dplyr::case_when(
       # Custom treatment for VOL_PCI to include desc from PCI_DATABASE
       indicator_id == "VOL_PCI" ~ paste0(
         stringr::str_replace(poster_label, "\\{s\\}", value),
         "        ",
         stringr::str_replace(
-          poster_summary_data |> filter(indicator_id == "PCI_DATABASE") |> pull(poster_label),
+          poster_summary_data |> dplyr::filter(indicator_id == "PCI_DATABASE") |> dplyr::pull(poster_label),
           "\\{s\\}",
           paste0(
-            poster_summary_data |> filter(indicator_id == "PCI_DATABASE") |> mutate(text = paste0(num, " (", value, ")")) |> pull(text)
+            poster_summary_data |> dplyr::filter(indicator_id == "PCI_DATABASE") |> dplyr::mutate(text = paste0(num, " (", value, ")")) |> dplyr::pull(text)
           )
         )
       ),
@@ -111,7 +111,7 @@ safe_ph_with <- function(doc, value, label) {
   }
   tryCatch(
     {
-      officer::ph_with(doc, value = value, location = ph_location_label(ph_label = label))
+      officer::ph_with(doc, value = value, location = officer::ph_location_label(ph_label = label))
     },
     error = function(e) {
       message(paste("Failed to set placeholder:", label, "-", e$message))
@@ -138,7 +138,7 @@ for (hosp in hospitals) {
 
 
   if ("ph_hosp_date_range" %in% valid_labels) {
-    current_poster <- officer::ph_with(current_poster, value = title_txt, location = ph_location_label(ph_label = "ph_hosp_date_range"))
+    current_poster <- officer::ph_with(current_poster, value = title_txt, location = officer::ph_location_label(ph_label = "ph_hosp_date_range"))
   }
 
   # --- D. Insert Indicators ---
@@ -159,6 +159,9 @@ for (hosp in hospitals) {
     }
   }
 
+  # Add mins text to NCR2
+  current_poster <- officer::ph_with(current_poster, value = "mins", location = officer::ph_location_label(ph_label = "ph_NCR2_mins"))
+
   # --- E. Logo / Map Insertion ---
   # Priority: 1. Official Logo (PNG), 2. Generated Map (PNG)
 
@@ -173,10 +176,10 @@ for (hosp in hospitals) {
 
   if ("ph_hosp_logo" %in% valid_labels) {
     if (file.exists(logo_path)) {
-      current_poster <- safe_ph_with(current_poster, external_img(logo_path), "ph_hosp_logo")
+      current_poster <- safe_ph_with(current_poster, officer::external_img(logo_path), "ph_hosp_logo")
     } else if (file.exists(map_path)) {
       # Provide styling feedback to let valid placeholder know we are filling it with a map
-      current_poster <- safe_ph_with(current_poster, external_img(map_path), "ph_hosp_logo")
+      current_poster <- safe_ph_with(current_poster, officer::external_img(map_path), "ph_hosp_logo")
     }
   }
 

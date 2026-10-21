@@ -329,15 +329,15 @@ summarise_pci_indicators <- function(data, ind_metadata) {
     summary_list[[col_indicator_id]] <- data |>
       dplyr::group_by(hid, period_start, period_end) |>
       dplyr::summarise(
-        num = case_when(
-          col_indicator_type == "median" ~ median(as.numeric(!!sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
-          col_indicator_type == "proportion" ~ sum(as.numeric(!!sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
-          col_indicator_id == "VOL_PCI" ~ n(),
+        num = dplyr::case_when(
+          col_indicator_type == "median" ~ median(as.numeric(!!rlang::sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
+          col_indicator_type == "proportion" ~ sum(as.numeric(!!rlang::sym(paste0(col_indicator_id, "_num"))), na.rm = TRUE),
+          col_indicator_id == "VOL_PCI" ~ dplyr::n(),
           .default = NA
         ),
-        den = case_when(
+        den = dplyr::case_when(
           col_indicator_type == "median" ~ 1,
-          col_indicator_type == "proportion" ~ sum(!!sym(paste0(col_indicator_id, "_den")), na.rm = TRUE),
+          col_indicator_type == "proportion" ~ sum(!!rlang::sym(paste0(col_indicator_id, "_den")), na.rm = TRUE),
           col_indicator_id == "VOL_PCI" ~ 1,
           .default = NA
         ),
@@ -346,7 +346,7 @@ summarise_pci_indicators <- function(data, ind_metadata) {
       dplyr::mutate(
         indicator_id = col_indicator_id,
         # Map hospital names manually for now
-        hospital_name = case_when(
+        hospital_name = dplyr::case_when(
           hid == 1 ~ "Royal Perth Hospital",
           hid == 2 ~ "Fiona Stanley Hospital",
           hid == 3 ~ "Sir Charles Gairdner Hospital",
@@ -358,7 +358,7 @@ summarise_pci_indicators <- function(data, ind_metadata) {
   }
 
   # Join table back together
-  final_summary <- bind_rows(summary_list)
+  final_summary <- dplyr::bind_rows(summary_list)
 
   return(final_summary)
 }
