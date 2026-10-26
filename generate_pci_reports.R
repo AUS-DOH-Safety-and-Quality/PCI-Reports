@@ -54,7 +54,7 @@ for (i in 1:nrow(unique_wa_pci_operators)) {
   he_number <- sub("@.*", "", unique_wa_pci_operators[i,]$PCIOperatorHE)
 
   file_name <- paste0(
-    year(input_period_end), "Q", quarter(input_period_end),
+    lubridate::year(input_period_end), "Q", lubridate::quarter(input_period_end),
     "_",
     he_number,
     "_",
