@@ -57,22 +57,18 @@ prepare_pci_data <- function(pci_data) {
   #Creating required columns for Indicator calculations
   pci_data <- pci_data |>
     dplyr::mutate(
-      #Create dbd based on whether the tbd time occurred before/after top time
-      dbd = dplyr::case_when(
-        tbd <= top ~ dop + lubridate::days(1),
-        tbd > top ~ dop,
-        tbd = NA ~ NA),
+      #Combine date and times
+      dtbd = as.POSIXct(tbd |> as.numeric(), origin = dbd),
+      dtecgd = as.POSIXct(tecgd |> as.numeric(), origin = decgd),
+      dtoa = as.POSIXct(toa |> as.numeric(), origin = doa),
+      dtso = as.POSIXct(tso |> as.numeric(), origin = dso),
       #Calculate column required for ECG to PCI time
-      ecgdb = difftime(tbd |> as.numeric(), tecgd |> as.numeric(), units = "mins") + difftime(dbd |> as.numeric(), decgd |> as.numeric(), units = "mins"),
+      ecgdb = difftime(dtbd, dtecgd, units = "mins"),
       #Calculate column required for Door to PCI time
-      dbdt = difftime(tbd |> as.numeric(), toa |> as.numeric(), units = "mins") + difftime(dbd |> as.numeric(), doa |> as.numeric(), units = "mins"),
+      dbdt = difftime(dtbd, dtoa, units = "mins"),
       #Calculate column required for Symptoms to Door time
-      symptom_to_door = difftime(toa |> as.numeric(), tso |> as.numeric(), units = "mins") + difftime(doa |> as.numeric(), dso |> as.numeric(), units = "mins"),
-      #Calculate if patient was an inpatient at time of ACS
-      inp = dplyr::case_when(
-        acs == "1" & symptom_to_door > 0 ~ "0",
-        acs == "1" & symptom_to_door <= 0 ~ "1",
-        acs == "0" ~ NA))
+      symptom_to_door = difftime(dtoa, dtso, units = "mins")
+    )
 
   # Phase 1: Hospital Classifications and Additional Variables
   # Hospital volume classification
@@ -158,17 +154,16 @@ prepare_pci_data <- function(pci_data) {
   # Additional timing variables
   pci_data <- pci_data |>
     dplyr::mutate(
+      dtfmc = as.POSIXct(tfmc |> as.numeric(), origin = dfmc),
       # First medical contact to device time
-      fmc_to_device = difftime(tbd |> as.numeric(), tfmc |> as.numeric(), units = "mins") +
-                      difftime(dbd |> as.numeric(), dfmc |> as.numeric(), units = "mins"),
+      fmc_to_device = difftime(dtbd, dtfmc, units = "mins"),
       # Symptom onset to reperfusion time
-      symptom_to_reperfusion = difftime(tbd |> as.numeric(), tso |> as.numeric(), units = "mins") +
-                               difftime(dbd |> as.numeric(), dso |> as.numeric(), units = "mins"),
+      symptom_to_reperfusion = difftime(dtbd, dtso, units = "mins"),
       # Out-of-hours procedure (weekends or outside 8am-6pm)
       out_of_hours = dplyr::if_else(
         lubridate::wday(dop) %in% c(1, 7) |  # Saturday=7, Sunday=1
-        top < hms::as_hms("08:00:00") |
-        top > hms::as_hms("18:00:00"),
+          hms::as_hms(top) < hms::as_hms("08:00:00") |
+          hms::as_hms(top) > hms::as_hms("18:00:00"),
         1, 0, missing = 0
       )
     )
@@ -179,9 +174,9 @@ prepare_pci_data <- function(pci_data) {
   pci_data <- pci_data |>
     dplyr::mutate(
       primary_pci = dplyr::if_else(
-        acst == 3 &                   # STEMI
         pci == 1 &                    # PCI performed
-        symptom_to_door < 720 &       # Within 12 hours
+        acst == 3 &                   # STEMI
+        symptom_to_door < 721 &       # Within 12 hours
         iht == 0,                     # Not inter-hospital transfer
         1, 0, missing = 0
       )
@@ -189,88 +184,91 @@ prepare_pci_data <- function(pci_data) {
 
   #Time from diagnostic ECG to PCI mediated reperfusion
   pci_data <- pci_data |>
-    dplyr::mutate(NCR1_den = dplyr::if_else(pci == "1" &
-                  inp == "0" &
-                  iht == "0" &
-                  ecgdb > 0 &
-                  symptom_to_door < 720, 1, 0),
-                  NCR1_num = dplyr::if_else(NCR1_den == 1, ecgdb, NA))
+    dplyr::mutate(NCR1_den = dplyr::if_else(
+      pci == 1 &                    # Primary PCI with STEMI
+        dtso < dtoa &               # symptom onset < arrival
+        iht == 0 &                  # non-transfer
+        ecgdb > 0 &                 # diagnostic ECG occurred before reperfusion
+        symptom_to_door < 721,      # symptom onset to door <= 12 hours
+      1, 0),
+      NCR1_num = dplyr::if_else(NCR1_den == 1, ecgdb, NA))
 
   #Time from door to PCI mediated reperfusion
   pci_data <- pci_data |>
-    dplyr::mutate(NCR2_den = dplyr::if_else(pci == "1" &
-                  inp == "0" &
-                  iht == "0" &
-                  dbdt > 0 &
-                  symptom_to_door < 720, 1, 0),
-                  NCR2_num = dplyr::if_else(NCR2_den == 1, dbdt, NA))
+    dplyr::mutate(NCR2_den = dplyr::if_else(
+      pci == 1 &                    # Primary PCI with STEMI
+        dtso < dtoa &               # symptom onset < arrival
+        iht == 0 &                  # non-transfer
+        dbdt > 0 &                 # hospital arrival occurred before reperfusion
+        symptom_to_door < 721,      # symptom onset to door <= 12 hours
+      1, 0),
+      NCR2_num = dplyr::if_else(NCR2_den == 1, dbdt, NA))
 
   #Peri-PCI stroke
   pci_data <- pci_data |>
-    dplyr::mutate(NCR3_den = dplyr::if_else(ihstr == 0 | ihstr == 1, 1,0),
-                  NCR3_num = dplyr::if_else(NCR3_den == 1 & ihstr == 1, 1, 0, missing = 0))
+    dplyr::mutate(NCR3_den = dplyr::if_else(ihstr %in% c(0,1), 1,0), # excludes any missing data, revisit to see if this is appropriate
+                  NCR3_num = dplyr::if_else(ihstr == 1, 1, 0, missing = 0))
 
   #In-hospital major bleeding
   pci_data <- pci_data |>
-    dplyr::mutate(NCR4_den = dplyr::if_else(stringr::str_detect(ihbl, "[012345678]"), 1, 0, missing = 0),
-                  NCR4_num = dplyr::if_else(NCR4_den == 1 &
-                                            stringr::str_detect(ihbl, "[34578]"), 1, 0, missing = 0))
+    dplyr::mutate(NCR4_den = dplyr::if_else(ihbl %in% c(0,1,2,3,4,5,6,7,8), 1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
+                  NCR4_num = dplyr::if_else(ihbl %in% c(3,4,5,7,8), 1, 0, missing = 0))
 
   #In-hospital mortality
   pci_data <- pci_data |>
-    dplyr::mutate(NCR5_den = dplyr::if_else(stringr::str_detect(dis, "[123456]"), 1, 0, missing = 0),
-                  NCR5_num = dplyr::if_else(dis == "6", 1, 0))
+    dplyr::mutate(NCR5_den = dplyr::if_else(dis %in% c(1,2,3,4,5,6), 1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
+                  NCR5_num = dplyr::if_else(dis == 6, 1, 0))
 
   #30 day unplanned cardiac readmission rate after PCI
   pci_data <- pci_data |>
-    dplyr::mutate(NCR6_den = dplyr::if_else(
-        stringr::str_detect(dis, "[12345]") &
-        (stat30 == "1" | stat30 == "0") &
-        (crh30 == "1"  | crh30 == "0"), 1, 0),
+    dplyr::mutate(NCR6_den = dplyr::if_else(dis %in% c(1,2,3,4,5) &
+                                              stat30 %in% c(0, 1) &
+                                              crh30 %in% c(0, 1), # excludes any missing data, revisit to see if this is appropriate
+                                            1, 0),
                   NCR6_num = dplyr::if_else(NCR6_den == 1 &
-                                crh30 == "1" &
-                                pc30 == "0", 1, 0))
+                                              crh30 == 1 &
+                                              pc30 == 0, 1, 0))
 
   #Unplanned revascularisation within 30 days
   pci_data <- pci_data |>
-    dplyr::mutate(NCR7_den = dplyr::if_else(
-      (ihpci == "0" | ihpci == "1") &
-      (ihcab == "0" | ihcab == "1"), 1, 0, missing = 0),
+    dplyr::mutate(NCR7_den = dplyr::if_else(ihpci %in% c(0,1) & ihcab %in% c(0,1), # excludes any missing data, revisit to see if this is appropriate
+                                            1, 0, missing = 0),
                   NCR7_num = dplyr::if_else(NCR7_den == 1 &
-                    (ihpci == "1" & ihpcip == "0") |
-                    (ihcab == "1" & ihpcab == "0" & ihtvcab == "1") |
-                    (pc30 == "0" & pci30 == "1") |
-                    (pc30 == "0" & cab30 == "1"), 1, 0, missing = 0))
+                                              (ihpci == 1 & ihpcip == 0) |
+                                              (ihcab == 1 & ihpcab == 0 & ihtvcab == 1) |
+                                              (crh30 == 1 & pc30 == 0 & pci30 == 1) |
+                                              (crh30 == 1 & pc30 == 0 & cab30 == 1),
+                                            1, 0, missing = 0))
 
   #30 day mortality after PCI
   pci_data <- pci_data |>
-    dplyr::mutate(NCR8_den = dplyr::if_else(
-      stringr::str_detect(dis, "[123456]"), 1, 0, missing = 0),
+    dplyr::mutate(NCR8_den = 1,
                   NCR8_num = dplyr::if_else(dmort30 - dod < 31 |
-                                            dis == "6", 1, 0, missing = 0))
+                                              dis == 6, 1, 0, missing = 0))
 
   #Patients without contraindication discharged on lipid-lowering therapy
   pci_data <- pci_data |>
-    dplyr::mutate(NCR9_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
-                                            ((dstp == "0" | dstp == "1") |
-                                            (doll == "0" | doll == "1")), 1, 0, missing = 0),
+    dplyr::mutate(NCR9_den = dplyr::if_else(dis %in% c(1,2,3,4,5) &
+                                              (dstp %in% c(0,1) | doll %in% c(0, 1)),
+                                            1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
                   NCR9_num = dplyr::if_else(NCR9_den == 1 &
-                                            (dstp == "1" | doll == "1"), 1, 0, missing = 0))
+                                            (dstp == 1 | doll == 1), 1, 0, missing = 0))
 
   #Patients referred to cardiac rehabilitation or other secondary prevention program
   pci_data <- pci_data |>
-    dplyr::mutate(NCR10_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
-                                             (crehab == "-1" | crehab == "1" | crehab == "0"), 1, 0, missing = 0),
+    dplyr::mutate(NCR10_den = dplyr::if_else(dis %in% c(1,2,3,4,5) &
+                                               crehab %in% c(-1,0,1),
+                                             1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
                   NCR10_num = dplyr::if_else(NCR10_den == 1 &
-                                             crehab == "1", 1, 0, missing = 0))
+                                             crehab == 1, 1, 0, missing = 0))
 
   #Proportion of patients without a clear and documented contraindication for aspirin and/or a P2Y12 inhibitor, discharged on DAPT
   pci_data <- pci_data |>
-    dplyr::mutate(NCR11_den = dplyr::if_else(stringr::str_detect(dis, "[12345]") &
-                                             ((dasp == "0" | dasp == "1") |
-                                             (doap == "0" | doap == "1")), 1, 0, missing = 0),
+    dplyr::mutate(NCR11_den = dplyr::if_else(dis %in% c(1,2,3,4,5) &
+                                               (dasp %in% c(0, 1) | doap %in% c(0, 1)),
+                                             1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
                   NCR11_num = dplyr::if_else(NCR9_den == 1 &
-                                             (dasp == "1" & doap == "1"), 1, 0, missing = 0))
+                                             (dasp == 1 & doap == 1), 1, 0, missing = 0))
 
   #Proportion of patients with radial access
   pci_data <- pci_data |>
@@ -321,8 +319,8 @@ prepare_pci_data <- function(pci_data) {
               1.56066 * dplyr::if_else(acst == 3, 1, 0, missing = 0) #stemi
           ))
         ),
-      mort30ra_den = dplyr::if_else(dis %in% c(1,2,3,4,5,6), mort30ra, 0, missing = 0), # only include valid discharges
-      mort30ra_num = dplyr::if_else(dis %in% c(1,2,3,4,5,6) & (dmort30 - dod < 31 | dis == 6), 1, 0, missing = 0) # numerator includes 30 day mortality and in-hospital mortality
+      mort30ra_den = mort30ra,
+      mort30ra_num = dplyr::if_else(dmort30 - dod < 31 | dis == 6, 1, 0, missing = 0) # numerator includes 30 day mortality and in-hospital mortality
     )
 
   pci_data
