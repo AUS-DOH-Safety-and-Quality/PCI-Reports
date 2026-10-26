@@ -246,7 +246,7 @@ prepare_pci_data <- function(pci_data) {
   pci_data <- pci_data |>
     dplyr::mutate(NCR8_den = dplyr::if_else(
       stringr::str_detect(dis, "[123456]"), 1, 0, missing = 0),
-                  NCR8_num = dplyr::if_else((dop + 30) <= dmort30 |
+                  NCR8_num = dplyr::if_else(dmort30 - dod < 31 |
                                             dis == "6", 1, 0, missing = 0))
 
   #Patients without contraindication discharged on lipid-lowering therapy
@@ -313,16 +313,16 @@ prepare_pci_data <- function(pci_data) {
       mort30ra = 1/(
           1 + exp(-1 * (
             -5.49731 +
-              1.26907 * ifelse(age >= 80, 1, 0) + #age80
-              2.81611 * ifelse(shock == 0 | is.na(shock), 0, 1) + #shock
-              1.56140 * ifelse(oca == 0 | is.na(oca), 0, 1) + #oca
-              0.60308 * ifelse(db == 0 | is.na(db), 0, 1) + #db
-              0.60324 * ifelse(acst %in% c(1,3) | is.na(acst), 0, 1) + #nstemi
-              1.56066 * ifelse(acst %in% c(1,2) | is.na(acst), 0, 1) #stemi
+              1.26907 * dplyr::if_else(age >= 80, 1, 0, missing = 0) + #age80
+              2.81611 * dplyr::if_else(shock == 1, 1, 0, missing = 0) + #shock
+              1.56140 * dplyr::if_else(oca == 1, 1, 0, missing = 0) + #oca
+              0.60308 * dplyr::if_else(db == 1, 1, 0, missing = 0) + #db
+              0.60324 * dplyr::if_else(acst == 2, 1, 0, missing = 0) + #nstemi
+              1.56066 * dplyr::if_else(acst == 3, 1, 0, missing = 0) #stemi
           ))
         ),
-      mort30ra_den = ifelse(NCR8_den == 1, mort30ra, 0),
-      mort30ra_num = ifelse(NCR8_den == 1, NCR8_num, 0)
+      mort30ra_den = dplyr::if_else(dis %in% c(1,2,3,4,5,6), mort30ra, 0, missing = 0), # only include valid discharges
+      mort30ra_num = dplyr::if_else(dis %in% c(1,2,3,4,5,6) & (dmort30 - dod < 31 | dis == 6), 1, 0, missing = 0) # numerator includes 30 day mortality and in-hospital mortality
     )
 
   pci_data
