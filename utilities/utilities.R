@@ -307,6 +307,24 @@ prepare_pci_data <- function(pci_data) {
       )
     )
 
+  # Risk-adjusted 30-day mortality calculations
+  pci_data <- pci_data |>
+    dplyr::mutate(
+      mort30ra = 1/(
+          1 + exp(-1 * (
+            -5.49731 +
+              1.26907 * ifelse(age >= 80, 1, 0) + #age80
+              2.81611 * ifelse(shock == 0 | is.na(shock), 0, 1) + #shock
+              1.56140 * ifelse(oca == 0 | is.na(oca), 0, 1) + #oca
+              0.60308 * ifelse(db == 0 | is.na(db), 0, 1) + #db
+              0.60324 * ifelse(acst %in% c(1,3) | is.na(acst), 0, 1) + #nstemi
+              1.56066 * ifelse(acst %in% c(1,2) | is.na(acst), 0, 1) #stemi
+          ))
+        ),
+      mort30ra_den = ifelse(NCR8_den == 1, mort30ra, 0),
+      mort30ra_num = ifelse(NCR8_den == 1, NCR8_num, 0)
+    )
+
   pci_data
 }
 
