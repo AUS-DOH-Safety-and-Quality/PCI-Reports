@@ -267,7 +267,7 @@ prepare_pci_data <- function(pci_data) {
     dplyr::mutate(NCR11_den = dplyr::if_else(dis %in% c(1,2,3,4,5) &
                                                (dasp %in% c(0, 1) | doap %in% c(0, 1)),
                                              1, 0, missing = 0), # excludes any missing data, revisit to see if this is appropriate
-                  NCR11_num = dplyr::if_else(NC11_den == 1 &
+                  NCR11_num = dplyr::if_else(NCR11_den == 1 &
                                              (dasp == 1 & doap == 1), 1, 0, missing = 0))
 
   #Proportion of patients with radial access
